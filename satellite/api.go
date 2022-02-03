@@ -59,6 +59,7 @@ import (
 	"storj.io/storj/satellite/metainfo"
 	"storj.io/storj/satellite/metainfo/piecedeletion"
 	"storj.io/storj/satellite/nodestats"
+	"storj.io/storj/satellite/oidc"
 	"storj.io/storj/satellite/orders"
 	"storj.io/storj/satellite/overlay"
 	"storj.io/storj/satellite/payments"
@@ -171,6 +172,10 @@ type API struct {
 
 	NodeStats struct {
 		Endpoint *nodestats.Endpoint
+	}
+
+	OIDC struct {
+		Service *oidc.Service
 	}
 
 	SNOPayouts struct {
@@ -354,6 +359,10 @@ func NewAPI(log *zap.Logger, full *identity.FullIdentity, db DB,
 			config.LiveAccounting.BandwidthCacheTTL,
 			config.LiveAccounting.AsOfSystemInterval,
 		)
+	}
+
+	{ // setup oidc
+		peer.OIDC.Service = oidc.NewService(db.OIDC())
 	}
 
 	{ // setup orders
@@ -624,6 +633,7 @@ func NewAPI(log *zap.Logger, full *identity.FullIdentity, db DB,
 			peer.Log.Named("console:endpoint"),
 			consoleConfig,
 			peer.Console.Service,
+			peer.OIDC.Service,
 			peer.Mail.Service,
 			peer.Marketing.PartnersService,
 			peer.Analytics.Service,
