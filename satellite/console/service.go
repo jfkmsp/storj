@@ -281,6 +281,7 @@ func (paymentService PaymentsService) AddCreditCard(ctx context.Context, creditC
 			paymentService.service.config.UsageLimits.Bandwidth.Paid,
 			paymentService.service.config.UsageLimits.Storage.Paid,
 			paymentService.service.config.UsageLimits.Segment.Paid,
+			paymentService.service.config.UsageLimits.Project.Paid,
 		)
 		if err != nil {
 			return Error.Wrap(err)
@@ -649,7 +650,7 @@ func (s *Service) CreateUser(ctx context.Context, user CreateUser, tokenSecret R
 		if registrationToken != nil {
 			newUser.ProjectLimit = registrationToken.ProjectLimit
 		} else {
-			newUser.ProjectLimit = s.config.DefaultProjectLimit
+			newUser.ProjectLimit = s.config.UsageLimits.Project.Free
 		}
 
 		// TODO: move the project limits into the registration token.
