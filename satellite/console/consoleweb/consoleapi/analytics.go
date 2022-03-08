@@ -46,6 +46,8 @@ func (a *Analytics) EventTriggered(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "EventTriggered")
+	defer serverResponse.End()
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {

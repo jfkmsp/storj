@@ -25,6 +25,7 @@ import (
 	"github.com/graphql-go/graphql/gqlerrors"
 	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 
@@ -49,6 +50,8 @@ const (
 
 	applicationJSON    = "application/json"
 	applicationGraphql = "application/graphql"
+
+	serviceName        = "satellite-console"
 )
 
 var (
@@ -210,6 +213,7 @@ func NewServer(logger *zap.Logger, config Config, service *console.Service, mail
 	}
 
 	router := mux.NewRouter()
+	router.Use(otelmux.Middleware(serviceName))
 	fs := http.FileServer(http.Dir(server.config.StaticDir))
 
 	if server.config.GeneratedAPIEnabled {
@@ -451,6 +455,8 @@ func (server *Server) withAuth(handler http.Handler) http.Handler {
 		var ctx context.Context
 
 		defer mon.Task()(&ctx)(&err)
+		ctx, serverResponse := console.Tracer.Start(ctx, "withAuth")
+		defer serverResponse.End()
 
 		ctxWithAuth := func(ctx context.Context) context.Context {
 			token, err := server.cookieAuth.GetToken(r)
@@ -486,6 +492,8 @@ func (server *Server) bucketUsageReportHandler(w http.ResponseWriter, r *http.Re
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "bucketUsageReportHandler")
+	defer serverResponse.End()
 
 	token, err := server.cookieAuth.GetToken(r)
 	if err != nil {
@@ -547,6 +555,9 @@ func (server *Server) bucketUsageReportHandler(w http.ResponseWriter, r *http.Re
 func (server *Server) createRegistrationTokenHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	defer mon.Task()(&ctx)(nil)
+	ctx, serverResponse := console.Tracer.Start(ctx, "createRegistrationTokenHandler")
+	defer serverResponse.End()
+
 	w.Header().Set(contentType, applicationJSON)
 
 	var response struct {
@@ -592,6 +603,9 @@ func (server *Server) createRegistrationTokenHandler(w http.ResponseWriter, r *h
 func (server *Server) accountActivationHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	defer mon.Task()(&ctx)(nil)
+	ctx, serverResponse := console.Tracer.Start(ctx, "accountActivationHandler")
+	defer serverResponse.End()
+
 	activationToken := r.URL.Query().Get("token")
 
 	token, err := server.service.ActivateAccount(ctx, activationToken)
@@ -622,6 +636,9 @@ func (server *Server) accountActivationHandler(w http.ResponseWriter, r *http.Re
 func (server *Server) cancelPasswordRecoveryHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	defer mon.Task()(&ctx)(nil)
+	ctx, serverResponse := console.Tracer.Start(ctx, "cancelPasswordRecoveryHandler")
+	defer serverResponse.End()
+
 	recoveryToken := r.URL.Query().Get("token")
 
 	// No need to check error as we anyway redirect user to support page
@@ -635,6 +652,8 @@ func (server *Server) cancelPasswordRecoveryHandler(w http.ResponseWriter, r *ht
 func (server *Server) graphqlHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	defer mon.Task()(&ctx)(nil)
+	ctx, serverResponse := console.Tracer.Start(ctx, "graphqlHandler")
+	defer serverResponse.End()
 
 	handleError := func(code int, err error) {
 		w.WriteHeader(code)
@@ -774,6 +793,9 @@ func (server *Server) serveError(w http.ResponseWriter, status int) {
 
 // seoHandler used to communicate with web crawlers and other web robots.
 func (server *Server) seoHandler(w http.ResponseWriter, req *http.Request) {
+	_, serverResponse := console.Tracer.Start(req.Context(), "seoHandler")
+	defer serverResponse.End()
+
 	header := w.Header()
 
 	header.Set(contentType, mime.TypeByExtension(".txt"))

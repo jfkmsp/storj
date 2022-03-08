@@ -16,6 +16,7 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/stripe/stripe-go/v72"
 	"github.com/zeebo/errs"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 
@@ -97,6 +98,8 @@ var (
 
 	// ErrRecoveryToken describes account recovery token errors.
 	ErrRecoveryToken = errs.Class("recovery token")
+
+	Tracer trace.Tracer
 )
 
 // Service is handling accounts related logic.
@@ -154,7 +157,7 @@ type PaymentsService struct {
 }
 
 // NewService returns new instance of Service.
-func NewService(log *zap.Logger, signer Signer, store DB, projectAccounting accounting.ProjectAccounting, projectUsage *accounting.Service, buckets Buckets, partners *rewards.PartnersService, accounts payments.Accounts, analytics *analytics.Service, config Config) (*Service, error) {
+func NewService(log *zap.Logger, signer Signer, store DB, projectAccounting accounting.ProjectAccounting, projectUsage *accounting.Service, buckets Buckets, partners *rewards.PartnersService, accounts payments.Accounts, analytics *analytics.Service, config Config, tracer *trace.Tracer ) (*Service, error) {
 	if signer == nil {
 		return nil, errs.New("signer can't be nil")
 	}
@@ -167,6 +170,8 @@ func NewService(log *zap.Logger, signer Signer, store DB, projectAccounting acco
 	if config.PasswordCost == 0 {
 		config.PasswordCost = bcrypt.DefaultCost
 	}
+
+	Tracer = *tracer
 
 	return &Service{
 		log:               log,

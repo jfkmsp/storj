@@ -37,6 +37,8 @@ func (keys *APIKeys) DeleteByNameAndProjectID(w http.ResponseWriter, r *http.Req
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "DeleteByNameAndProjectID")
+	defer serverResponse.End()
 
 	name := r.URL.Query().Get("name")
 	projectIDString := r.URL.Query().Get("projectID")

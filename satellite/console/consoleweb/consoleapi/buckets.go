@@ -38,6 +38,8 @@ func (b *Buckets) AllBucketNames(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "AllBucketNames")
+	defer serverResponse.End()
 
 	w.Header().Set("Content-Type", "application/json")
 

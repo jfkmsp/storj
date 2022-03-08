@@ -81,6 +81,8 @@ func (a *Auth) Token(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "Token")
+	defer serverResponse.End()
 
 	tokenRequest := console.AuthUser{}
 	err = json.NewDecoder(r.Body).Decode(&tokenRequest)
@@ -114,6 +116,8 @@ func (a *Auth) Token(w http.ResponseWriter, r *http.Request) {
 func (a *Auth) Logout(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	defer mon.Task()(&ctx)(nil)
+	ctx, serverResponse := console.Tracer.Start(ctx, "Logout")
+	defer serverResponse.End()
 
 	a.cookieAuth.RemoveTokenCookie(w)
 
@@ -132,6 +136,8 @@ func (a *Auth) Register(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "Register")
+	defer serverResponse.End()
 
 	origin := r.Header.Get("Origin")
 	if supportedCORSOrigins[origin] {
@@ -338,6 +344,8 @@ func (a *Auth) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "UpdateAccount")
+	defer serverResponse.End()
 
 	var updatedInfo struct {
 		FullName  string `json:"fullName"`
@@ -360,6 +368,8 @@ func (a *Auth) GetAccount(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "GetAccount")
+	defer serverResponse.End()
 
 	var user struct {
 		ID                   uuid.UUID `json:"id"`
@@ -413,6 +423,8 @@ func (a *Auth) GetAccount(w http.ResponseWriter, r *http.Request) {
 func (a *Auth) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	defer mon.Task()(&ctx)(&errNotImplemented)
+	ctx, serverResponse := console.Tracer.Start(ctx, "DeleteAccount")
+	defer serverResponse.End()
 
 	// We do not want to allow account deletion via API currently.
 	a.serveJSONError(w, errNotImplemented)
@@ -423,6 +435,8 @@ func (a *Auth) ChangeEmail(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "ChangeEmail")
+	defer serverResponse.End()
 
 	var emailChange struct {
 		NewEmail string `json:"newEmail"`
@@ -446,6 +460,8 @@ func (a *Auth) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "ChangePassword")
+	defer serverResponse.End()
 
 	var passwordChange struct {
 		CurrentPassword string `json:"password"`
@@ -470,6 +486,8 @@ func (a *Auth) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "ForgotPassword")
+	defer serverResponse.End()
 
 	params := mux.Vars(r)
 	email, ok := params["email"]
@@ -522,6 +540,8 @@ func (a *Auth) ResendEmail(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "ResendEmail")
+	defer serverResponse.End()
 
 	params := mux.Vars(r)
 	email, ok := params["email"]
@@ -601,6 +621,8 @@ func (a *Auth) EnableUserMFA(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "EnableUserMFA")
+	defer serverResponse.End()
 
 	var data struct {
 		Passcode string `json:"passcode"`
@@ -623,6 +645,8 @@ func (a *Auth) DisableUserMFA(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "DisableUserMFA")
+	defer serverResponse.End()
 
 	var data struct {
 		Passcode     string `json:"passcode"`
@@ -646,6 +670,8 @@ func (a *Auth) GenerateMFASecretKey(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "GenerateMFASecretKey")
+	defer serverResponse.End()
 
 	key, err := a.service.ResetMFASecretKey(ctx)
 	if err != nil {
@@ -666,6 +692,8 @@ func (a *Auth) GenerateMFARecoveryCodes(w http.ResponseWriter, r *http.Request) 
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "GenerateMFARecoveryCodes")
+	defer serverResponse.End()
 
 	codes, err := a.service.ResetMFARecoveryCodes(ctx)
 	if err != nil {
@@ -686,6 +714,8 @@ func (a *Auth) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "ResetPassword")
+	defer serverResponse.End()
 
 	var resetPassword struct {
 		RecoveryToken   string `json:"token"`

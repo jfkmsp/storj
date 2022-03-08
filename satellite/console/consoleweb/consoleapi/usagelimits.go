@@ -42,6 +42,8 @@ func (ul *UsageLimits) ProjectUsageLimits(w http.ResponseWriter, r *http.Request
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "ProjectUsageLimits")
+	defer serverResponse.End()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -85,6 +87,8 @@ func (ul *UsageLimits) TotalUsageLimits(w http.ResponseWriter, r *http.Request) 
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "TotalUsageLimits")
+	defer serverResponse.End()
 
 	usageLimits, err := ul.service.GetTotalUsageLimits(ctx)
 	if err != nil {
@@ -108,6 +112,8 @@ func (ul *UsageLimits) DailyUsage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "DailyUsage")
+	defer serverResponse.End()
 
 	var ok bool
 	var idParam string
