@@ -43,6 +43,8 @@ func (p *Payments) SetupAccount(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "SetupAccount")
+	defer serverResponse.End()
 
 	couponType, err := p.service.Payments().SetupAccount(ctx)
 
@@ -67,6 +69,8 @@ func (p *Payments) AccountBalance(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "AccountBalance")
+	defer serverResponse.End()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -92,6 +96,8 @@ func (p *Payments) ProjectsCharges(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "ProjectsCharges")
+	defer serverResponse.End()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -131,6 +137,8 @@ func (p *Payments) AddCreditCard(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "AddCreditCard")
+	defer serverResponse.End()
 
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -157,6 +165,8 @@ func (p *Payments) ListCreditCards(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "ListCreditCards")
+	defer serverResponse.End()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -187,6 +197,8 @@ func (p *Payments) MakeCreditCardDefault(w http.ResponseWriter, r *http.Request)
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "MakeCreditCardDefault")
+	defer serverResponse.End()
 
 	cardID, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -211,6 +223,8 @@ func (p *Payments) RemoveCreditCard(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "RemoveCreditCard")
+	defer serverResponse.End()
 
 	vars := mux.Vars(r)
 	cardID := vars["cardId"]
@@ -237,6 +251,8 @@ func (p *Payments) BillingHistory(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "BillingHistory")
+	defer serverResponse.End()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -267,6 +283,8 @@ func (p *Payments) ApplyCouponCode(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "TokenDeposit")
+	defer serverResponse.End()
 
 	// limit the size of the body to prevent excessive memory usage
 	bodyBytes, err := io.ReadAll(io.LimitReader(r.Body, 1*1024*1024))
@@ -316,6 +334,8 @@ func (p *Payments) GetWallet(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "ApplyCouponCode")
+	defer serverResponse.End()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -364,6 +384,8 @@ func (p *Payments) WalletPayments(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
 	defer mon.Task()(&ctx)(&err)
+	ctx, serverResponse := console.Tracer.Start(ctx, "GetCoupon")
+	defer serverResponse.End()
 
 	w.Header().Set("Content-Type", "application/json")
 

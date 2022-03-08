@@ -52,7 +52,7 @@ const (
 	applicationJSON    = "application/json"
 	applicationGraphql = "application/graphql"
 
-	serviceName        = "satellite-console"
+	serviceName = "satellite-console"
 )
 
 var (
@@ -244,6 +244,7 @@ func NewServer(logger *zap.Logger, config Config, service *console.Service, oidc
 	// N.B. This middleware has to be the first one because it has to be called
 	// the earliest in the HTTP chain.
 	//router.Use(newTraceRequestMiddleware(logger, router))
+
 	router.Use(otelmux.Middleware(serviceName))
 	//fs := http.FileServer(http.Dir(server.config.StaticDir))
 

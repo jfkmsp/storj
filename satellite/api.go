@@ -5,15 +5,28 @@ package satellite
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
+	"log"
 	"net"
+	"os"
 	"runtime/pprof"
+	"strings"
+	"time"
 
 	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc/credentials"
 
 	"storj.io/common/identity"
 	"storj.io/common/pb"
@@ -53,6 +66,17 @@ import (
 	"storj.io/storj/satellite/reputation"
 	"storj.io/storj/satellite/rewards"
 	"storj.io/storj/satellite/snopayouts"
+)
+
+const (
+	serviceName        = "satellite"
+	serviceVersion     = "v1.0.0"
+	elasticCloudSuffix = "cloud.es.io"
+	httpsPreffix       = "https://"
+)
+
+var (
+	tracer trace.Tracer
 )
 
 // API is the satellite API process.
@@ -584,6 +608,7 @@ func NewAPI(log *zap.Logger, full *identity.FullIdentity, db DB,
 			peer.Mail.Service,
 			externalAddress,
 			consoleConfig.Config,
+			&tracer,
 		)
 		if err != nil {
 			return nil, errs.Combine(err, peer.Close())
@@ -679,11 +704,88 @@ func (peer *API) Run(ctx context.Context) (err error) {
 		peer.Servers.Run(ctx, group)
 		peer.Services.Run(ctx, group)
 
+		{ // otel
+			// OpenTelemetry agent connectivity data
+			endpoint := os.Getenv("EXPORTER_ENDPOINT")
+			headers := os.Getenv("EXPORTER_HEADERS")
+			headersMap := func(headers string) map[string]string {
+				headersMap := make(map[string]string)
+				if len(headers) > 0 {
+					headerItems := strings.Split(headers, ",")
+					for _, headerItem := range headerItems {
+						parts := strings.Split(headerItem, "=")
+						headersMap[parts[0]] = parts[1]
+					}
+				}
+				return headersMap
+			}(headers)
+
+			// Resource to name traces/metrics
+			resource, err := resource.New(ctx,
+				resource.WithAttributes(
+					semconv.ServiceNameKey.String(serviceName),
+					semconv.ServiceVersionKey.String(serviceVersion),
+					semconv.TelemetrySDKVersionKey.String("v1.4.1"),
+					semconv.TelemetrySDKLanguageGo,
+				),
+			)
+
+			if err != nil {
+				withoutStack := errors.New(err.Error())
+				peer.Log.Debug("failed to setup otel", zap.Error(withoutStack))
+			}
+
+			tp := initTracer(ctx, endpoint, headersMap, resource)
+			defer func() {
+				if err := tp.Shutdown(context.Background()); err != nil {
+					log.Printf("Error shutting down tracer provider: %v", err)
+				}
+			}()
+		}
+
 		pprof.Do(ctx, pprof.Labels("name", "subsystem-wait"), func(ctx context.Context) {
 			err = group.Wait()
 		})
 	})
 	return err
+}
+
+func initTracer(ctx context.Context, endpoint string,
+	headersMap map[string]string, res0urce *resource.Resource) *sdktrace.TracerProvider {
+
+	traceOpts := []otlptracegrpc.Option{
+		otlptracegrpc.WithTimeout(5 * time.Second),
+	}
+	if strings.Contains(endpoint, elasticCloudSuffix) {
+		endpoint = strings.ReplaceAll(endpoint, httpsPreffix, "")
+		traceOpts = append(traceOpts, otlptracegrpc.WithHeaders(headersMap))
+		traceOpts = append(traceOpts, otlptracegrpc.WithTLSCredentials(credentials.NewTLS(&tls.Config{})))
+	} else {
+		traceOpts = append(traceOpts, otlptracegrpc.WithInsecure())
+	}
+	traceOpts = append(traceOpts, otlptracegrpc.WithEndpoint(endpoint))
+
+	traceExporter, err := otlptracegrpc.New(ctx, traceOpts...)
+	if err != nil {
+		log.Fatalf("%s: %v", "failed to create exporter", err)
+	}
+
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithResource(res0urce),
+		sdktrace.WithSpanProcessor(sdktrace.NewBatchSpanProcessor(traceExporter)),
+	)
+	otel.SetTracerProvider(tp)
+
+	otel.SetTextMapPropagator(
+		propagation.NewCompositeTextMapPropagator(
+			propagation.Baggage{},
+			propagation.TraceContext{},
+		),
+	)
+
+	tracer = otel.Tracer("io.opentelemetry.traces.hello")
+	return tp
 }
 
 // Close closes all the resources.

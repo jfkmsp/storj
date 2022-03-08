@@ -18,6 +18,7 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/stripe/stripe-go/v72"
 	"github.com/zeebo/errs"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 
@@ -116,6 +117,8 @@ var (
 
 	// ErrRecoveryToken describes account recovery token errors.
 	ErrRecoveryToken = errs.Class("recovery token")
+
+	Tracer trace.Tracer
 )
 
 // Service is handling accounts related logic.
@@ -201,7 +204,7 @@ type Payments struct {
 }
 
 // NewService returns new instance of Service.
-func NewService(log *zap.Logger, store DB, restKeys RESTKeys, projectAccounting accounting.ProjectAccounting, projectUsage *accounting.Service, buckets Buckets, partners *rewards.PartnersService, accounts payments.Accounts, depositWallets payments.DepositWallets, billing billing.TransactionsDB, analytics *analytics.Service, tokens *consoleauth.Service, mailService *mailservice.Service, satelliteAddress string, config Config) (*Service, error) {
+func NewService(log *zap.Logger, store DB, restKeys RESTKeys, projectAccounting accounting.ProjectAccounting, projectUsage *accounting.Service, buckets Buckets, partners *rewards.PartnersService, accounts payments.Accounts, depositWallets payments.DepositWallets, billing billing.TransactionsDB, analytics *analytics.Service, tokens *consoleauth.Service, mailService *mailservice.Service, satelliteAddress string, config Config, tracer *trace.Tracer) (*Service, error) {
 	if store == nil {
 		return nil, errs.New("store can't be nil")
 	}
@@ -228,6 +231,8 @@ func NewService(log *zap.Logger, store DB, restKeys RESTKeys, projectAccounting 
 	} else if config.Captcha.Login.Hcaptcha.Enabled {
 		loginCaptchaHandler = NewDefaultCaptcha(Hcaptcha, config.Captcha.Login.Hcaptcha.SecretKey)
 	}
+
+	Tracer = *tracer
 
 	return &Service{
 		log:                        log,
