@@ -292,6 +292,12 @@ func (a *Auth) Register(w http.ResponseWriter, r *http.Request) {
 		if referrer == "" {
 			referrer = r.Referer()
 		}
+		hubspotUTK := ""
+		hubspotCookie, err := r.Cookie("hubspotutk")
+		if err == nil {
+			hubspotUTK = hubspotCookie.Value
+		}
+
 		trackCreateUserFields := analytics.TrackCreateUserFields{
 			ID:           user.ID,
 			AnonymousID:  loadSession(r),
@@ -300,6 +306,7 @@ func (a *Auth) Register(w http.ResponseWriter, r *http.Request) {
 			Type:         analytics.Personal,
 			OriginHeader: origin,
 			Referrer:     referrer,
+			HubspotUTK:   hubspotUTK,
 		}
 		if user.IsProfessional {
 			trackCreateUserFields.Type = analytics.Professional
