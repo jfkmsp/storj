@@ -98,6 +98,7 @@ type Config struct {
 	NewProjectDashboard             bool    `help:"indicates if new project dashboard should be used" default:"false"`
 	NewNavigation                   bool    `help:"indicates if new navigation structure should be rendered" default:"true"`
 	NewObjectsFlow                  bool    `help:"indicates if new objects flow should be used" default:"true"`
+	NewAccessGrantFlow              bool    `help:"indicates if new access grant flow should be used" default:"false"`
 	GeneratedAPIEnabled             bool    `help:"indicates if generated console api should be used" default:"false"`
 	InactivityTimerEnabled          bool    `help:"indicates if session can be timed out due inactivity" default:"false"`
 	InactivityTimerDelay            int     `help:"inactivity timer delay in seconds" default:"600"`
@@ -414,6 +415,7 @@ func (server *Server) appHandler(w http.ResponseWriter, r *http.Request) {
 		DefaultPaidBandwidthLimit       memory.Size
 		NewNavigation                   bool
 		NewObjectsFlow                  bool
+		NewAccessGrantFlow              bool
 		InactivityTimerEnabled          bool
 		InactivityTimerDelay            int
 		OptionalSignupSuccessURL        string
@@ -447,6 +449,7 @@ func (server *Server) appHandler(w http.ResponseWriter, r *http.Request) {
 	data.NewProjectDashboard = server.config.NewProjectDashboard
 	data.NewNavigation = server.config.NewNavigation
 	data.NewObjectsFlow = server.config.NewObjectsFlow
+	data.NewAccessGrantFlow = server.config.NewAccessGrantFlow
 	data.InactivityTimerEnabled = server.config.InactivityTimerEnabled
 	data.InactivityTimerDelay = server.config.InactivityTimerDelay
 	data.OptionalSignupSuccessURL = server.config.OptionalSignupSuccessURL
