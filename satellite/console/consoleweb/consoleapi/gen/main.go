@@ -114,5 +114,6 @@ func main() {
 		})
 	}
 
-	a.MustWriteGo("satellite/console/consoleweb/consoleapi/api.gen.go")
+	// a.MustWriteGo("satellite/console/consoleweb/consoleapi/api.gen.go")
+	a.MustWriteTS("testts.gen.go")
 }
