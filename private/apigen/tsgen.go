@@ -16,6 +16,7 @@ var tsTypeOverrides = map[string]string{
 	"uuid.UUID":   "string",
 	"time.Time":   "string",
 	"memory.Size": "number",
+	"[]uint8":     "string", // e.g. []byte
 }
 
 // getBasicReflectType dereferences a pointer and gets the basic types from slices.
@@ -34,18 +35,22 @@ func tsType(t reflect.Type) string {
 		return override
 	}
 	switch t.Kind() {
+	case reflect.Ptr:
+		return tsType(t.Elem())
+	case reflect.Slice:
+		return tsType(t.Elem()) + "[]"
 	case reflect.String:
 		return "string"
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32:
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return "number"
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return "number"
 	case reflect.Float32, reflect.Float64:
 		return "number"
-	case reflect.Struct:
-		return t.Name()
 	case reflect.Bool:
 		return "boolean"
-	case reflect.Slice:
-		return t.Name() + "[]"
+	case reflect.Struct:
+		return t.Name()
 	default:
 		//panic("unhandled type: " + t.Name())
 
@@ -98,32 +103,40 @@ func (f *tsGenFile) write() error {
 	return os.WriteFile(f.path, []byte(f.result), 0644)
 }
 
+func (f *tsGenFile) getStructsFromType(t reflect.Type) {
+	t = getBasicReflectType(t)
+	override := tsTypeOverrides[t.String()]
+	if len(override) > 0 {
+		return
+	}
+
+	f.types[t] = true
+
+	// if it is a struct, get any types needed from the fields
+	if t.Kind() == reflect.Struct {
+		for i := 0; i < t.NumField(); i++ {
+			field := t.Field(i)
+			f.getStructsFromType(field.Type)
+		}
+	}
+
+}
+
 func (f *tsGenFile) generateTS() error {
 	for _, group := range f.api.EndpointGroups {
 		for _, method := range group.endpoints {
 			if method.Request != nil {
 				reqType := reflect.TypeOf(method.Request)
-				t := getBasicReflectType(reqType)
-				override := tsTypeOverrides[reqType.String()]
-				if len(override) == 0 {
-					f.types[t] = true
-				}
+				f.getStructsFromType(reqType)
 			}
 			if method.Response != nil {
 				resType := reflect.TypeOf(method.Response)
-				t := getBasicReflectType(resType)
-				override := tsTypeOverrides[resType.String()]
-				if len(override) == 0 {
-					f.types[t] = true
-				}
+				f.getStructsFromType(resType)
 			}
 			if len(method.Params) > 0 {
 				for _, p := range method.Params {
 					t := getBasicReflectType(p.Type)
-					override := tsTypeOverrides[p.Type.String()]
-					if len(override) == 0 {
-						f.types[t] = true
-					}
+					f.getStructsFromType(t)
 				}
 			}
 		}
