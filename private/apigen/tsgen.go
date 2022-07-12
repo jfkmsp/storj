@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/zeebo/errs"
@@ -74,17 +75,20 @@ func (a *API) MustWriteTS(path string) {
 }
 
 type tsGenFile struct {
-	result string
-	path   string
-	types  map[reflect.Type]bool
-	api    *API
+	result       string
+	path         string
+	types        map[reflect.Type][]reflect.Type
+	typeList     []reflect.Type
+	typesWritten map[reflect.Type]bool
+	api          *API
 }
 
 func newTSGenFile(filepath string, api *API) *tsGenFile {
 	f := &tsGenFile{
-		path:  filepath,
-		types: make(map[reflect.Type]bool),
-		api:   api,
+		path:         filepath,
+		types:        make(map[reflect.Type][]reflect.Type),
+		typesWritten: make(map[reflect.Type]bool),
+		api:          api,
 	}
 
 	f.p("<<<<<< START >>>>>")
@@ -110,13 +114,19 @@ func (f *tsGenFile) getStructsFromType(t reflect.Type) {
 		return
 	}
 
-	f.types[t] = true
+	if _, ok := f.types[t]; !ok {
+		f.typeList = append(f.typeList, t)
+		f.types[t] = []reflect.Type{}
+	}
 
 	// if it is a struct, get any types needed from the fields
 	if t.Kind() == reflect.Struct {
 		for i := 0; i < t.NumField(); i++ {
 			field := t.Field(i)
 			f.getStructsFromType(field.Type)
+			deps := f.types[t]
+			deps = append(deps, getBasicReflectType(field.Type))
+			f.types[t] = deps
 		}
 	}
 
@@ -143,9 +153,11 @@ func (f *tsGenFile) generateTS() error {
 	}
 
 	fmt.Println("all types")
-	for t, _ := range f.types {
-		fmt.Println(t.String())
-		fmt.Println(tsType(t))
+	sort.Slice(f.typeList, func(i, j int) bool {
+		return strings.Compare(f.typeList[i].Name(), f.typeList[j].Name()) < 0
+	})
+
+	for _, t := range f.typeList {
 		f.emitStruct(t)
 	}
 	fmt.Println("end")
@@ -154,13 +166,27 @@ func (f *tsGenFile) generateTS() error {
 }
 
 func (f *tsGenFile) emitStruct(t reflect.Type) {
+	override := tsTypeOverrides[t.String()]
+	if len(override) > 0 {
+		return
+	}
+	if f.typesWritten[t] {
+		return
+	}
 	if t.Kind() != reflect.Struct {
 		// TODO: handle slices
 		return
 	}
 
+	for _, d := range f.types[t] {
+		if f.typesWritten[d] {
+			continue
+		}
+		f.emitStruct(d)
+	}
+
 	f.p("class %s {", t.Name())
-	defer f.p("}")
+	defer f.p("}\n")
 
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
@@ -177,4 +203,5 @@ func (f *tsGenFile) emitStruct(t reflect.Type) {
 	f.p("\n\tstatic fromJSON(v unknown): %s {", t.Name())
 	// TODO:
 	f.p("\t}")
+	f.typesWritten[t] = true
 }
