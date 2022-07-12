@@ -115,5 +115,5 @@ func main() {
 	}
 
 	// a.MustWriteGo("satellite/console/consoleweb/consoleapi/api.gen.go")
-	a.MustWriteTS("testts.gen.go")
+	a.MustWriteTS("testts.gen.ts")
 }
