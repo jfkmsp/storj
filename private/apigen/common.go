@@ -10,6 +10,7 @@ import (
 // API represents specific API's configuration.
 type API struct {
 	Version        string
+	Title          string
 	Description    string
 	PackageName    string
 	Auth           api.Auth
