@@ -5,6 +5,7 @@ package apigen
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"reflect"
 	"sort"
@@ -189,21 +190,31 @@ func (f *tsGenFile) generateTS() error {
 			f.p("\t\ttry {")
 
 			pathWithoutParams, _, _ := strings.Cut(method.Path, "{")
-			pathWithoutParams = strings.TrimSuffix(pathWithoutParams, "/")
 
 			path := fmt.Sprintf("${this.ROOT_PATH}%s", pathWithoutParams+reqParams)
+			path = strings.Replace(path, "//", "/", -1)
+
 			f.p("\t\t\tconst path = `%s`;", path)
 
 			f.p("\t\t\tconst body = {")
 			// TODO: insert endpoint request
 			f.p("\t\t\t};")
-			f.p("\t\t\tconst response = await this.http.%s(path, JSON.stringify(body));", strings.ToLower(method.Method))
+			if method.Method == http.MethodGet || method.Method == http.MethodDelete {
+				f.p("\t\t\tconst response = await this.http.%s(path);", strings.ToLower(method.Method))
+			} else {
+				f.p("\t\t\tconst response = await this.http.%s(path, JSON.stringify(body));", strings.ToLower(method.Method))
+			}
 			f.p("\t\t\tif (response.ok) {")
-			f.p("\t\t\t\treturn;")
+			rtnStmt := "return"
+			if method.Response != nil {
+				rtnStmt += fmt.Sprintf(" response.json().then((body) => body as %s)", returnType)
+			}
+			rtnStmt += ";"
+			f.p("\t\t\t\t%s", rtnStmt)
 			f.p("\t\t\t}")
-			f.p("\t\t\tconsole.error('something went wrong with %s')", method.Description)
+			f.p("\t\t\tthrow new Error(`something went wrong with %s`)", method.Description)
 			f.p("\t\t} catch (error) {")
-			f.p("\t\t\tconsole.error('something went wrong with %s. Most likely blocked by browser');", method.Description)
+			f.p("\t\t\tthrow new Error(`something went wrong with %s. Most likely blocked by browser`);", method.Description)
 			f.p("\t\t}")
 			f.p("\t}\n")
 		}
