@@ -27,10 +27,28 @@ type specEndpoint struct {
 }
 
 type specMethod struct {
-	Summary string `json:"summary"`
+	OperationID string    `json:"operationId"`
+	Summary     string    `json:"summary"`
+	Response    responses `json:"responses"`
 }
 
-// MustWriteTS writes generated TypeScript code into a file.
+type responses struct {
+	Num200 code200 `json:"200"` //change to struct
+}
+
+type code200 struct {
+	Description string      `json:"description"`
+	Content     contentType `json:"content"`
+}
+
+type contentType struct {
+	ApplicationJSON appjson `json:"application/json"`
+}
+
+type appjson struct {
+}
+
+// MustWriteOpenAPI writes generated OpenAPI code into a file.
 func (a *API) MustWriteOpenAPI(path string) {
 	f := newOpenAPIGenFile(path, a)
 
@@ -78,13 +96,26 @@ func (f *openAPIGenFile) generateOpenAPI() error {
 		Paths: make(map[string]specEndpoint),
 	}
 
-	o.Paths["/"] = specEndpoint{
-		Get: specMethod{
-			Summary: "Test API endpoint",
-		},
+	for _, group := range f.api.EndpointGroups {
+		for _, method := range group.endpoints {
+
+			o.Paths[method.Path] = specEndpoint{
+				Get: specMethod{
+					OperationID: method.MethodName,
+					Summary:     method.Description,
+					Response: responses{
+						Num200: code200{
+							Description: "Get From Somewhere",
+							Content:     contentType{},
+						},
+					},
+				},
+			}
+
+		}
 	}
 
-	out, err := json.Marshal(o)
+	out, err := json.MarshalIndent(o, "", "\t")
 	if err != nil {
 		return err
 	}

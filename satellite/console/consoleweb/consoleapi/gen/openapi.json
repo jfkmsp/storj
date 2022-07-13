@@ -1,0 +1,93 @@
+{
+	"openapi": "3.0.0",
+	"info": {
+		"title": "Make it meaningful",
+		"version": "v0"
+	},
+	"paths": {
+		"/": {
+			"get": {
+				"operationId": "GenGetUser",
+				"summary": "Gets User by request context",
+				"responses": {
+					"200": {
+						"description": "Get From Somewhere",
+						"content": {
+							"application/json": {}
+						}
+					}
+				}
+			}
+		},
+		"/bucket-rollup": {
+			"get": {
+				"operationId": "GenGetSingleBucketUsageRollup",
+				"summary": "Gets project's single bucket usage by bucket ID",
+				"responses": {
+					"200": {
+						"description": "Get From Somewhere",
+						"content": {
+							"application/json": {}
+						}
+					}
+				}
+			}
+		},
+		"/bucket-rollups": {
+			"get": {
+				"operationId": "GenGetBucketUsageRollups",
+				"summary": "Gets project's all buckets usage",
+				"responses": {
+					"200": {
+						"description": "Get From Somewhere",
+						"content": {
+							"application/json": {}
+						}
+					}
+				}
+			}
+		},
+		"/create": {
+			"get": {
+				"operationId": "GenCreateAPIKey",
+				"summary": "Creates new macaroon API key with given info",
+				"responses": {
+					"200": {
+						"description": "Get From Somewhere",
+						"content": {
+							"application/json": {}
+						}
+					}
+				}
+			}
+		},
+		"/delete/{id}": {
+			"get": {
+				"operationId": "GenDeleteProject",
+				"summary": "Deletes project by id",
+				"responses": {
+					"200": {
+						"description": "Get From Somewhere",
+						"content": {
+							"application/json": {}
+						}
+					}
+				}
+			}
+		},
+		"/update/{id}": {
+			"get": {
+				"operationId": "GenUpdateProject",
+				"summary": "Updates project with given info",
+				"responses": {
+					"200": {
+						"description": "Get From Somewhere",
+						"content": {
+							"application/json": {}
+						}
+					}
+				}
+			}
+		}
+	}
+}
