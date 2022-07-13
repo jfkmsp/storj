@@ -160,8 +160,16 @@ func (f *tsGenFile) generateTS() error {
 	}
 	fmt.Println("end")
 
+	// TODO: this should be at the top of the file.
+	f.p("import { HttpClient } from '@/utils/httpClient'")
+
 	// loop over endpoints
 	for _, group := range f.api.EndpointGroups {
+		f.p("export class %sHttpApi {", group.Prefix)
+		f.p("\tprivate readonly http: HttpClient = new HttpClient();")
+		// TODO: get the full path from the api definition struct rather than hardcoding it
+		f.p("\tprivate readonly ROOT_PATH: string = '/api/v0/%s';", group.Prefix)
+		f.p("")
 		for _, method := range group.endpoints {
 			var funcArgs string
 			var reqParams string
@@ -169,28 +177,33 @@ func (f *tsGenFile) generateTS() error {
 				if i > 0 {
 					funcArgs += ", "
 				}
-				funcArgs += p.Name + ": " + p.Type.String()
+				funcArgs += p.Name + ": " + tsType(p.Type)
 				reqParams += fmt.Sprintf("/${%s}", p.Name)
 			}
-			f.p("public async %s(%s): Promise<void> {", method.Path+"_"+group.Prefix, funcArgs)
-			f.p("\ttry {")
 
-			path := fmt.Sprintf("${this.ROOT_PATH}/%s", group.Prefix+method.Path+reqParams)
-			f.p("\t\tconst path = `%s`;", path)
+			f.p("\tpublic async %s(%s): Promise<void> {", method.RequestName, funcArgs)
+			f.p("\t\ttry {")
 
-			f.p("\t\tconst body = {")
-			for _, p := range method.Params {
-				f.p("\t\t\t%s: %s", p.Name, p.Type)
-			}
-			f.p("\t\t};")
-			f.p("\t\tconst response = await this.http.post(path, JSON.stringify(body));")
-			f.p("\t\tif (response.ok) {")
-			f.p("\t\t\treturn;")
+			pathWithoutParams, _, _ := strings.Cut(method.Path, "{")
+			pathWithoutParams = strings.TrimSuffix(pathWithoutParams, "/")
+
+			path := fmt.Sprintf("${this.ROOT_PATH}/%s", group.Prefix+pathWithoutParams+reqParams)
+			f.p("\t\t\tconst path = `%s`;", path)
+
+			f.p("\t\t\tconst body = {")
+			// TODO: insert endpoint request
+			f.p("\t\t\t};")
+			f.p("\t\t\tconst response = await this.http.%s(path, JSON.stringify(body));", strings.ToLower(method.Method))
+			f.p("\t\t\tif (response.ok) {")
+			f.p("\t\t\t\treturn;")
+			f.p("\t\t\t}")
+			f.p("\t\t\tconsole.error('something went wrong with %s')", method.Description)
+			f.p("\t\t} catch (error) {")
+			f.p("\t\t\tconsole.error('something went wrong with %s. Most likely blocked by browser');", method.Description)
 			f.p("\t\t}")
-			f.p("\t\tconsole.error('something went wrong with %s')", method.Description)
-			f.p("\t} catch (error) {")
-			f.p("\t\tconsole.error('something went wrong with %s. Most likely blocked by browser')", method.Description)
+			f.p("\t}\n")
 		}
+		f.p("}")
 	}
 
 	return nil
