@@ -5,6 +5,15 @@
     <div class="dashboard-area">
         <div class="dashboard-area__header-wrapper">
             <h1 class="dashboard-area__header-wrapper__title" aria-roledescription="title">{{ projectName }} Dashboard</h1>
+            <VButton
+                class="create-project__container__button-container__cancel"
+                label="getUser"
+                width="210px"
+                height="48px"
+                :on-press="onGetUserClick"
+                is-transparent="true"
+            />
+            <pre>{{ userData }}</pre>
             <p class="dashboard-area__header-wrapper__message">
                 Expect a delay of a few hours between network activity and the latest dashboard stats.
             </p>
@@ -34,11 +43,14 @@ import { PAYMENTS_ACTIONS } from '@/store/modules/payments';
 import { PM_ACTIONS } from '@/utils/constants/actionNames';
 
 import { AnalyticsHttpApi } from '@/api/analytics';
+import VButton from '@/components/common/VButton.vue';
+import { usersHttpApi } from '@/api/testts.gen';
 
 // @vue/component
 @Component({
     components: {
         BucketArea,
+        VButton,
         ProjectUsage,
         ProjectSummary,
         VLoader,
@@ -47,6 +59,8 @@ import { AnalyticsHttpApi } from '@/api/analytics';
 export default class ProjectDashboard extends Vue {
     public areBucketsFetching = true;
     public isSummaryDataFetching = true;
+    public userData = '';
+    private readonly usersAPI: usersHttpApi = new usersHttpApi();
 
     public readonly analytics: AnalyticsHttpApi = new AnalyticsHttpApi();
 
@@ -84,6 +98,14 @@ export default class ProjectDashboard extends Vue {
      */
     public get projectName(): string {
         return this.$store.getters.selectedProject.name;
+    }
+
+    /**
+     * Redirects to previous route.
+     */
+    public async onGetUserClick(): Promise<void> {
+        let u = await this.usersAPI.getUser()
+        this.userData = JSON.stringify(u, null, 4)
     }
 }
 </script>
