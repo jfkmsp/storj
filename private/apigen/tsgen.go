@@ -181,13 +181,17 @@ func (f *tsGenFile) generateTS() error {
 				reqParams += fmt.Sprintf("/${%s}", p.Name)
 			}
 
-			f.p("\tpublic async %s(%s): Promise<void> {", method.RequestName, funcArgs)
+			returnType := "void"
+			if method.Response != nil {
+				returnType = getBasicReflectType(reflect.TypeOf(method.Response)).Name()
+			}
+			f.p("\tpublic async %s(%s): Promise<%s> {", method.RequestName, funcArgs, returnType)
 			f.p("\t\ttry {")
 
 			pathWithoutParams, _, _ := strings.Cut(method.Path, "{")
 			pathWithoutParams = strings.TrimSuffix(pathWithoutParams, "/")
 
-			path := fmt.Sprintf("${this.ROOT_PATH}/%s", group.Prefix+pathWithoutParams+reqParams)
+			path := fmt.Sprintf("${this.ROOT_PATH}%s", pathWithoutParams+reqParams)
 			f.p("\t\t\tconst path = `%s`;", path)
 
 			f.p("\t\t\tconst body = {")
