@@ -17,7 +17,7 @@ func main() {
 	// definition for REST API
 	a := &apigen.API{
 		Version:     "v0",
-		Description: "",
+		Description: "test description kimbo",
 		PackageName: "test",
 	}
 
@@ -81,5 +81,6 @@ func main() {
 	}
 
 	// a.MustWriteGo("satellite/console/consoleweb/consoleapi/api.gen.go")
-	a.MustWriteTS("testts.gen.go")
+	// a.MustWriteTS("testts.gen.go")
+	a.MustWriteOpenAPI("openapi.yaml")
 }

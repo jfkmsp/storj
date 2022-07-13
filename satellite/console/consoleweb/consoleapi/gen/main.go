@@ -17,8 +17,8 @@ import (
 func main() {
 	// definition for REST API
 	a := &apigen.API{
+		Title:       "OpenAPI Test",
 		Version:     "v0",
-		Title:       "Make it meaningful",
 		Description: "Make it meaningful",
 		PackageName: "consoleapi",
 	}
