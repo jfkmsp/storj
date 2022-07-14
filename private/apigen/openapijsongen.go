@@ -163,7 +163,7 @@ func (f *openAPIGenFile) generateOpenAPI() error {
 
 			if e.Response != nil {
 				// object case
-				t := reflect.TypeOf(e.Response).Elem()
+				t := reflect.TypeOf(e.Response)
 				if t.Kind() == reflect.Struct {
 					schemaToAdd := schema{
 						Schema: schemaProps{
