@@ -31,10 +31,8 @@ func main() {
 			Description: "Creates new Project with given info",
 			MethodName:  "GenCreateProject",
 			RequestName: "createProject",
-			Response:    &console.Project{},
-			Params: []apigen.Param{
-				apigen.NewParam("projectInfo", console.ProjectInfo{}),
-			},
+			Response:    console.Project{},
+			Request:     console.ProjectInfo{},
 		})
 
 		g.Patch("/update/{id}", &apigen.Endpoint{
@@ -42,10 +40,10 @@ func main() {
 			Description: "Updates project with given info",
 			MethodName:  "GenUpdateProject",
 			RequestName: "updateProject",
-			Response:    &console.Project{},
-			Params: []apigen.Param{
+			Response:    console.Project{},
+			Request:     console.ProjectInfo{},
+			PathParams: []apigen.Param{
 				apigen.NewParam("id", uuid.UUID{}),
-				apigen.NewParam("projectInfo", console.ProjectInfo{}),
 			},
 		})
 
@@ -54,8 +52,7 @@ func main() {
 			Description: "Deletes project by id",
 			MethodName:  "GenDeleteProject",
 			RequestName: "deleteProject",
-			Response:    nil,
-			Params: []apigen.Param{
+			PathParams: []apigen.Param{
 				apigen.NewParam("id", uuid.UUID{}),
 			},
 		})
@@ -73,8 +70,8 @@ func main() {
 			Description: "Gets project's single bucket usage by bucket ID",
 			MethodName:  "GenGetSingleBucketUsageRollup",
 			RequestName: "getBucketRollup",
-			Response:    &accounting.BucketUsageRollup{},
-			Params: []apigen.Param{
+			Response:    accounting.BucketUsageRollup{},
+			QueryParams: []apigen.Param{
 				apigen.NewParam("projectID", uuid.UUID{}),
 				apigen.NewParam("bucket", ""),
 				apigen.NewParam("since", time.Time{}),
@@ -88,7 +85,7 @@ func main() {
 			MethodName:  "GenGetBucketUsageRollups",
 			RequestName: "getBucketRollups",
 			Response:    []accounting.BucketUsageRollup{},
-			Params: []apigen.Param{
+			QueryParams: []apigen.Param{
 				apigen.NewParam("projectID", uuid.UUID{}),
 				apigen.NewParam("since", time.Time{}),
 				apigen.NewParam("before", time.Time{}),
@@ -104,10 +101,8 @@ func main() {
 			Description: "Creates new macaroon API key with given info",
 			MethodName:  "GenCreateAPIKey",
 			RequestName: "createAPIKey",
-			Response:    &console.CreateAPIKeyResponse{},
-			Params: []apigen.Param{
-				apigen.NewParam("apikeyInfo", console.CreateAPIKeyRequest{}),
-			},
+			Response:    console.CreateAPIKeyResponse{},
+			Request:     console.CreateAPIKeyRequest{},
 		})
 	}
 
@@ -119,7 +114,7 @@ func main() {
 			Description: "Gets User by request context",
 			MethodName:  "GenGetUser",
 			RequestName: "getUser",
-			Response:    &console.ResponseUser{},
+			Response:    console.ResponseUser{},
 		})
 	}
 

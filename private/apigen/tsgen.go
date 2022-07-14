@@ -142,8 +142,8 @@ func (f *tsGenFile) generateTS() error {
 				resType := reflect.TypeOf(method.Response)
 				f.getStructsFromType(resType)
 			}
-			if len(method.Params) > 0 {
-				for _, p := range method.Params {
+			if len(method.QueryParams) > 0 {
+				for _, p := range method.QueryParams {
 					t := getBasicReflectType(p.Type)
 					f.getStructsFromType(t)
 				}
@@ -174,7 +174,7 @@ func (f *tsGenFile) generateTS() error {
 		for _, method := range group.endpoints {
 			var funcArgs string
 			var reqParams string
-			for i, p := range method.Params {
+			for i, p := range method.QueryParams {
 				if i > 0 {
 					funcArgs += ", "
 				}
