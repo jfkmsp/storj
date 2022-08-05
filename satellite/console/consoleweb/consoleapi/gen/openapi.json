@@ -1,89 +1,341 @@
 {
 	"openapi": "3.0.0",
 	"info": {
-		"title": "Make it meaningful",
+		"title": "OpenAPI Test",
 		"version": "v0"
 	},
 	"paths": {
-		"/": {
-			"get": {
-				"operationId": "GenGetUser",
-				"summary": "Gets User by request context",
+		"/api/v0/apikeys/create": {
+			"post": {
+				"operationId": "",
+				"summary": "Create new macaroon API key",
+				"description": "Creates new macaroon API key with given info",
 				"responses": {
 					"200": {
-						"description": "Get From Somewhere",
+						"description": "success",
 						"content": {
-							"application/json": {}
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"key": {
+											"type": "string"
+										},
+										"keyInfo": {
+											"type": "APIKeyInfo"
+										}
+									}
+								}
+							}
 						}
 					}
 				}
 			}
 		},
-		"/bucket-rollup": {
+		"/api/v0/projects": {
 			"get": {
-				"operationId": "GenGetSingleBucketUsageRollup",
-				"summary": "Gets project's single bucket usage by bucket ID",
+				"operationId": "",
+				"summary": "Get Projects",
+				"description": "Gets all projects user has",
 				"responses": {
 					"200": {
-						"description": "Get From Somewhere",
+						"description": "",
 						"content": {
-							"application/json": {}
+							"application/json": {
+								"schema": {
+									"type": ""
+								}
+							}
 						}
 					}
 				}
 			}
 		},
-		"/bucket-rollups": {
+		"/api/v0/projects/bucket-rollup": {
 			"get": {
-				"operationId": "GenGetBucketUsageRollups",
-				"summary": "Gets project's all buckets usage",
+				"operationId": "",
+				"summary": "Get Project's Single Bucket Usage",
+				"description": "Gets project's single bucket usage by bucket ID",
 				"responses": {
 					"200": {
-						"description": "Get From Somewhere",
+						"description": "success",
 						"content": {
-							"application/json": {}
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"auditEgress": {
+											"type": "number"
+										},
+										"before": {
+											"type": "string"
+										},
+										"bucketName": {
+											"type": "string"
+										},
+										"getEgress": {
+											"type": "number"
+										},
+										"metadataSize": {
+											"type": "number"
+										},
+										"objectCount": {
+											"type": "number"
+										},
+										"projectID": {
+											"type": "string"
+										},
+										"repairEgress": {
+											"type": "number"
+										},
+										"since": {
+											"type": "string"
+										},
+										"totalSegments": {
+											"type": "number"
+										},
+										"totalStoredData": {
+											"type": "number"
+										}
+									}
+								}
+							}
 						}
 					}
 				}
 			}
 		},
-		"/create": {
+		"/api/v0/projects/bucket-rollups": {
 			"get": {
-				"operationId": "GenCreateAPIKey",
-				"summary": "Creates new macaroon API key with given info",
+				"operationId": "",
+				"summary": "Get Project's All Buckets Usage",
+				"description": "Gets project's all buckets usage",
 				"responses": {
 					"200": {
-						"description": "Get From Somewhere",
+						"description": "",
 						"content": {
-							"application/json": {}
+							"application/json": {
+								"schema": {
+									"type": ""
+								}
+							}
 						}
 					}
 				}
 			}
 		},
-		"/delete/{id}": {
-			"get": {
-				"operationId": "GenDeleteProject",
-				"summary": "Deletes project by id",
+		"/api/v0/projects/create": {
+			"post": {
+				"operationId": "",
+				"summary": "Create new Project",
+				"description": "Creates new Project with given info",
 				"responses": {
 					"200": {
-						"description": "Get From Somewhere",
+						"description": "success",
 						"content": {
-							"application/json": {}
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"bandwidthLimit": {
+											"type": "string"
+										},
+										"burstLimit": {
+											"type": "integer"
+										},
+										"createdAt": {
+											"type": "string"
+										},
+										"description": {
+											"type": "string"
+										},
+										"id": {
+											"type": "string"
+										},
+										"maxBuckets": {
+											"type": "integer"
+										},
+										"memberCount": {
+											"type": "integer"
+										},
+										"name": {
+											"type": "string"
+										},
+										"ownerId": {
+											"type": "string"
+										},
+										"partnerId": {
+											"type": "string"
+										},
+										"publicId": {
+											"type": "string"
+										},
+										"rateLimit": {
+											"type": "integer"
+										},
+										"segmentLimit": {
+											"type": "integer"
+										},
+										"storageLimit": {
+											"type": "string"
+										},
+										"userAgent": {
+											"type": "string"
+										}
+									}
+								}
+							}
 						}
 					}
 				}
 			}
 		},
-		"/update/{id}": {
-			"get": {
-				"operationId": "GenUpdateProject",
-				"summary": "Updates project with given info",
+		"/api/v0/projects/delete/{id}": {
+			"delete": {
+				"operationId": "",
+				"summary": "Delete Project",
+				"description": "Deletes project by id",
 				"responses": {
 					"200": {
-						"description": "Get From Somewhere",
+						"description": "",
 						"content": {
-							"application/json": {}
+							"application/json": {
+								"schema": {
+									"type": ""
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/v0/projects/update/{id}": {
+			"patch": {
+				"operationId": "",
+				"summary": "Update Project",
+				"description": "Updates project with given info",
+				"responses": {
+					"200": {
+						"description": "success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"bandwidthLimit": {
+											"type": "string"
+										},
+										"burstLimit": {
+											"type": "integer"
+										},
+										"createdAt": {
+											"type": "string"
+										},
+										"description": {
+											"type": "string"
+										},
+										"id": {
+											"type": "string"
+										},
+										"maxBuckets": {
+											"type": "integer"
+										},
+										"memberCount": {
+											"type": "integer"
+										},
+										"name": {
+											"type": "string"
+										},
+										"ownerId": {
+											"type": "string"
+										},
+										"partnerId": {
+											"type": "string"
+										},
+										"publicId": {
+											"type": "string"
+										},
+										"rateLimit": {
+											"type": "integer"
+										},
+										"segmentLimit": {
+											"type": "integer"
+										},
+										"storageLimit": {
+											"type": "string"
+										},
+										"userAgent": {
+											"type": "string"
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/v0/users": {
+			"get": {
+				"operationId": "",
+				"summary": "Get User",
+				"description": "Gets User by request context",
+				"responses": {
+					"200": {
+						"description": "success",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"companyName": {
+											"type": "string"
+										},
+										"email": {
+											"type": "string"
+										},
+										"employeeCount": {
+											"type": "string"
+										},
+										"fullName": {
+											"type": "string"
+										},
+										"haveSalesContact": {
+											"type": "boolean"
+										},
+										"id": {
+											"type": "string"
+										},
+										"isMFAEnabled": {
+											"type": "boolean"
+										},
+										"isProfessional": {
+											"type": "boolean"
+										},
+										"mfaRecoveryCodeCount": {
+											"type": "integer"
+										},
+										"paidTier": {
+											"type": "boolean"
+										},
+										"partnerId": {
+											"type": "string"
+										},
+										"position": {
+											"type": "string"
+										},
+										"projectLimit": {
+											"type": "integer"
+										},
+										"shortName": {
+											"type": "string"
+										},
+										"userAgent": {
+											"type": "string"
+										}
+									}
+								}
+							}
 						}
 					}
 				}
