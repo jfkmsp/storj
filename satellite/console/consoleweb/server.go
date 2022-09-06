@@ -460,6 +460,8 @@ func (server *Server) appHandler(w http.ResponseWriter, r *http.Request) {
 		OptionalSignupSuccessURL        string
 		HomepageURL                     string
 		NativeTokenPaymentsEnabled      bool
+		PasswordMinimumLength           int
+		PasswordMaximumLength           int
 	}
 
 	data.ExternalAddress = server.config.ExternalAddress
@@ -503,6 +505,8 @@ func (server *Server) appHandler(w http.ResponseWriter, r *http.Request) {
 	data.OptionalSignupSuccessURL = server.config.OptionalSignupSuccessURL
 	data.HomepageURL = server.config.HomepageURL
 	data.NativeTokenPaymentsEnabled = server.config.NativeTokenPaymentsEnabled
+	data.PasswordMinimumLength = console.PasswordMinimumLength
+	data.PasswordMaximumLength = console.PasswordMaximumLength
 
 	templates, err := server.loadTemplates()
 	if err != nil || templates.index == nil {
