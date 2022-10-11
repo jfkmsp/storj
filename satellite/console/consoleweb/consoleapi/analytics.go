@@ -5,7 +5,7 @@ package consoleapi
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/zeebo/errs"
@@ -51,7 +51,7 @@ func (a *Analytics) EventTriggered(w http.ResponseWriter, r *http.Request) {
 	ctx, serverResponse := console.Tracer.Start(ctx, "EventTriggered")
 	defer serverResponse.End()
 
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		a.serveJSONError(w, http.StatusInternalServerError, err)
 	}
@@ -80,7 +80,7 @@ func (a *Analytics) PageEventTriggered(w http.ResponseWriter, r *http.Request) {
 	var err error
 	defer mon.Task()(&ctx)(&err)
 
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		a.serveJSONError(w, http.StatusInternalServerError, err)
 	}

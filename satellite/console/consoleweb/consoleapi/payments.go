@@ -6,7 +6,6 @@ package consoleapi
 import (
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 	"time"
@@ -141,7 +140,7 @@ func (p *Payments) AddCreditCard(w http.ResponseWriter, r *http.Request) {
 	ctx, serverResponse := console.Tracer.Start(ctx, "AddCreditCard")
 	defer serverResponse.End()
 
-	bodyBytes, err := ioutil.ReadAll(r.Body)
+	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		p.serveJSONError(w, http.StatusBadRequest, err)
 		return
@@ -201,7 +200,7 @@ func (p *Payments) MakeCreditCardDefault(w http.ResponseWriter, r *http.Request)
 	ctx, serverResponse := console.Tracer.Start(ctx, "MakeCreditCardDefault")
 	defer serverResponse.End()
 
-	cardID, err := ioutil.ReadAll(r.Body)
+	cardID, err := io.ReadAll(r.Body)
 	if err != nil {
 		p.serveJSONError(w, http.StatusBadRequest, err)
 		return
@@ -352,7 +351,7 @@ func (p *Payments) ApplyCouponCode(w http.ResponseWriter, r *http.Request) {
 	defer serverResponse.End()
 
 	// limit the size of the body to prevent excessive memory usage
-	bodyBytes, err := ioutil.ReadAll(io.LimitReader(r.Body, 1*1024*1024))
+	bodyBytes, err := io.ReadAll(io.LimitReader(r.Body, 1*1024*1024))
 	if err != nil {
 		p.serveJSONError(w, http.StatusInternalServerError, err)
 		return
