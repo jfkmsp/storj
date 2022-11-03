@@ -3,6 +3,7 @@
 
 
 import argparse
+import collections
 import subprocess
 
 GENERAL = "General"
@@ -38,7 +39,7 @@ def generate_changelog(commits):
         else:
             section[GENERAL].append(generate_line(commit))
 
-    for title in dict(sorted(section.items())):
+    for title in collections.OrderedDict(sorted(section.items())):
         if section[title]:
             changelog += ('### {}\n'.format(title))
             for line in section[title]:
