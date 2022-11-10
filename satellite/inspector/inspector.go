@@ -6,8 +6,11 @@ package inspector
 import (
 	"context"
 	"encoding/binary"
+	"go.opentelemetry.io/otel"
+	"os"
 
-	"github.com/spacemonkeygo/monkit/v3"
+	"runtime"
+
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -20,7 +23,7 @@ import (
 )
 
 var (
-	mon = monkit.Package()
+
 	// Error wraps errors returned from Server struct methods.
 	Error = errs.Class("inspector")
 )
@@ -46,7 +49,9 @@ func NewEndpoint(log *zap.Logger, cache *overlay.Service, metabase *metabase.DB)
 
 // ObjectHealth will check the health of an object.
 func (endpoint *Endpoint) ObjectHealth(ctx context.Context, in *internalpb.ObjectHealthRequest) (resp *internalpb.ObjectHealthResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var segmentHealthResponses []*internalpb.SegmentHealth
 	var redundancy *pb.RedundancyScheme
@@ -108,7 +113,9 @@ func (endpoint *Endpoint) ObjectHealth(ctx context.Context, in *internalpb.Objec
 
 // SegmentHealth will check the health of a segment.
 func (endpoint *Endpoint) SegmentHealth(ctx context.Context, in *internalpb.SegmentHealthRequest) (_ *internalpb.SegmentHealthResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	projectID, err := uuid.FromBytes(in.GetProjectId())
 	if err != nil {

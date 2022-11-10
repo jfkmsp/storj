@@ -7,6 +7,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 
 	"github.com/zeebo/errs"
 
@@ -30,7 +34,9 @@ type payoutDB struct {
 
 // StorePayStub inserts or updates paystub data into the db.
 func (db *payoutDB) StorePayStub(ctx context.Context, paystub payouts.PayStub) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query := `INSERT OR REPLACE INTO paystubs (
 			period,
@@ -87,7 +93,9 @@ func (db *payoutDB) StorePayStub(ctx context.Context, paystub payouts.PayStub) (
 
 // GetPayStub retrieves paystub data for a specific satellite and period.
 func (db *payoutDB) GetPayStub(ctx context.Context, satelliteID storj.NodeID, period string) (_ *payouts.PayStub, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	result := payouts.PayStub{
 		SatelliteID: satelliteID,
@@ -153,7 +161,9 @@ func (db *payoutDB) GetPayStub(ctx context.Context, satelliteID storj.NodeID, pe
 
 // AllPayStubs retrieves all paystub stats from DB for specific period.
 func (db *payoutDB) AllPayStubs(ctx context.Context, period string) (_ []payouts.PayStub, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query := `SELECT
 			satellite_id,
@@ -228,7 +238,9 @@ func (db *payoutDB) AllPayStubs(ctx context.Context, period string) (_ []payouts
 
 // SatellitesHeldbackHistory retrieves heldback history for specific satellite.
 func (db *payoutDB) SatellitesHeldbackHistory(ctx context.Context, id storj.NodeID) (_ []payouts.HeldForPeriod, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query := `SELECT
 			period,
@@ -262,7 +274,9 @@ func (db *payoutDB) SatellitesHeldbackHistory(ctx context.Context, id storj.Node
 
 // SatellitePeriods retrieves all periods for concrete satellite in which we have some payouts data.
 func (db *payoutDB) SatellitePeriods(ctx context.Context, satelliteID storj.NodeID) (_ []string, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query := `SELECT DISTINCT period FROM paystubs WHERE satellite_id = ? ORDER BY created_at`
 
@@ -292,7 +306,9 @@ func (db *payoutDB) SatellitePeriods(ctx context.Context, satelliteID storj.Node
 
 // AllPeriods retrieves all periods in which we have some payouts data.
 func (db *payoutDB) AllPeriods(ctx context.Context) (_ []string, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query := `SELECT DISTINCT period FROM paystubs ORDER BY created_at`
 
@@ -322,7 +338,9 @@ func (db *payoutDB) AllPeriods(ctx context.Context) (_ []string, err error) {
 
 // StorePayment inserts or updates payment data into the db.
 func (db *payoutDB) StorePayment(ctx context.Context, payment payouts.Payment) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query := `INSERT OR REPLACE INTO payments (
 			id,
@@ -349,7 +367,9 @@ func (db *payoutDB) StorePayment(ctx context.Context, payment payouts.Payment) (
 
 // SatellitesDisposedHistory returns all disposed amount for specific satellite from DB.
 func (db *payoutDB) SatellitesDisposedHistory(ctx context.Context, satelliteID storj.NodeID) (_ int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query := `SELECT
 			disposed
@@ -382,7 +402,9 @@ func (db *payoutDB) SatellitesDisposedHistory(ctx context.Context, satelliteID s
 
 // GetReceipt retrieves receipt data for a specific satellite and period.
 func (db *payoutDB) GetReceipt(ctx context.Context, satelliteID storj.NodeID, period string) (receipt string, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	rowPayment := db.QueryRowContext(ctx,
 		`SELECT receipt FROM payments WHERE satellite_id = ? AND period = ?`,
@@ -402,7 +424,9 @@ func (db *payoutDB) GetReceipt(ctx context.Context, satelliteID storj.NodeID, pe
 
 // GetTotalEarned returns total earned value for node from all paystubs.
 func (db *payoutDB) GetTotalEarned(ctx context.Context) (_ int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query := `SELECT comp_at_rest, comp_get, comp_get_repair, comp_get_audit FROM paystubs`
 
@@ -433,7 +457,9 @@ func (db *payoutDB) GetTotalEarned(ctx context.Context) (_ int64, err error) {
 
 // GetEarnedAtSatellite returns total earned value for node from specific satellite.
 func (db *payoutDB) GetEarnedAtSatellite(ctx context.Context, id storj.NodeID) (_ int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query := `SELECT comp_at_rest, comp_get, comp_get_repair, comp_get_audit FROM paystubs WHERE satellite_id = ?`
 
@@ -465,7 +491,9 @@ func (db *payoutDB) GetEarnedAtSatellite(ctx context.Context, id storj.NodeID) (
 
 // GetPayingSatellitesIDs returns list of satellite ID's that ever paid to storagenode.
 func (db *payoutDB) GetPayingSatellitesIDs(ctx context.Context) (_ []storj.NodeID, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query := `SELECT DISTINCT (satellite_id) FROM paystubs`
 
@@ -500,7 +528,9 @@ func (db *payoutDB) GetPayingSatellitesIDs(ctx context.Context) (_ []storj.NodeI
 
 // GetSatelliteSummary returns satellite all time paid and held amounts.
 func (db *payoutDB) GetSatelliteSummary(ctx context.Context, satelliteID storj.NodeID) (_, _ int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query := `SELECT paid, held FROM paystubs WHERE satellite_id = ?`
 
@@ -536,7 +566,9 @@ func (db *payoutDB) GetSatelliteSummary(ctx context.Context, satelliteID storj.N
 
 // GetSatellitePeriodSummary returns satellite paid and held amounts for specific period.
 func (db *payoutDB) GetSatellitePeriodSummary(ctx context.Context, satelliteID storj.NodeID, period string) (_, _ int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query := `SELECT paid, held FROM paystubs WHERE satellite_id = ? AND period = ?`
 
@@ -567,7 +599,9 @@ func (db *payoutDB) GetSatellitePeriodSummary(ctx context.Context, satelliteID s
 
 // GetUndistributed returns total undistributed amount.
 func (db *payoutDB) GetUndistributed(ctx context.Context) (_ int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var distributed, paid int64
 
@@ -588,7 +622,9 @@ func (db *payoutDB) GetUndistributed(ctx context.Context) (_ int64, err error) {
 
 // GetSatellitePaystubs returns summed paystubs for specific satellite.
 func (db *payoutDB) GetSatellitePaystubs(ctx context.Context, satelliteID storj.NodeID) (_ *payouts.PayStub, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	rowPayment := db.QueryRowContext(ctx,
 		`SELECT COALESCE(SUM(usage_at_rest),0), COALESCE(SUM(usage_get),0), COALESCE(SUM(usage_get_repair),0), COALESCE(SUM(usage_get_audit),0),
@@ -620,7 +656,9 @@ func (db *payoutDB) GetSatellitePaystubs(ctx context.Context, satelliteID storj.
 
 // GetPaystubs returns summed all paystubs.
 func (db *payoutDB) GetPaystubs(ctx context.Context) (_ *payouts.PayStub, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	rowPayment := db.QueryRowContext(ctx,
 		`SELECT COALESCE(SUM(usage_at_rest),0), COALESCE(SUM(usage_get),0), COALESCE(SUM(usage_get_repair),0), COALESCE(SUM(usage_get_audit),0),
@@ -652,7 +690,9 @@ func (db *payoutDB) GetPaystubs(ctx context.Context) (_ *payouts.PayStub, err er
 
 // GetPeriodPaystubs returns all satellites paystubs for specific period.
 func (db *payoutDB) GetPeriodPaystubs(ctx context.Context, period string) (_ *payouts.PayStub, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	rowPayment := db.QueryRowContext(ctx,
 		`SELECT COALESCE(SUM(usage_at_rest),0), COALESCE(SUM(usage_get),0), COALESCE(SUM(usage_get_repair),0), COALESCE(SUM(usage_get_audit),0),
@@ -684,7 +724,9 @@ func (db *payoutDB) GetPeriodPaystubs(ctx context.Context, period string) (_ *pa
 
 // GetSatellitePeriodPaystubs returns summed satellite paystubs for specific period.
 func (db *payoutDB) GetSatellitePeriodPaystubs(ctx context.Context, period string, satelliteID storj.NodeID) (_ *payouts.PayStub, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	rowPayment := db.QueryRowContext(ctx,
 		`SELECT COALESCE(SUM(usage_at_rest),0), COALESCE(SUM(usage_get),0), COALESCE(SUM(usage_get_repair),0), COALESCE(SUM(usage_get_audit),0),
@@ -716,7 +758,9 @@ func (db *payoutDB) GetSatellitePeriodPaystubs(ctx context.Context, period strin
 
 // HeldAmountHistory retrieves held amount history for all satellites.
 func (db *payoutDB) HeldAmountHistory(ctx context.Context) (_ []payouts.HeldAmountHistory, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query := `
 		SELECT

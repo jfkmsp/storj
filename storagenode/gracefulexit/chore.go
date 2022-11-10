@@ -5,6 +5,11 @@ package gracefulexit
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
+	"os"
+
+	"runtime"
 	"sync"
 	"time"
 
@@ -46,14 +51,16 @@ func NewChore(log *zap.Logger, service *Service, transferService piecetransfer.S
 
 // Run starts the chore.
 func (chore *Chore) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
 	defer chore.limiter.Wait()
 	return chore.Loop.Run(ctx, chore.AddMissing)
 }
 
 // AddMissing starts any missing satellite chore.
 func (chore *Chore) AddMissing(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	geSatellites, err := chore.service.ListPendingExits(ctx)
 	if err != nil {
@@ -67,7 +74,8 @@ func (chore *Chore) AddMissing(ctx context.Context) (err error) {
 	chore.log.Debug("exiting", zap.Int("satellites", len(geSatellites)))
 
 	for _, satellite := range geSatellites {
-		mon.Meter("satellite_gracefulexit_request").Mark(1) //mon:locked
+		counter, _ := meter.SyncInt64().Counter("satellite_gracefulexit_request")
+		counter.Add(context.Background(), 1)
 		satellite := satellite
 
 		worker := NewWorker(chore.log, chore.service, chore.transferService, chore.dialer, satellite.NodeURL, chore.config)

@@ -6,16 +6,14 @@ package consoleserver
 import (
 	"context"
 	"errors"
+	"github.com/gorilla/mux"
+	"github.com/zeebo/errs"
+	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 	"io"
 	"io/fs"
 	"net"
 	"net/http"
-
-	"github.com/gorilla/mux"
-	"github.com/spacemonkeygo/monkit/v3"
-	"github.com/zeebo/errs"
-	"go.uber.org/zap"
-	"golang.org/x/sync/errgroup"
 
 	"storj.io/common/errs2"
 	"storj.io/storj/private/web"
@@ -26,7 +24,7 @@ import (
 )
 
 var (
-	mon = monkit.Package()
+
 	// Error is storagenode console web error type.
 	Error = errs.Class("consoleserver")
 )
@@ -121,8 +119,6 @@ func (server *Server) appHandler(w http.ResponseWriter, r *http.Request) {
 
 // Run starts the server that host webapp and api endpoints.
 func (server *Server) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
-
 	ctx, cancel := context.WithCancel(ctx)
 	var group errgroup.Group
 	group.Go(func() error {

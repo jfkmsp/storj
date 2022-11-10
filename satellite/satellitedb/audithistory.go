@@ -5,13 +5,19 @@ package satellitedb
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 
 	"storj.io/common/pb"
 	"storj.io/storj/satellite/reputation"
 )
 
 func mergeAuditHistory(ctx context.Context, oldHistory []byte, addHistory []*pb.AuditWindow, config reputation.AuditHistoryConfig) (res *reputation.UpdateAuditHistoryResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	history := &pb.AuditHistory{}
 	err = pb.Unmarshal(oldHistory, history)

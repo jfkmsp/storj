@@ -5,6 +5,10 @@ package metabase
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 
 	"github.com/zeebo/errs"
 
@@ -29,7 +33,9 @@ type EnsureNodeAliases struct {
 // EnsureNodeAliases ensures that the supplied node ID-s have a alias.
 // It's safe to concurrently try and create node ID-s for the same NodeID.
 func (db *DB) EnsureNodeAliases(ctx context.Context, opts EnsureNodeAliases) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	for _, node := range opts.Nodes {
 		if node.IsZero() {
@@ -47,7 +53,9 @@ func (db *DB) EnsureNodeAliases(ctx context.Context, opts EnsureNodeAliases) (er
 
 // ListNodeAliases lists all node alias mappings.
 func (db *DB) ListNodeAliases(ctx context.Context) (_ []NodeAliasEntry, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var aliases []NodeAliasEntry
 	rows, err := db.db.Query(ctx, `
@@ -76,6 +84,8 @@ func (db *DB) ListNodeAliases(ctx context.Context) (_ []NodeAliasEntry, err erro
 
 // LatestNodesAliasMap returns the latest mapping between storj.NodeID and NodeAlias.
 func (db *DB) LatestNodesAliasMap(ctx context.Context) (_ *NodeAliasMap, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return db.aliasCache.Latest(ctx)
 }

@@ -6,6 +6,10 @@ package metabase
 import (
 	"bytes"
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"strings"
 
 	"github.com/zeebo/errs"
@@ -47,7 +51,9 @@ type iterateCursor struct {
 }
 
 func iterateAllVersionsWithStatus(ctx context.Context, db *DB, opts IterateObjectsWithStatus, fn func(context.Context, ObjectsIterator) error) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	it := &objectsIterator{
 		db: db,
@@ -79,7 +85,9 @@ func iterateAllVersionsWithStatus(ctx context.Context, db *DB, opts IterateObjec
 }
 
 func iteratePendingObjectsByKey(ctx context.Context, db *DB, opts IteratePendingObjectsByKey, fn func(context.Context, ObjectsIterator) error) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	cursor := opts.Cursor
 
@@ -224,7 +232,9 @@ func (it *objectsIterator) next(ctx context.Context, item *ObjectEntry) bool {
 }
 
 func doNextQueryAllVersionsWithStatus(ctx context.Context, it *objectsIterator) (_ tagsql.Rows, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	cursorCompare := ">"
 	if it.cursor.Inclusive {
@@ -313,7 +323,9 @@ func nextBucket(b []byte) []byte {
 
 // doNextQuery executes query to fetch the next batch returning the rows.
 func doNextQueryStreamsByKey(ctx context.Context, it *objectsIterator) (_ tagsql.Rows, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return it.db.db.QueryContext(ctx, `
 			SELECT

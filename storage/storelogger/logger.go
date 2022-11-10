@@ -5,16 +5,19 @@ package storelogger
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+	"os"
+
+	"runtime"
 	"strconv"
 	"sync/atomic"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"go.uber.org/zap"
 
 	"storj.io/storj/storage"
 )
-
-var mon = monkit.Package()
 
 var id int64
 
@@ -36,42 +39,54 @@ func (store *Logger) LookupLimit() int { return store.store.LookupLimit() }
 
 // Put adds a value to store.
 func (store *Logger) Put(ctx context.Context, key storage.Key, value storage.Value) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	store.log.Debug("Put", zap.ByteString("key", key), zap.Int("value length", len(value)), zap.Binary("truncated value", truncate(value)))
 	return store.store.Put(ctx, key, value)
 }
 
 // Get gets a value to store.
 func (store *Logger) Get(ctx context.Context, key storage.Key) (_ storage.Value, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	store.log.Debug("Get", zap.ByteString("key", key))
 	return store.store.Get(ctx, key)
 }
 
 // GetAll gets all values from the store corresponding to keys.
 func (store *Logger) GetAll(ctx context.Context, keys storage.Keys) (_ storage.Values, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	store.log.Debug("GetAll", zap.Any("keys", keys))
 	return store.store.GetAll(ctx, keys)
 }
 
 // Delete deletes key and the value.
 func (store *Logger) Delete(ctx context.Context, key storage.Key) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	store.log.Debug("Delete", zap.ByteString("key", key))
 	return store.store.Delete(ctx, key)
 }
 
 // DeleteMultiple deletes keys ignoring missing keys.
 func (store *Logger) DeleteMultiple(ctx context.Context, keys []storage.Key) (_ storage.Items, err error) {
-	defer mon.Task()(&ctx, len(keys))(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.Int("keys length", len(keys))))
+	defer span.End()
 	store.log.Debug("DeleteMultiple", zap.Any("keys", keys))
 	return store.store.DeleteMultiple(ctx, keys)
 }
 
 // List lists all keys starting from first and upto limit items.
 func (store *Logger) List(ctx context.Context, first storage.Key, limit int) (_ storage.Keys, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	keys, err := store.store.List(ctx, first, limit)
 	store.log.Debug("List", zap.ByteString("first", first), zap.Int("limit", limit), zap.Strings("keys", keys.Strings()))
 	return keys, err
@@ -79,7 +94,9 @@ func (store *Logger) List(ctx context.Context, first storage.Key, limit int) (_ 
 
 // Iterate iterates over items based on opts.
 func (store *Logger) Iterate(ctx context.Context, opts storage.IterateOptions, fn func(context.Context, storage.Iterator) error) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	store.log.Debug("Iterate",
 		zap.ByteString("prefix", opts.Prefix),
 		zap.ByteString("first", opts.First),
@@ -102,7 +119,9 @@ func (store *Logger) Iterate(ctx context.Context, opts storage.IterateOptions, f
 
 // IterateWithoutLookupLimit calls the callback with an iterator over the keys, but doesn't enforce default limit on opts.
 func (store *Logger) IterateWithoutLookupLimit(ctx context.Context, opts storage.IterateOptions, fn func(context.Context, storage.Iterator) error) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	store.log.Debug("IterateWithoutLookupLimit",
 		zap.ByteString("prefix", opts.Prefix),
 		zap.ByteString("first", opts.First),
@@ -131,7 +150,9 @@ func (store *Logger) Close() error {
 
 // CompareAndSwap atomically compares and swaps oldValue with newValue.
 func (store *Logger) CompareAndSwap(ctx context.Context, key storage.Key, oldValue, newValue storage.Value) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	store.log.Debug("CompareAndSwap", zap.ByteString("key", key),
 		zap.Int("old value length", len(oldValue)), zap.Int("new value length", len(newValue)),
 		zap.Binary("truncated old value", truncate(oldValue)), zap.Binary("truncated new value", truncate(newValue)))

@@ -7,6 +7,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -32,7 +37,10 @@ type UpdateSegmentPieces struct {
 // UpdateSegmentPieces updates pieces for specified segment. If provided old pieces
 // won't match current database state update will fail.
 func (db *DB) UpdateSegmentPieces(ctx context.Context, opts UpdateSegmentPieces) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	if opts.StreamID.IsZero() {
 		return ErrInvalidRequest.New("StreamID missing")
@@ -106,7 +114,8 @@ func (db *DB) UpdateSegmentPieces(ctx context.Context, opts UpdateSegmentPieces)
 		return storage.ErrValueChanged.New("segment remote_alias_pieces field was changed")
 	}
 
-	mon.Meter("segment_update").Mark(1)
+	counter, _ := meter.SyncInt64().Counter("segment_update")
+	counter.Add(ctx, 1)
 
 	return nil
 }

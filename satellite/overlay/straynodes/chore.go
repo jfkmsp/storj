@@ -5,16 +5,18 @@ package straynodes
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"go.uber.org/zap"
 
 	"storj.io/common/sync2"
 	"storj.io/storj/satellite/overlay"
 )
-
-var mon = monkit.Package()
 
 // Config contains configurable values for stray nodes chore.
 type Config struct {
@@ -46,15 +48,19 @@ func NewChore(log *zap.Logger, cache *overlay.Service, config Config) *Chore {
 
 // Run runs the chore.
 func (chore *Chore) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
 
 	return chore.Loop.Run(ctx, func(ctx context.Context) error {
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		defer span.End()
 		var total int
 		for {
 			n, err := chore.cache.DQNodesLastSeenBefore(ctx, time.Now().UTC().Add(-chore.maxDurationWithoutContact), chore.limit)
 			if err != nil {
 				chore.log.Error("error disqualifying stray nodes", zap.Error(err))
-				mon.IntVal("stray_nodes_dq_count").Observe(int64(total))
+				histCounter, _ := meter.SyncInt64().Histogram("stray_nodes_dq_count")
+				histCounter.Record(ctx, int64(total))
 				return nil
 			}
 			total += n
@@ -62,7 +68,8 @@ func (chore *Chore) Run(ctx context.Context) (err error) {
 				break
 			}
 		}
-		mon.IntVal("stray_nodes_dq_count").Observe(int64(total))
+		histCounter, _ := meter.SyncInt64().Histogram("stray_nodes_dq_count")
+		histCounter.Record(ctx, int64(total))
 		return nil
 	})
 }

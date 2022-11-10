@@ -5,6 +5,10 @@ package metainfo
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
@@ -15,7 +19,9 @@ import (
 
 // Batch handle requests sent in batch.
 func (endpoint *Endpoint) Batch(ctx context.Context, req *pb.BatchRequest) (resp *pb.BatchResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	resp = &pb.BatchResponse{}
 

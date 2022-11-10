@@ -5,7 +5,11 @@ package preflight
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
 	"math"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -45,7 +49,9 @@ func NewLocalTime(log *zap.Logger, config Config, trust *trust.Pool, dialer rpc.
 // Check compares local system clock with all trusted satellites' system clock.
 // it returns an error when local system clock is out of sync by more than 24h with all trusted satellites' clock.
 func (localTime *LocalTime) Check(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if !localTime.config.LocalTimeCheck {
 		localTime.log.Debug("local system clock check is not enabled")
 		return nil
@@ -101,7 +107,9 @@ func (localTime *LocalTime) Check(ctx context.Context) (err error) {
 }
 
 func (localTime *LocalTime) getSatelliteTime(ctx context.Context, satelliteID storj.NodeID) (_ *pb.GetTimeResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	nodeurl, err := localTime.trust.GetNodeURL(ctx, satelliteID)
 	if err != nil {
@@ -124,7 +132,9 @@ func (localTime *LocalTime) getSatelliteTime(ctx context.Context, satelliteID st
 }
 
 func (localTime *LocalTime) checkSatelliteTime(ctx context.Context, satelliteTime time.Time, systemTime time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	diff := math.Abs(satelliteTime.Sub(systemTime).Minutes())
 	// check to see if the timestamp received from satellites are off by more than 30m

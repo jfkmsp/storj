@@ -7,12 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"go.uber.org/zap"
-)
-
-var (
-	mon = monkit.Package()
 )
 
 // NotFound handles API response for not found routes.

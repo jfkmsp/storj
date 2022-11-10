@@ -5,9 +5,13 @@ package orders
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
 	"io"
 	"os"
 	"path/filepath"
+
+	"runtime"
 	"sync"
 	"time"
 
@@ -182,7 +186,10 @@ type UnsentInfo struct {
 // There is a separate window for each created at hour, so if a satellite has 2 windows, `ListUnsentBySatellite`
 // needs to be called twice, with calls to `Archive` in between each call, to see all unsent orders.
 func (store *FileStore) ListUnsentBySatellite(ctx context.Context, now time.Time) (infoMap map[storj.NodeID]UnsentInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 	// shouldn't be necessary, but acquire archiveMu to ensure we do not attempt to archive files during list
 	store.archiveMu.Lock()
 	defer store.archiveMu.Unlock()
@@ -244,7 +251,8 @@ func (store *FileStore) ListUnsentBySatellite(ctx context.Context, now time.Time
 				// if last entry read is corrupt, attempt to read again
 				if ordersfile.ErrEntryCorrupt.Has(err) {
 					store.log.Warn("Corrupted order detected in orders file", zap.Error(err))
-					mon.Meter("orders_unsent_file_corrupted").Mark64(1)
+					counter, _ := meter.SyncInt64().Counter("orders_unsent_file_corrupted")
+					counter.Add(ctx, 1)
 					// if the error is unexpected EOF, we want the metrics and logs, but there
 					// is no use in trying to read from the file again.
 					if errs.Is(err, io.ErrUnexpectedEOF) {
@@ -290,6 +298,7 @@ func (store *FileStore) Archive(satelliteID storj.NodeID, unsentInfo UnsentInfo,
 func (store *FileStore) ListArchived() ([]*ArchivedInfo, error) {
 	store.archiveMu.Lock()
 	defer store.archiveMu.Unlock()
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
 
 	var errList error
 	archivedList := []*ArchivedInfo{}
@@ -331,7 +340,8 @@ func (store *FileStore) ListArchived() ([]*ArchivedInfo, error) {
 				// if last entry read is corrupt, attempt to read again
 				if ordersfile.ErrEntryCorrupt.Has(err) {
 					store.log.Warn("Corrupted order detected in orders file", zap.Error(err))
-					mon.Meter("orders_archive_file_corrupted").Mark64(1)
+					counter, _ := meter.SyncInt64().Counter("orders_archive_file_corrupted")
+					counter.Add(context.Background(), 1)
 					continue
 				}
 				return err

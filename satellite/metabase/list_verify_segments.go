@@ -5,6 +5,10 @@ package metabase
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
 	"storj.io/common/storj"
@@ -46,7 +50,9 @@ type VerifySegment struct {
 
 // ListVerifySegments lists specified stream segments.
 func (db *DB) ListVerifySegments(ctx context.Context, opts ListVerifySegments) (result ListVerifySegmentsResult, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if opts.Limit <= 0 {
 		return ListVerifySegmentsResult{}, ErrInvalidRequest.New("Invalid limit: %d", opts.Limit)

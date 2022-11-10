@@ -7,12 +7,17 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel/metric/instrument"
+	"go.opentelemetry.io/otel/metric/instrument/syncint64"
 	"io"
 	"os"
 	"path/filepath"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -25,13 +30,14 @@ var (
 	// Error is the default filestore error class.
 	Error = errs.Class("filestore error")
 
-	mon = monkit.Package()
-
 	_ storage.Blobs = (*blobStore)(nil)
+
+	meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
 )
 
-func monFileInTrash(namespace []byte) *monkit.Meter {
-	return mon.Meter("open_file_in_trash", monkit.NewSeriesTag("namespace", hex.EncodeToString(namespace))) //mon:locked
+func monFileInTrash(namespace []byte) syncint64.Counter {
+	counter, _ := meter.SyncInt64().Counter("open_file_in_trash", instrument.WithDescription("namespace: "+hex.EncodeToString(namespace)))
+	return counter
 }
 
 // Config is configuration for the blob store.
@@ -70,7 +76,9 @@ func (store *blobStore) Close() error { return nil }
 
 // Open loads blob with the specified hash.
 func (store *blobStore) Open(ctx context.Context, ref storage.BlobRef) (_ storage.BlobReader, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	file, formatVer, err := store.dir.Open(ctx, ref)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -84,7 +92,9 @@ func (store *blobStore) Open(ctx context.Context, ref storage.BlobRef) (_ storag
 // OpenWithStorageFormat loads the already-located blob, avoiding the potential need to check multiple
 // storage formats to find the blob.
 func (store *blobStore) OpenWithStorageFormat(ctx context.Context, blobRef storage.BlobRef, formatVer storage.FormatVersion) (_ storage.BlobReader, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	file, err := store.dir.OpenWithStorageFormat(ctx, blobRef, formatVer)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -97,14 +107,18 @@ func (store *blobStore) OpenWithStorageFormat(ctx context.Context, blobRef stora
 
 // Stat looks up disk metadata on the blob file.
 func (store *blobStore) Stat(ctx context.Context, ref storage.BlobRef) (_ storage.BlobInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	info, err := store.dir.Stat(ctx, ref)
 	return info, Error.Wrap(err)
 }
 
 // StatWithStorageFormat looks up disk metadata on the blob file with the given storage format version.
 func (store *blobStore) StatWithStorageFormat(ctx context.Context, ref storage.BlobRef, formatVer storage.FormatVersion) (_ storage.BlobInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	info, err := store.dir.StatWithStorageFormat(ctx, ref, formatVer)
 	return info, Error.Wrap(err)
 }
@@ -114,48 +128,62 @@ func (store *blobStore) StatWithStorageFormat(ctx context.Context, ref storage.B
 // It doesn't return an error if the blob isn't found for any reason or it cannot
 // be deleted at this moment and it's delayed.
 func (store *blobStore) Delete(ctx context.Context, ref storage.BlobRef) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	err = store.dir.Delete(ctx, ref)
 	return Error.Wrap(err)
 }
 
 // DeleteWithStorageFormat deletes blobs with the specified ref and storage format version.
 func (store *blobStore) DeleteWithStorageFormat(ctx context.Context, ref storage.BlobRef, formatVer storage.FormatVersion) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	err = store.dir.DeleteWithStorageFormat(ctx, ref, formatVer)
 	return Error.Wrap(err)
 }
 
 // DeleteNamespace deletes blobs folder of specific satellite, used after successful GE only.
 func (store *blobStore) DeleteNamespace(ctx context.Context, ref []byte) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	err = store.dir.DeleteNamespace(ctx, ref)
 	return Error.Wrap(err)
 }
 
 // Trash moves the ref to a trash directory.
 func (store *blobStore) Trash(ctx context.Context, ref storage.BlobRef) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return Error.Wrap(store.dir.Trash(ctx, ref))
 }
 
 // RestoreTrash moves every piece in the trash back into the regular location.
 func (store *blobStore) RestoreTrash(ctx context.Context, namespace []byte) (keysRestored [][]byte, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	keysRestored, err = store.dir.RestoreTrash(ctx, namespace)
 	return keysRestored, Error.Wrap(err)
 }
 
 // // EmptyTrash removes all files in trash that have been there longer than trashExpiryDur.
 func (store *blobStore) EmptyTrash(ctx context.Context, namespace []byte, trashedBefore time.Time) (bytesEmptied int64, keys [][]byte, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	bytesEmptied, keys, err = store.dir.EmptyTrash(ctx, namespace, trashedBefore)
 	return bytesEmptied, keys, Error.Wrap(err)
 }
 
 // GarbageCollect tries to delete any files that haven't yet been deleted.
 func (store *blobStore) GarbageCollect(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	err = store.dir.GarbageCollect(ctx)
 	return Error.Wrap(err)
 }
@@ -163,7 +191,9 @@ func (store *blobStore) GarbageCollect(ctx context.Context) (err error) {
 // Create creates a new blob that can be written.
 // Optionally takes a size argument for performance improvements, -1 is unknown size.
 func (store *blobStore) Create(ctx context.Context, ref storage.BlobRef, size int64) (_ storage.BlobWriter, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	file, err := store.dir.CreateTemporaryFile(ctx, size)
 	if err != nil {
 		return nil, Error.Wrap(err)
@@ -173,7 +203,9 @@ func (store *blobStore) Create(ctx context.Context, ref storage.BlobRef, size in
 
 // SpaceUsedForBlobs adds up the space used in all namespaces for blob storage.
 func (store *blobStore) SpaceUsedForBlobs(ctx context.Context) (space int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var totalSpaceUsed int64
 	namespaces, err := store.ListNamespaces(ctx)
@@ -228,7 +260,9 @@ func (store *blobStore) TrashIsEmpty() (_ bool, err error) {
 
 // SpaceUsedForTrash returns the total space used by the trash.
 func (store *blobStore) SpaceUsedForTrash(ctx context.Context) (total int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	empty, err := store.TrashIsEmpty()
 	if err != nil {
@@ -285,7 +319,9 @@ func (store *blobStore) WalkNamespace(ctx context.Context, namespace []byte, wal
 
 // TestCreateV0 creates a new V0 blob that can be written. This is ONLY appropriate in test situations.
 func (store *blobStore) TestCreateV0(ctx context.Context, ref storage.BlobRef) (_ storage.BlobWriter, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	file, err := store.dir.CreateTemporaryFile(ctx, -1)
 	if err != nil {

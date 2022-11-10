@@ -5,6 +5,10 @@ package main
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"sync"
 
 	"go.uber.org/zap"
@@ -16,7 +20,9 @@ import (
 
 // Verify verifies a collection of segments.
 func (service *Service) Verify(ctx context.Context, segments []*Segment) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	for _, segment := range segments {
 		segment.Status.Retry = int32(service.config.Check)
@@ -68,7 +74,9 @@ func (service *Service) Verify(ctx context.Context, segments []*Segment) (err er
 
 // VerifyBatches verifies batches.
 func (service *Service) VerifyBatches(ctx context.Context, batches []*Batch) error {
-	defer mon.Task()(&ctx)(nil)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var mu sync.Mutex
 

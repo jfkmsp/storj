@@ -5,6 +5,10 @@ package payouts
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
@@ -51,7 +55,9 @@ func NewEndpoint(log *zap.Logger, dialer rpc.Dialer, trust *trust.Pool) *Endpoin
 
 // GetPaystub retrieves held amount for particular satellite from satellite using RPC.
 func (endpoint *Endpoint) GetPaystub(ctx context.Context, satelliteID storj.NodeID, period string) (_ *PayStub, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	client, err := endpoint.dial(ctx, satelliteID)
 	if err != nil {
@@ -101,7 +107,9 @@ func (endpoint *Endpoint) GetPaystub(ctx context.Context, satelliteID storj.Node
 
 // GetAllPaystubs retrieves all paystubs for particular satellite.
 func (endpoint *Endpoint) GetAllPaystubs(ctx context.Context, satelliteID storj.NodeID) (_ []PayStub, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	client, err := endpoint.dial(ctx, satelliteID)
 	if err != nil {
@@ -150,7 +158,9 @@ func (endpoint *Endpoint) GetAllPaystubs(ctx context.Context, satelliteID storj.
 
 // GetPayment retrieves payment data from particular satellite using grpc.
 func (endpoint *Endpoint) GetPayment(ctx context.Context, satelliteID storj.NodeID, period string) (_ *Payment, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	client, err := endpoint.dial(ctx, satelliteID)
 	if err != nil {
@@ -185,7 +195,9 @@ func (endpoint *Endpoint) GetPayment(ctx context.Context, satelliteID storj.Node
 
 // GetAllPayments retrieves all payments for particular satellite.
 func (endpoint *Endpoint) GetAllPayments(ctx context.Context, satelliteID storj.NodeID) (_ []Payment, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	client, err := endpoint.dial(ctx, satelliteID)
 	if err != nil {
@@ -219,7 +231,9 @@ func (endpoint *Endpoint) GetAllPayments(ctx context.Context, satelliteID storj.
 
 // dial dials the SnoPayout client for the satellite by id.
 func (endpoint *Endpoint) dial(ctx context.Context, satelliteID storj.NodeID) (_ *Client, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	nodeurl, err := endpoint.trust.GetNodeURL(ctx, satelliteID)
 	if err != nil {

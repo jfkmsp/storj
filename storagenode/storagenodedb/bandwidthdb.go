@@ -7,6 +7,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+	"os"
+
+	"runtime"
 	"sync"
 	"time"
 
@@ -36,7 +42,9 @@ type bandwidthDB struct {
 
 // Add adds bandwidth usage to the table.
 func (db *bandwidthDB) Add(ctx context.Context, satelliteID storj.NodeID, action pb.PieceAction, amount int64, created time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	_, err = db.ExecContext(ctx, `
 		INSERT INTO
 			bandwidth_usage(satellite_id, action, amount, created_at)
@@ -62,7 +70,9 @@ func (db *bandwidthDB) Add(ctx context.Context, satelliteID storj.NodeID, action
 
 // MonthSummary returns summary of the current months bandwidth usages.
 func (db *bandwidthDB) MonthSummary(ctx context.Context, now time.Time) (_ int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	db.usedMu.RLock()
 	beginningOfMonth := getBeginningOfMonth(now)
@@ -108,28 +118,36 @@ var (
 
 // Summary returns summary of bandwidth usages for all satellites.
 func (db *bandwidthDB) Summary(ctx context.Context, from, to time.Time) (_ *bandwidth.Usage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return db.getSummary(ctx, from, to, bandwidthFilter)
 }
 
 // EgressSummary returns summary of egress usages for all satellites.
 func (db *bandwidthDB) EgressSummary(ctx context.Context, from, to time.Time) (_ *bandwidth.Usage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return db.getSummary(ctx, from, to, egressFilter)
 }
 
 // IngressSummary returns summary of ingress usages for all satellites.
 func (db *bandwidthDB) IngressSummary(ctx context.Context, from, to time.Time) (_ *bandwidth.Usage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return db.getSummary(ctx, from, to, ingressFilter)
 }
 
 // getSummary returns bandwidth data for all satellites.
 func (db *bandwidthDB) getSummary(ctx context.Context, from, to time.Time, filter actionFilter) (_ *bandwidth.Usage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	usage := &bandwidth.Usage{}
 
@@ -173,28 +191,48 @@ func (db *bandwidthDB) getSummary(ctx context.Context, from, to time.Time, filte
 
 // SatelliteSummary returns summary of bandwidth usages for a particular satellite.
 func (db *bandwidthDB) SatelliteSummary(ctx context.Context, satelliteID storj.NodeID, from, to time.Time) (_ *bandwidth.Usage, err error) {
-	defer mon.Task()(&ctx, satelliteID, from, to)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(),
+		trace.WithAttributes(attribute.String("satelliteID", satelliteID.String())),
+		trace.WithAttributes(attribute.String("from", from.String())),
+		trace.WithAttributes(attribute.String("to", to.String())))
+	defer span.End()
 
 	return db.getSatelliteSummary(ctx, satelliteID, from, to, bandwidthFilter)
 }
 
 // SatelliteEgressSummary returns summary of egress usage for a particular satellite.
 func (db *bandwidthDB) SatelliteEgressSummary(ctx context.Context, satelliteID storj.NodeID, from, to time.Time) (_ *bandwidth.Usage, err error) {
-	defer mon.Task()(&ctx, satelliteID, from, to)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(),
+		trace.WithAttributes(attribute.String("satelliteID", satelliteID.String())),
+		trace.WithAttributes(attribute.String("from", from.String())),
+		trace.WithAttributes(attribute.String("to", to.String())))
+	defer span.End()
 
 	return db.getSatelliteSummary(ctx, satelliteID, from, to, egressFilter)
 }
 
 // SatelliteIngressSummary returns summary of ingress usage for a particular satellite.
 func (db *bandwidthDB) SatelliteIngressSummary(ctx context.Context, satelliteID storj.NodeID, from, to time.Time) (_ *bandwidth.Usage, err error) {
-	defer mon.Task()(&ctx, satelliteID, from, to)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(),
+		trace.WithAttributes(attribute.String("satelliteID", satelliteID.String())),
+		trace.WithAttributes(attribute.String("from", from.String())),
+		trace.WithAttributes(attribute.String("to", to.String())))
+	defer span.End()
 
 	return db.getSatelliteSummary(ctx, satelliteID, from, to, ingressFilter)
 }
 
 // getSummary returns bandwidth data for a particular satellite.
 func (db *bandwidthDB) getSatelliteSummary(ctx context.Context, satelliteID storj.NodeID, from, to time.Time, filter actionFilter) (_ *bandwidth.Usage, err error) {
-	defer mon.Task()(&ctx, satelliteID, from, to)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(),
+		trace.WithAttributes(attribute.String("satelliteID", satelliteID.String())),
+		trace.WithAttributes(attribute.String("from", from.String())),
+		trace.WithAttributes(attribute.String("to", to.String())))
+	defer span.End()
 
 	from, to = from.UTC(), to.UTC()
 
@@ -238,7 +276,9 @@ func (db *bandwidthDB) getSatelliteSummary(ctx context.Context, satelliteID stor
 
 // SummaryBySatellite returns summary of bandwidth usage grouping by satellite.
 func (db *bandwidthDB) SummaryBySatellite(ctx context.Context, from, to time.Time) (_ map[storj.NodeID]*bandwidth.Usage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	entries := map[storj.NodeID]*bandwidth.Usage{}
 
@@ -289,7 +329,9 @@ func (db *bandwidthDB) SummaryBySatellite(ctx context.Context, from, to time.Tim
 
 // Rollup bandwidth_usage data earlier than the current hour, then delete the rolled up records.
 func (db *bandwidthDB) Rollup(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	now := time.Now().UTC()
 
@@ -335,7 +377,11 @@ func (db *bandwidthDB) Rollup(ctx context.Context) (err error) {
 // GetDailyRollups returns slice of daily bandwidth usage rollups for provided time range,
 // sorted in ascending order.
 func (db *bandwidthDB) GetDailyRollups(ctx context.Context, from, to time.Time) (_ []bandwidth.UsageRollup, err error) {
-	defer mon.Task()(&ctx, from, to)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(),
+		trace.WithAttributes(attribute.String("from", from.String())),
+		trace.WithAttributes(attribute.String("to", to.String())))
+	defer span.End()
 
 	since, _ := date.DayBoundary(from.UTC())
 	_, before := date.DayBoundary(to.UTC())
@@ -348,7 +394,12 @@ func (db *bandwidthDB) GetDailyRollups(ctx context.Context, from, to time.Time) 
 // GetDailySatelliteRollups returns slice of daily bandwidth usage for provided time range,
 // sorted in ascending order for a particular satellite.
 func (db *bandwidthDB) GetDailySatelliteRollups(ctx context.Context, satelliteID storj.NodeID, from, to time.Time) (_ []bandwidth.UsageRollup, err error) {
-	defer mon.Task()(&ctx, satelliteID, from, to)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(),
+		trace.WithAttributes(attribute.String("satelliteID", satelliteID.String())),
+		trace.WithAttributes(attribute.String("from", from.String())),
+		trace.WithAttributes(attribute.String("to", to.String())))
+	defer span.End()
 
 	since, _ := date.DayBoundary(from.UTC())
 	_, before := date.DayBoundary(to.UTC())
@@ -361,7 +412,9 @@ func (db *bandwidthDB) GetDailySatelliteRollups(ctx context.Context, satelliteID
 // getDailyUsageRollups returns slice of grouped by date bandwidth usage rollups
 // sorted in ascending order and applied condition if any.
 func (db *bandwidthDB) getDailyUsageRollups(ctx context.Context, cond string, args ...interface{}) (_ []bandwidth.UsageRollup, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query := `SELECT action, sum(a) as amount, DATETIME(DATE(interval_start)) as date FROM (
 			SELECT action, sum(amount) as a, created_at AS interval_start

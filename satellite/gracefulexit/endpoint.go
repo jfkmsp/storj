@@ -5,7 +5,12 @@ package gracefulexit
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
 	"io"
+	"os"
+
+	"runtime"
 	"sync"
 	"time"
 
@@ -115,7 +120,10 @@ func NewEndpoint(log *zap.Logger, signer signing.Signer, db DB, overlaydb overla
 // Process is called by storage nodes to receive pieces to transfer to new nodes and get exit status.
 func (endpoint *Endpoint) Process(stream pb.DRPCSatelliteGracefulExit_ProcessStream) (err error) {
 	ctx := stream.Context()
-	defer mon.Task()(&ctx)(&err)
+	//pc, _, _, _ := runtime.Caller(0)
+	//ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	//defer span.End()
 
 	peer, err := identity.PeerIdentityFromContext(ctx)
 	if err != nil {
@@ -307,7 +315,8 @@ func (endpoint *Endpoint) Process(stream pb.DRPCSatelliteGracefulExit_ProcessStr
 						return rpcstatus.Error(rpcstatus.Internal, err.Error())
 					}
 
-					mon.Meter("graceful_exit_fail_validation").Mark(1) //mon:locked
+					counter, _ := meter.SyncInt64().Counter("graceful_exit_fail_validation")
+					counter.Add(ctx, 1)
 
 					exitStatusRequest := &overlay.ExitStatusRequest{
 						NodeID:         nodeID,
@@ -456,7 +465,10 @@ func (endpoint *Endpoint) processIncomplete(ctx context.Context, stream pb.DRPCS
 }
 
 func (endpoint *Endpoint) handleSucceeded(ctx context.Context, stream pb.DRPCSatelliteGracefulExit_ProcessStream, pending *PendingMap, exitingNodeID storj.NodeID, message *pb.StorageNodeMessage_Succeeded) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	originalPieceID := message.Succeeded.OriginalPieceId
 
@@ -528,19 +540,24 @@ func (endpoint *Endpoint) handleSucceeded(ctx context.Context, stream pb.DRPCSat
 		return Error.Wrap(err)
 	}
 
-	mon.Meter("graceful_exit_transfer_piece_success").Mark(1) //mon:locked
+	counter, _ := meter.SyncInt64().Counter("graceful_exit_transfer_piece_success")
+	counter.Add(ctx, 1)
 	return nil
 }
 
 func (endpoint *Endpoint) handleFailed(ctx context.Context, pending *PendingMap, nodeID storj.NodeID, message *pb.StorageNodeMessage_Failed) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	endpoint.log.Warn("transfer failed",
 		zap.Stringer("Piece ID", message.Failed.OriginalPieceId),
 		zap.Stringer("nodeID", nodeID),
 		zap.Stringer("transfer error", message.Failed.GetError()),
 	)
-	mon.Meter("graceful_exit_transfer_piece_fail").Mark(1) //mon:locked
+	counter, _ := meter.SyncInt64().Counter("graceful_exit_transfer_piece_fail")
+	counter.Add(ctx, 1)
 
 	pieceID := message.Failed.OriginalPieceId
 	transfer, ok := pending.Get(pieceID)
@@ -724,7 +741,9 @@ func (endpoint *Endpoint) getFinishedMessage(ctx context.Context, nodeID storj.N
 }
 
 func (endpoint *Endpoint) updateSegment(ctx context.Context, exitingNodeID storj.NodeID, receivingNodeID storj.NodeID, streamID uuid.UUID, position metabase.SegmentPosition, pieceNumber uint16, originalRootPieceID storj.PieceID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// remove the node from the segment
 	segment, err := endpoint.getValidSegment(ctx, streamID, position, originalRootPieceID)
@@ -770,6 +789,7 @@ func (endpoint *Endpoint) updateSegment(ctx context.Context, exitingNodeID storj
 // if a node has started graceful exit, but no transfer item is available yet, it will return an not ready message
 // otherwise, the returned message will be nil.
 func (endpoint *Endpoint) checkExitStatus(ctx context.Context, nodeID storj.NodeID) (*pb.SatelliteMessage, error) {
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
 	exitStatus, err := endpoint.overlaydb.GetExitStatus(ctx, nodeID)
 	if err != nil {
 		return nil, Error.Wrap(err)
@@ -808,10 +828,14 @@ func (endpoint *Endpoint) checkExitStatus(ctx context.Context, nodeID storj.Node
 
 		// graceful exit initiation metrics
 		age := time.Now().UTC().Sub(node.CreatedAt.UTC())
-		mon.FloatVal("graceful_exit_init_node_age_seconds").Observe(age.Seconds())                          //mon:locked
-		mon.IntVal("graceful_exit_init_node_audit_success_count").Observe(reputationInfo.AuditSuccessCount) //mon:locked
-		mon.IntVal("graceful_exit_init_node_audit_total_count").Observe(reputationInfo.TotalAuditCount)     //mon:locked
-		mon.IntVal("graceful_exit_init_node_piece_count").Observe(node.PieceCount)                          //mon:locked
+		histFloatCounter, _ := meter.SyncFloat64().Histogram("graceful_exit_init_node_age_seconds")
+		histFloatCounter.Record(ctx, age.Seconds())
+		histCounter, _ := meter.SyncInt64().Histogram("graceful_exit_init_node_audit_success_count")
+		histCounter.Record(ctx, reputationInfo.AuditSuccessCount)
+		histCounter, _ = meter.SyncInt64().Histogram("graceful_exit_init_node_audit_total_count")
+		histCounter.Record(ctx, reputationInfo.TotalAuditCount)
+		histCounter, _ = meter.SyncInt64().Histogram("graceful_exit_init_node_piece_count")
+		histCounter.Record(ctx, node.PieceCount)
 
 		return &pb.SatelliteMessage{Message: &pb.SatelliteMessage_NotReady{NotReady: &pb.NotReady{}}}, nil
 	}
@@ -824,19 +848,24 @@ func (endpoint *Endpoint) checkExitStatus(ctx context.Context, nodeID storj.Node
 }
 
 func (endpoint *Endpoint) generateExitStatusRequest(ctx context.Context, nodeID storj.NodeID) (*overlay.ExitStatusRequest, pb.ExitFailed_Reason, error) {
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
 	var exitFailedReason pb.ExitFailed_Reason = -1
 	progress, err := endpoint.db.GetProgress(ctx, nodeID)
 	if err != nil {
 		return nil, exitFailedReason, rpcstatus.Error(rpcstatus.Internal, err.Error())
 	}
 
-	mon.IntVal("graceful_exit_final_pieces_failed").Observe(progress.PiecesFailed)         //mon:locked
-	mon.IntVal("graceful_exit_final_pieces_succeess").Observe(progress.PiecesTransferred)  //mon:locked
-	mon.IntVal("graceful_exit_final_bytes_transferred").Observe(progress.BytesTransferred) //mon:locked
+	histCounter, _ := meter.SyncInt64().Histogram("graceful_exit_final_pieces_failed")
+	histCounter.Record(ctx, progress.PiecesFailed)
+	histCounter, _ = meter.SyncInt64().Histogram("graceful_exit_final_pieces_succeess")
+	histCounter.Record(ctx, progress.PiecesTransferred)
+	histCounter, _ = meter.SyncInt64().Histogram("graceful_exit_final_bytes_transferred")
+	histCounter.Record(ctx, progress.BytesTransferred)
 	processed := progress.PiecesFailed + progress.PiecesTransferred
 
 	if processed > 0 {
-		mon.IntVal("graceful_exit_successful_pieces_transfer_ratio").Observe(progress.PiecesTransferred / processed) //mon:locked
+		histCounter, _ := meter.SyncInt64().Histogram("graceful_exit_successful_pieces_transfer_ratio")
+		histCounter.Record(ctx, progress.PiecesTransferred/processed)
 	}
 
 	exitStatusRequest := &overlay.ExitStatusRequest{
@@ -852,9 +881,11 @@ func (endpoint *Endpoint) generateExitStatusRequest(ctx context.Context, nodeID 
 	}
 
 	if exitStatusRequest.ExitSuccess {
-		mon.Meter("graceful_exit_success").Mark(1) //mon:locked
+		counter, _ := meter.SyncInt64().Counter("graceful_exit_success")
+		counter.Add(ctx, 1)
 	} else {
-		mon.Meter("graceful_exit_fail_max_failures_percentage").Mark(1) //mon:locked
+		counter, _ := meter.SyncInt64().Counter("graceful_exit_fail_max_failures_percentage")
+		counter.Add(ctx, 1)
 	}
 
 	return exitStatusRequest, exitFailedReason, nil
@@ -913,7 +944,9 @@ func (endpoint *Endpoint) getNodePiece(ctx context.Context, segment metabase.Seg
 
 // GracefulExitFeasibility returns node's joined at date, nodeMinAge and if graceful exit available.
 func (endpoint *Endpoint) GracefulExitFeasibility(ctx context.Context, req *pb.GracefulExitFeasibilityRequest) (_ *pb.GracefulExitFeasibilityResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	peer, err := identity.PeerIdentityFromContext(ctx)
 	if err != nil {
@@ -949,7 +982,9 @@ func (endpoint *Endpoint) GracefulExitFeasibility(ctx context.Context, req *pb.G
 // added are already in the segment.
 // Then it will remove the toRemove pieces and then it will add the toAdd pieces.
 func (endpoint *Endpoint) UpdatePiecesCheckDuplicates(ctx context.Context, segment metabase.Segment, toAdd, toRemove metabase.Pieces, checkDuplicates bool) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// Return an error if the segment already has a piece for this node
 	if checkDuplicates {

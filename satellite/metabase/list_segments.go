@@ -7,6 +7,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
 	"storj.io/common/uuid"
@@ -29,7 +33,9 @@ type ListSegmentsResult struct {
 
 // ListSegments lists specified stream segments.
 func (db *DB) ListSegments(ctx context.Context, opts ListSegments) (result ListSegmentsResult, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if opts.StreamID.IsZero() {
 		return ListSegmentsResult{}, ErrInvalidRequest.New("StreamID missing")
@@ -187,7 +193,9 @@ type SegmentPositionInfo struct {
 
 // ListStreamPositions lists specified stream segment positions.
 func (db *DB) ListStreamPositions(ctx context.Context, opts ListStreamPositions) (result ListStreamPositionsResult, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if opts.StreamID.IsZero() {
 		return ListStreamPositionsResult{}, ErrInvalidRequest.New("StreamID missing")

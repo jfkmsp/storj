@@ -12,15 +12,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 
 	"storj.io/common/errs2"
 )
-
-var mon = monkit.Package()
 
 // Group implements a collection of items that have a
 // concurrent start and are closed in reverse order.
@@ -50,13 +47,15 @@ func (group *Group) Add(item Item) {
 
 // Run starts all items concurrently under group g.
 func (group *Group) Run(ctx context.Context, g *errgroup.Group) {
-	defer mon.Task()(&ctx)(nil)
 
 	var started []string
 	for _, item := range group.items {
+		//pc, _, _, _ := runtime.Caller(0)
+		//ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
 		item := item
 		started = append(started, item.Name)
 		if item.Run == nil {
+			//span.End()
 			continue
 		}
 
@@ -72,7 +71,7 @@ func (group *Group) Run(ctx context.Context, g *errgroup.Group) {
 			defer shutdownDeadline.Stop()
 			select {
 			case <-shutdownDeadline.C:
-				mon.Event("slow_shutdown") //mon:locked
+				//span.AddEvent("slow_shutdown")
 				group.log.Warn("service takes long to shutdown", zap.String("name", item.Name))
 				group.logStackTrace()
 			case <-shutdownCtx.Done():
@@ -90,11 +89,12 @@ func (group *Group) Run(ctx context.Context, g *errgroup.Group) {
 				err = errs2.IgnoreCanceled(err)
 			}
 			if err != nil {
-				mon.Event("unexpected_shutdown") //mon:locked
+				//span.AddEvent("unexpected_shutdown")
 				group.log.Error("unexpected shutdown of a runner", zap.String("name", item.Name), zap.Error(err))
 			}
 			return err
 		})
+		//span.End()
 	}
 
 	group.log.Debug("started", zap.Strings("items", started))

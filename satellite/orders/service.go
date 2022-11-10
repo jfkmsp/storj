@@ -5,8 +5,13 @@ package orders
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
 	"math"
 	mathrand "math/rand"
+	"os"
+
+	"runtime"
 	"sync"
 	"time"
 
@@ -81,12 +86,16 @@ func NewService(
 
 // VerifyOrderLimitSignature verifies that the signature inside order limit belongs to the satellite.
 func (service *Service) VerifyOrderLimitSignature(ctx context.Context, signed *pb.OrderLimit) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return signing.VerifyOrderLimitSignature(ctx, service.satellite, signed)
 }
 
 func (service *Service) updateBandwidth(ctx context.Context, bucket metabase.BucketLocation, addressedOrderLimits ...*pb.AddressedOrderLimit) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if len(addressedOrderLimits) == 0 {
 		return nil
 	}
@@ -116,7 +125,10 @@ func (service *Service) updateBandwidth(ctx context.Context, bucket metabase.Buc
 
 // CreateGetOrderLimits creates the order limits for downloading the pieces of a segment.
 func (service *Service) CreateGetOrderLimits(ctx context.Context, bucket metabase.BucketLocation, segment metabase.Segment, overrideLimit int64) (_ []*pb.AddressedOrderLimit, privateKey storj.PiecePrivateKey, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	redundancy, err := eestream.NewRedundancyStrategyFromStorj(segment.Redundancy)
 	if err != nil {
@@ -171,7 +183,8 @@ func (service *Service) CreateGetOrderLimits(ctx context.Context, bucket metabas
 		}
 	}
 	if len(signer.AddressedLimits) < redundancy.RequiredCount() {
-		mon.Meter("download_failed_not_enough_pieces_uplink").Mark(1) //mon:locked
+		counter, _ := meter.SyncInt64().Counter("download_failed_not_enough_pieces_uplink")
+		counter.Add(context.Background(), 1)
 		return nil, storj.PiecePrivateKey{}, ErrDownloadFailedNotEnoughPieces.New("not enough orderlimits: got %d, required %d", len(signer.AddressedLimits), redundancy.RequiredCount())
 	}
 
@@ -205,7 +218,7 @@ func sortLimits(limits []*pb.AddressedOrderLimit, segment metabase.Segment) ([]*
 	for _, piece := range segment.Pieces {
 		if int16(piece.Number) >= segment.Redundancy.TotalShares {
 			return nil, Error.New("piece number is greater than redundancy total shares: got %d, max %d",
-				piece.Number, (segment.Redundancy.TotalShares - 1))
+				piece.Number, segment.Redundancy.TotalShares-1)
 		}
 		sorted[piece.Number] = getLimitByStorageNodeID(limits, piece.StorageNode)
 	}
@@ -227,7 +240,9 @@ func getLimitByStorageNodeID(limits []*pb.AddressedOrderLimit, storageNodeID sto
 
 // CreatePutOrderLimits creates the order limits for uploading pieces to nodes.
 func (service *Service) CreatePutOrderLimits(ctx context.Context, bucket metabase.BucketLocation, nodes []*overlay.SelectedNode, pieceExpiration time.Time, maxPieceSize int64) (_ storj.PieceID, _ []*pb.AddressedOrderLimit, privateKey storj.PiecePrivateKey, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	signer, err := NewSignerPut(service, pieceExpiration, time.Now(), maxPieceSize, bucket)
 	if err != nil {
@@ -254,7 +269,9 @@ func (service *Service) CreatePutOrderLimits(ctx context.Context, bucket metabas
 
 // CreateAuditOrderLimits creates the order limits for auditing the pieces of a segment.
 func (service *Service) CreateAuditOrderLimits(ctx context.Context, segment metabase.Segment, skip map[storj.NodeID]bool) (_ []*pb.AddressedOrderLimit, _ storj.PiecePrivateKey, cachedNodesInfo map[storj.NodeID]overlay.NodeReputation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	nodeIDs := make([]storj.NodeID, len(segment.Pieces))
 	for i, piece := range segment.Pieces {
@@ -313,7 +330,9 @@ func (service *Service) CreateAuditOrderLimits(ctx context.Context, segment meta
 // CreateAuditOrderLimit creates an order limit for auditing a single piece from a segment.
 func (service *Service) CreateAuditOrderLimit(ctx context.Context, nodeID storj.NodeID, pieceNum uint16, rootPieceID storj.PieceID, shareSize int32) (limit *pb.AddressedOrderLimit, _ storj.PiecePrivateKey, nodeInfo *overlay.NodeReputation, err error) {
 	// TODO reduce number of params ?
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	signer, err := NewSignerAudit(service, rootPieceID, time.Now(), int64(shareSize), metabase.BucketLocation{})
 	if err != nil {
@@ -329,7 +348,9 @@ func (service *Service) CreateAuditOrderLimit(ctx context.Context, nodeID storj.
 // Unfortunately, because of the way the protocol works historically, we
 // must use GET_REPAIR for this operation instead of GET_AUDIT.
 func (service *Service) CreateAuditPieceOrderLimit(ctx context.Context, nodeID storj.NodeID, pieceNum uint16, rootPieceID storj.PieceID, pieceSize int32) (limit *pb.AddressedOrderLimit, _ storj.PiecePrivateKey, nodeInfo *overlay.NodeReputation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	signer, err := NewSignerRepairGet(service, rootPieceID, time.Now(), int64(pieceSize), metabase.BucketLocation{})
 	if err != nil {
@@ -339,7 +360,9 @@ func (service *Service) CreateAuditPieceOrderLimit(ctx context.Context, nodeID s
 }
 
 func (service *Service) createAuditOrderLimitWithSigner(ctx context.Context, nodeID storj.NodeID, pieceNum uint16, signer *Signer) (limit *pb.AddressedOrderLimit, _ storj.PiecePrivateKey, nodeInfo *overlay.NodeReputation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	node, err := service.overlay.Get(ctx, nodeID)
 	if err != nil {
@@ -381,7 +404,9 @@ func (service *Service) createAuditOrderLimitWithSigner(ctx context.Context, nod
 // The length of the returned orders slice is the total number of pieces of the
 // segment, setting to null the ones which don't correspond to a healthy piece.
 func (service *Service) CreateGetRepairOrderLimits(ctx context.Context, bucket metabase.BucketLocation, segment metabase.Segment, healthy metabase.Pieces) (_ []*pb.AddressedOrderLimit, _ storj.PiecePrivateKey, cachedNodesInfo map[storj.NodeID]overlay.NodeReputation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	redundancy, err := eestream.NewRedundancyStrategyFromStorj(segment.Redundancy)
 	if err != nil {
@@ -446,7 +471,9 @@ func (service *Service) CreateGetRepairOrderLimits(ctx context.Context, bucket m
 
 // CreatePutRepairOrderLimits creates the order limits for uploading the repaired pieces of segment to newNodes.
 func (service *Service) CreatePutRepairOrderLimits(ctx context.Context, bucket metabase.BucketLocation, segment metabase.Segment, getOrderLimits []*pb.AddressedOrderLimit, newNodes []*overlay.SelectedNode, optimalThresholdMultiplier float64, numPiecesInExcludedCountries int) (_ []*pb.AddressedOrderLimit, _ storj.PiecePrivateKey, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// Create the order limits for being used to upload the repaired pieces
 	redundancy, err := eestream.NewRedundancyStrategyFromStorj(segment.Redundancy)
@@ -519,7 +546,9 @@ func (service *Service) CreatePutRepairOrderLimits(ctx context.Context, bucket m
 
 // CreateGracefulExitPutOrderLimit creates an order limit for graceful exit put transfers.
 func (service *Service) CreateGracefulExitPutOrderLimit(ctx context.Context, bucket metabase.BucketLocation, nodeID storj.NodeID, pieceNum int32, rootPieceID storj.PieceID, shareSize int32) (limit *pb.AddressedOrderLimit, _ storj.PiecePrivateKey, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// should this use KnownReliable or similar?
 	node, err := service.overlay.Get(ctx, nodeID)
@@ -557,7 +586,9 @@ func (service *Service) CreateGracefulExitPutOrderLimit(ctx context.Context, buc
 
 // UpdateGetInlineOrder updates amount of inline GET bandwidth for given bucket.
 func (service *Service) UpdateGetInlineOrder(ctx context.Context, bucket metabase.BucketLocation, amount int64) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	now := time.Now().UTC()
 	intervalStart := time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
 
@@ -566,7 +597,9 @@ func (service *Service) UpdateGetInlineOrder(ctx context.Context, bucket metabas
 
 // UpdatePutInlineOrder updates amount of inline PUT bandwidth for given bucket.
 func (service *Service) UpdatePutInlineOrder(ctx context.Context, bucket metabase.BucketLocation, amount int64) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	now := time.Now().UTC()
 	intervalStart := time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
 
@@ -575,7 +608,9 @@ func (service *Service) UpdatePutInlineOrder(ctx context.Context, bucket metabas
 
 // DecryptOrderMetadata decrypts the order metadata.
 func (service *Service) DecryptOrderMetadata(ctx context.Context, order *pb.OrderLimit) (_ *internalpb.OrderLimitMetadata, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var orderKeyID EncryptionKeyID
 	copy(orderKeyID[:], order.EncryptedMetadataKeyId)

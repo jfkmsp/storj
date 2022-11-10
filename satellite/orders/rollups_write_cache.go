@@ -5,6 +5,9 @@ package orders
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+	"runtime"
 	"sync"
 	"time"
 
@@ -87,7 +90,9 @@ func (cache *RollupsWriteCache) resetCache() RollupData {
 
 // Flush resets cache then flushes the everything in the rollups write cache to the database.
 func (cache *RollupsWriteCache) Flush(ctx context.Context) {
-	defer mon.Task()(&ctx)(nil)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	cache.mu.Lock()
 
@@ -127,7 +132,9 @@ func (cache *RollupsWriteCache) CloseAndFlush(ctx context.Context) error {
 
 // flush flushes the everything in the rollups write cache to the database.
 func (cache *RollupsWriteCache) flush(ctx context.Context, pendingRollups RollupData) {
-	defer mon.Task()(&ctx)(nil)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if len(pendingRollups) > 0 {
 		rollups := make([]BucketBandwidthRollup, 0, len(pendingRollups))
@@ -146,7 +153,7 @@ func (cache *RollupsWriteCache) flush(ctx context.Context, pendingRollups Rollup
 
 		err := cache.DB.UpdateBandwidthBatch(ctx, rollups)
 		if err != nil {
-			mon.Event("rollups_write_cache_flush_lost")
+			span.AddEvent("rollups_write_cache_flush_lost")
 			cache.log.Error("MONEY LOST! Bucket bandwidth rollup batch flush failed", zap.Error(err))
 		}
 	}
@@ -160,7 +167,9 @@ func (cache *RollupsWriteCache) flush(ctx context.Context, pendingRollups Rollup
 }
 
 func (cache *RollupsWriteCache) updateCacheValue(ctx context.Context, projectID uuid.UUID, bucketName []byte, action pb.PieceAction, allocated, inline, settled, dead int64, intervalStart time.Time) error {
-	defer mon.Task()(&ctx)(nil)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	cache.mu.Lock()
 	defer cache.mu.Unlock()
@@ -180,7 +189,7 @@ func (cache *RollupsWriteCache) updateCacheValue(ctx context.Context, projectID 
 	// to keep up with incoming writes.
 	data, ok := cache.pendingRollups[key]
 	if !ok && len(cache.pendingRollups) >= cache.batchSize {
-		mon.Event("rollups_write_cache_update_lost")
+		span.AddEvent("rollups_write_cache_update_lost")
 		cache.log.Error("MONEY LOST! Flushing too slow to keep up with demand")
 	} else {
 

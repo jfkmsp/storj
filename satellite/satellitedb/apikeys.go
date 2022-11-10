@@ -5,6 +5,10 @@ package satellitedb
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"strings"
 
 	"github.com/zeebo/errs"
@@ -26,7 +30,9 @@ type apikeys struct {
 }
 
 func (keys *apikeys) GetPagedByProjectID(ctx context.Context, projectID uuid.UUID, cursor console.APIKeyCursor) (akp *console.APIKeyPage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	search := "%" + strings.ReplaceAll(cursor.Search, " ", "%") + "%"
 
@@ -128,7 +134,9 @@ func (keys *apikeys) GetPagedByProjectID(ctx context.Context, projectID uuid.UUI
 
 // Get implements satellite.APIKeys.
 func (keys *apikeys) Get(ctx context.Context, id uuid.UUID) (_ *console.APIKeyInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	dbKey, err := keys.methods.Get_ApiKey_By_Id(ctx, dbx.ApiKey_Id(id[:]))
 	if err != nil {
 		return nil, err
@@ -139,7 +147,9 @@ func (keys *apikeys) Get(ctx context.Context, id uuid.UUID) (_ *console.APIKeyIn
 
 // GetByHead implements satellite.APIKeys.
 func (keys *apikeys) GetByHead(ctx context.Context, head []byte) (_ *console.APIKeyInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	dbKeyI, err := keys.lru.Get(string(head), func() (interface{}, error) {
 		return keys.methods.Get_ApiKey_By_Head(ctx, dbx.ApiKey_Head(head))
@@ -156,7 +166,9 @@ func (keys *apikeys) GetByHead(ctx context.Context, head []byte) (_ *console.API
 
 // GetByNameAndProjectID implements satellite.APIKeys.
 func (keys *apikeys) GetByNameAndProjectID(ctx context.Context, name string, projectID uuid.UUID) (_ *console.APIKeyInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	dbKey, err := keys.methods.Get_ApiKey_By_Name_And_ProjectId(ctx,
 		dbx.ApiKey_Name(name),
 		dbx.ApiKey_ProjectId(projectID[:]))
@@ -169,7 +181,9 @@ func (keys *apikeys) GetByNameAndProjectID(ctx context.Context, name string, pro
 
 // Create implements satellite.APIKeys.
 func (keys *apikeys) Create(ctx context.Context, head []byte, info console.APIKeyInfo) (_ *console.APIKeyInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	id, err := uuid.New()
 	if err != nil {
 		return nil, err
@@ -203,7 +217,9 @@ func (keys *apikeys) Create(ctx context.Context, head []byte, info console.APIKe
 
 // Update implements satellite.APIKeys.
 func (keys *apikeys) Update(ctx context.Context, key console.APIKeyInfo) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return keys.methods.UpdateNoReturn_ApiKey_By_Id(
 		ctx,
 		dbx.ApiKey_Id(key.ID[:]),
@@ -215,14 +231,18 @@ func (keys *apikeys) Update(ctx context.Context, key console.APIKeyInfo) (err er
 
 // Delete implements satellite.APIKeys.
 func (keys *apikeys) Delete(ctx context.Context, id uuid.UUID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	_, err = keys.methods.Delete_ApiKey_By_Id(ctx, dbx.ApiKey_Id(id[:]))
 	return err
 }
 
 // fromDBXAPIKey converts dbx.ApiKey to satellite.APIKeyInfo.
 func fromDBXAPIKey(ctx context.Context, key *dbx.ApiKey) (_ *console.APIKeyInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	id, err := uuid.FromBytes(key.Id)
 	if err != nil {
 		return nil, err

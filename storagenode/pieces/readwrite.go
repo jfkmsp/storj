@@ -7,8 +7,13 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
 	"hash"
 	"io"
+	"os"
+
+	"runtime"
 
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
@@ -117,7 +122,10 @@ func (w *Writer) Hash() []byte { return w.hash.Sum(nil) }
 
 // Commit commits piece to permanent storage.
 func (w *Writer) Commit(ctx context.Context, pieceHeader *pb.PieceHeader) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 	if w.closed {
 		return Error.New("already closed")
 	}
@@ -158,12 +166,14 @@ func (w *Writer) Commit(ctx context.Context, pieceHeader *pb.PieceHeader) (err e
 	if err != nil {
 		return err
 	}
-	mon.IntVal("storagenode_pieces_pieceheader_size").Observe(int64(len(headerBytes)))
+	histCounter, _ := meter.SyncInt64().Histogram("storagenode_pieces_pieceheader_size")
+	histCounter.Record(ctx, int64(len(headerBytes)))
 	if len(headerBytes) > (V1PieceHeaderReservedArea - v1PieceHeaderFramingSize) {
 		// This should never happen under normal circumstances, and it might deserve a panic(),
 		// but I'm not *entirely* sure this case can't be triggered by a malicious uplink. Are
 		// google.protobuf.Timestamp fields variable-width?
-		mon.Meter("storagenode_pieces_pieceheader_overflow").Mark(len(headerBytes))
+		histCounter, _ := meter.SyncInt64().Histogram("storagenode_pieces_pieceheader_overflow")
+		histCounter.Record(ctx, int64(len(headerBytes)))
 		return Error.New("marshaled piece header too big!")
 	}
 	size, err := w.blob.Size()
@@ -201,7 +211,9 @@ func (w *Writer) Commit(ctx context.Context, pieceHeader *pb.PieceHeader) (err e
 
 // Cancel deletes any temporarily written data.
 func (w *Writer) Cancel(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if w.closed {
 		return nil
 	}

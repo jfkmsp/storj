@@ -6,9 +6,12 @@ package main
 import (
 	"context"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"os"
 
-	pgx "github.com/jackc/pgx/v4"
-	"github.com/spacemonkeygo/monkit/v3"
+	"runtime"
+
+	"github.com/jackc/pgx/v4"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 	"github.com/zeebo/errs"
@@ -16,8 +19,6 @@ import (
 
 	"storj.io/private/process"
 )
-
-var mon = monkit.Package()
 
 var (
 	rootCmd = &cobra.Command{
@@ -87,7 +88,9 @@ func main() {
 // bucket_metainfos
 // value_attributions.
 func Migrate(ctx context.Context, log *zap.Logger, config Config) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	conn, err := pgx.Connect(ctx, config.SatelliteDB)
 	if err != nil {

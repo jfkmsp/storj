@@ -5,17 +5,18 @@ package projectbwcleanup
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
 	"storj.io/common/sync2"
 	"storj.io/storj/satellite/accounting"
 )
-
-var mon = monkit.Package()
 
 // Config is a configuration struct for the Chore.
 type Config struct {
@@ -48,8 +49,10 @@ func NewChore(log *zap.Logger, db accounting.ProjectAccounting, config Config) *
 
 // Run starts the chore.
 func (chore *Chore) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
 	return chore.Loop.Run(ctx, func(ctx context.Context) error {
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		defer span.End()
 		err := chore.RunOnce(ctx)
 		if err != nil {
 			chore.log.Error("error removing project bandwidth rollups", zap.Error(err))
@@ -60,7 +63,9 @@ func (chore *Chore) Run(ctx context.Context) (err error) {
 
 // RunOnce removes unused project bandwidth rollups.
 func (chore *Chore) RunOnce(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if chore.config.RetainMonths < 0 {
 		return errs.New("retain months cannot be less than 0")

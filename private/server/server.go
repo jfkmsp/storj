@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+
 	"runtime"
 	"sync"
 	"syscall"
@@ -28,7 +29,6 @@ import (
 	"storj.io/drpc/drpcmigrate"
 	"storj.io/drpc/drpcmux"
 	"storj.io/drpc/drpcserver"
-	jaeger "storj.io/monkit-jaeger"
 )
 
 // Config holds server specific configuration parameters.
@@ -99,7 +99,7 @@ func New(log *zap.Logger, tlsOptions *tlsopts.Options, config Config) (_ *Server
 		return nil, errs.Combine(err, server.public.Close())
 	}
 	privateMux := drpcmux.New()
-	privateTracingHandler := rpctracing.NewHandler(privateMux, jaeger.RemoteTraceHandler)
+	privateTracingHandler := rpctracing.NewHandler(privateMux, nil)
 	server.private = private{
 		listener: wrapListener(privateListener),
 		drpc:     drpcserver.NewWithOptions(experiment.NewHandler(privateTracingHandler), serverOptions),
@@ -152,7 +152,9 @@ func (p *Server) AddHTTPFallback(httpHandler http.HandlerFunc) {
 
 // Run will run the server and all of its services.
 func (p *Server) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	//pc, _, _, _ := runtime.Caller(0)
+	//ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	//defer span.End()
 
 	// Make sure the server isn't already closed. If it is, register
 	// ourselves in the wait group so that Close can wait on it.
@@ -321,7 +323,7 @@ func newPublic(publicAddr string, disableTCPTLS, disableQUIC bool) (public, erro
 	}
 
 	publicMux := drpcmux.New()
-	publicTracingHandler := rpctracing.NewHandler(publicMux, jaeger.RemoteTraceHandler)
+	publicTracingHandler := rpctracing.NewHandler(publicMux, nil)
 
 	serverOptions := drpcserver.Options{
 		Manager: rpc.NewDefaultManagerOptions(),

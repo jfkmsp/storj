@@ -5,6 +5,10 @@ package pointerverification
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"sync"
 
 	"storj.io/common/identity"
@@ -30,7 +34,9 @@ func NewIdentityCache(db overlay.PeerIdentities) *IdentityCache {
 
 // GetCached returns the peer identity in the cache.
 func (cache *IdentityCache) GetCached(ctx context.Context, id storj.NodeID) *identity.PeerIdentity {
-	defer mon.Task()(&ctx)(nil)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	cache.mu.RLock()
 	defer cache.mu.RUnlock()
@@ -40,7 +46,9 @@ func (cache *IdentityCache) GetCached(ctx context.Context, id storj.NodeID) *ide
 
 // GetUpdated returns the identity from database and updates the cache.
 func (cache *IdentityCache) GetUpdated(ctx context.Context, id storj.NodeID) (_ *identity.PeerIdentity, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	identity, err := cache.db.Get(ctx, id)
 	if err != nil {
@@ -56,7 +64,9 @@ func (cache *IdentityCache) GetUpdated(ctx context.Context, id storj.NodeID) (_ 
 
 // EnsureCached loads any missing identity into cache.
 func (cache *IdentityCache) EnsureCached(ctx context.Context, nodes []storj.NodeID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	missing := []storj.NodeID{}
 

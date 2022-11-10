@@ -8,11 +8,16 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+	"os"
+
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -29,8 +34,6 @@ var (
 
 	// ErrBadPeriod defines that period has wrong format.
 	ErrBadPeriod = errs.Class("wrong period format")
-
-	mon = monkit.Package()
 )
 
 // Service retrieves info from satellites using an rpc client.
@@ -66,7 +69,9 @@ func NewService(log *zap.Logger, db DB, reputationDB reputation.DB, satelliteDB 
 
 // SatellitePayStubMonthly retrieves held amount for particular satellite for selected month from storagenode database.
 func (service *Service) SatellitePayStubMonthly(ctx context.Context, satelliteID storj.NodeID, period string) (payStub *PayStub, err error) {
-	defer mon.Task()(&ctx, &satelliteID, &period)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("satelliteID", satelliteID.String())), trace.WithAttributes(attribute.String("period", period)))
+	defer span.End()
 
 	payStub, err = service.db.GetPayStub(ctx, satelliteID, period)
 	if err != nil {
@@ -84,7 +89,9 @@ func (service *Service) SatellitePayStubMonthly(ctx context.Context, satelliteID
 
 // AllPayStubsMonthly retrieves held amount for all satellites per selected period from storagenode database.
 func (service *Service) AllPayStubsMonthly(ctx context.Context, period string) (payStubs []PayStub, err error) {
-	defer mon.Task()(&ctx, &period)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("period", period)))
+	defer span.End()
 
 	payStubs, err = service.db.AllPayStubs(ctx, period)
 	if err != nil {
@@ -100,7 +107,12 @@ func (service *Service) AllPayStubsMonthly(ctx context.Context, period string) (
 
 // SatellitePayStubPeriod retrieves held amount for all satellites for selected months from storagenode database.
 func (service *Service) SatellitePayStubPeriod(ctx context.Context, satelliteID storj.NodeID, periodStart, periodEnd string) (payStubs []PayStub, err error) {
-	defer mon.Task()(&ctx, &satelliteID, &periodStart, &periodEnd)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(),
+		trace.WithAttributes(attribute.String("satelliteID", satelliteID.String())),
+		trace.WithAttributes(attribute.String("periodStart", periodStart)),
+		trace.WithAttributes(attribute.String("periodEnd", periodEnd)))
+	defer span.End()
 
 	periods, err := parsePeriodRange(periodStart, periodEnd)
 	if err != nil {
@@ -129,7 +141,11 @@ func (service *Service) SatellitePayStubPeriod(ctx context.Context, satelliteID 
 
 // AllPayStubsPeriod retrieves held amount for all satellites for selected range of months from storagenode database.
 func (service *Service) AllPayStubsPeriod(ctx context.Context, periodStart, periodEnd string) (payStubs []PayStub, err error) {
-	defer mon.Task()(&ctx, &periodStart, &periodEnd)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(),
+		trace.WithAttributes(attribute.String("periodStart", periodStart)),
+		trace.WithAttributes(attribute.String("periodEnd", periodEnd)))
+	defer span.End()
 
 	periods, err := parsePeriodRange(periodStart, periodEnd)
 	if err != nil {
@@ -158,21 +174,27 @@ func (service *Service) AllPayStubsPeriod(ctx context.Context, periodStart, peri
 
 // SatellitePeriods retrieves all periods for concrete satellite in which we have some payouts data.
 func (service *Service) SatellitePeriods(ctx context.Context, satelliteID storj.NodeID) (_ []string, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return service.db.SatellitePeriods(ctx, satelliteID)
 }
 
 // AllPeriods retrieves all periods in which we have some payouts data.
 func (service *Service) AllPeriods(ctx context.Context) (_ []string, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return service.db.AllPeriods(ctx)
 }
 
 // AllHeldbackHistory retrieves heldback history for all satellites from storagenode database.
 func (service *Service) AllHeldbackHistory(ctx context.Context) (result []SatelliteHeldHistory, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	satellitesIDs := service.trust.GetSatellites(ctx)
 
 	satellitesIDs = append(satellitesIDs, service.stefanSatellite)
@@ -234,7 +256,9 @@ func (service *Service) AllHeldbackHistory(ctx context.Context) (result []Satell
 
 // AllSatellitesPayoutPeriod retrieves paystub and payment receipt for specific month from all satellites.
 func (service *Service) AllSatellitesPayoutPeriod(ctx context.Context, period string) (result []SatellitePayoutForPeriod, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	satelliteIDs := service.trust.GetSatellites(ctx)
 
@@ -318,7 +342,9 @@ func (service *Service) AllSatellitesPayoutPeriod(ctx context.Context, period st
 
 // HeldAmountHistory retrieves held amount history for all satellites.
 func (service *Service) HeldAmountHistory(ctx context.Context) (_ []HeldAmountHistory, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	heldHistory, err := service.db.HeldAmountHistory(ctx)
 	if err != nil {

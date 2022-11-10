@@ -5,7 +5,11 @@ package metabase
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
 	"math"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -56,7 +60,9 @@ func (o LoopObjectEntry) Expired(now time.Time) bool {
 
 // IterateLoopObjects iterates through all objects in metabase.
 func (db *DB) IterateLoopObjects(ctx context.Context, opts IterateLoopObjects, fn func(context.Context, LoopObjectsIterator) error) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err := opts.Verify(); err != nil {
 		return err
@@ -159,7 +165,9 @@ func (it *loopIterator) Next(ctx context.Context, item *LoopObjectEntry) bool {
 }
 
 func (it *loopIterator) doNextQuery(ctx context.Context) (_ tagsql.Rows, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return it.db.db.QueryContext(ctx, `
 		SELECT
@@ -248,7 +256,9 @@ func (opts *IterateLoopSegments) Verify() error {
 
 // IterateLoopSegments iterates through all segments in metabase.
 func (db *DB) IterateLoopSegments(ctx context.Context, opts IterateLoopSegments, fn func(context.Context, LoopSegmentsIterator) error) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err := opts.Verify(); err != nil {
 		return err
@@ -362,7 +372,9 @@ func (it *loopSegmentIterator) Next(ctx context.Context, item *LoopSegmentEntry)
 }
 
 func (it *loopSegmentIterator) doNextQuery(ctx context.Context) (_ tagsql.Rows, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return it.db.db.QueryContext(ctx, `
 		SELECT
@@ -448,7 +460,9 @@ func (opts *CollectBucketTallies) Verify() error {
 
 // CollectBucketTallies collect limited bucket tallies from given bucket locations.
 func (db *DB) CollectBucketTallies(ctx context.Context, opts CollectBucketTallies) (result []BucketTally, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err := opts.Verify(); err != nil {
 		return []BucketTally{}, err

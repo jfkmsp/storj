@@ -7,9 +7,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel/metric/instrument"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
@@ -22,8 +27,6 @@ import (
 const batchsizeLimit = 5000
 
 var (
-	mon = monkit.Package()
-
 	// Error is a standard error class for this component.
 	Error = errs.Class("segments loop")
 	// ErrClosed is a loop closed error.
@@ -84,36 +87,27 @@ type observerContext struct {
 	ctx  context.Context
 	done chan error
 
-	remote *monkit.DurationDist
-	inline *monkit.DurationDist
+	remote interface{}
+	inline interface{}
 }
 
 func newObserverContext(ctx context.Context, obs Observer) *observerContext {
-	name := fmt.Sprintf("%T", obs)
-	key := monkit.NewSeriesKey("observer").WithTag("name", name)
-
 	return &observerContext{
 		observer: obs,
 
 		ctx:  ctx,
 		done: make(chan error),
 
-		inline: monkit.NewDurationDist(key.WithTag("pointer_type", "inline")),
-		remote: monkit.NewDurationDist(key.WithTag("pointer_type", "remote")),
+		inline: nil,
+		remote: nil,
 	}
 }
 
 func (observer *observerContext) RemoteSegment(ctx context.Context, segment *Segment) error {
-	start := time.Now()
-	defer func() { observer.remote.Insert(time.Since(start)) }()
-
 	return observer.observer.RemoteSegment(ctx, segment)
 }
 
 func (observer *observerContext) InlineSegment(ctx context.Context, segment *Segment) error {
-	start := time.Now()
-	defer func() { observer.inline.Insert(time.Since(start)) }()
-
 	return observer.observer.InlineSegment(ctx, segment)
 }
 
@@ -205,7 +199,9 @@ func (loop *Service) Monitor(ctx context.Context, observer Observer) (err error)
 // Only on full complete iteration it will return nil.
 // Safe to be called concurrently.
 func (loop *Service) joinObserver(ctx context.Context, trigger bool, obs Observer) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	//pc, _, _, _ := runtime.Caller(0)
+	//ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	//defer span.End()
 
 	obsctx := newObserverContext(ctx, obs)
 	obsctx.immediate = sync2.IsManuallyTriggeredCycle(ctx)
@@ -225,8 +221,6 @@ func (loop *Service) joinObserver(ctx context.Context, trigger bool, obs Observe
 // Run starts the looping service.
 // It can only be called once, otherwise a panic will occur.
 func (loop *Service) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
-
 	for {
 		err := loop.RunOnce(ctx)
 		if err != nil {
@@ -238,8 +232,9 @@ func (loop *Service) Run(ctx context.Context) (err error) {
 			if ctx.Err() != nil {
 				return errs.Combine(err, ctx.Err())
 			}
-
-			mon.Event("segmentloop_error") //mon:locked
+			_, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, "segmentloop")
+			span.AddEvent("segmentloop_error")
+			span.End()
 		}
 	}
 }
@@ -254,8 +249,6 @@ func (loop *Service) Close() (err error) {
 //
 // It is not safe to call this concurrently with Run.
 func (loop *Service) RunOnce(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err) //mon:locked
-
 	coalesceTimer := time.NewTimer(loop.config.CoalesceDuration)
 	defer coalesceTimer.Stop()
 	stopTimer(coalesceTimer)
@@ -278,6 +271,8 @@ func (loop *Service) RunOnce(ctx context.Context) (err error) {
 
 waitformore:
 	for {
+		//pc, _, _, _ := runtime.Caller(0)
+		//ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
 		select {
 		// when the coalesce timer hits, we have waited enough for observers to join.
 		case <-coalesceTimer.C:
@@ -328,6 +323,7 @@ waitformore:
 			errorObservers(observers, ctx.Err())
 			return ctx.Err()
 		}
+		//span.End()
 	}
 	close(earlyExitDone)
 
@@ -352,7 +348,9 @@ func (loop *Service) Wait() {
 var errNoObservers = errs.New("no observers")
 
 func (loop *Service) iterateDatabase(ctx context.Context, observers []*observerContext) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	defer func() {
 		if err != nil {
@@ -410,11 +408,11 @@ func (loop *Service) verifyCount(before, after, processed int64) error {
 		ratio = float64(deltaFromBounds) / float64(high+1)
 	}
 
-	mon.IntVal("segmentloop_verify_before").Observe(before)
-	mon.IntVal("segmentloop_verify_after").Observe(after)
-	mon.IntVal("segmentloop_verify_processed").Observe(processed)
-	mon.IntVal("segmentloop_verify_outside").Observe(deltaFromBounds)
-	mon.FloatVal("segmentloop_verify_outside_ratio").Observe(ratio)
+	//mon.IntVal("segmentloop_verify_before").Observe(before)
+	//mon.IntVal("segmentloop_verify_after").Observe(after)
+	//mon.IntVal("segmentloop_verify_processed").Observe(processed)
+	//mon.IntVal("segmentloop_verify_outside").Observe(deltaFromBounds)
+	//mon.FloatVal("segmentloop_verify_outside_ratio").Observe(ratio)
 
 	// If we have very few items from the bounds, then it's expected and the ratio does not capture it well.
 	const minimumDeltaThreshold = 100
@@ -434,7 +432,9 @@ type processedStats struct {
 }
 
 func (loop *Service) iterateSegments(ctx context.Context, observers []*observerContext) (processed processedStats, _ []*observerContext, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	rateLimiter := rate.NewLimiter(rate.Limit(loop.config.RateLimit), 1)
 
@@ -462,24 +462,43 @@ func (loop *Service) iterateSegments(ctx context.Context, observers []*observerC
 		AsOfSystemTime:     startingTime,
 		AsOfSystemInterval: loop.config.AsOfSystemInterval,
 	}, func(ctx context.Context, iterator metabase.LoopSegmentsIterator) error {
-		defer mon.TaskNamed("iterateLoopSegmentsCB")(&ctx)(&err)
+		_, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(context.Background(), "iterateLoopSegmentsCB")
+		span.AddEvent("iterateLoopSegmentsCB")
+		span.End()
 
 		var entry metabase.LoopSegmentEntry
+		meter := global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+		rateLimit, err := meter.SyncInt64().Histogram(
+			"iterateLoopSegmentsRateLimit",
+			instrument.WithDescription("Duration of loop"),
+		)
+		if err != nil {
+			return err
+		}
+		segmentsCounter, err := meter.SyncInt64().Counter(
+			"segmentsProcessed",
+			instrument.WithDescription("Number of segments Processed"),
+		)
+		if err != nil {
+			return err
+		}
 		for iterator.Next(ctx, &entry) {
 			if err := ctx.Err(); err != nil {
 				return err
 			}
 
 			if loop.config.RateLimit > 0 {
-				timer := mon.Timer("iterateLoopSegmentsRateLimit").Start()
+				t1 := time.Now()
 				if err := rateLimiter.Wait(ctx); err != nil {
 					// We don't really execute concurrent batches so we should never
 					// exceed the burst size of 1 and this should never happen.
 					// We can also enter here if the context is cancelled.
-					timer.Stop()
+					dur := time.Since(t1)
+					rateLimit.Record(ctx, dur.Microseconds())
 					return err
 				}
-				timer.Stop()
+				dur := time.Since(t1)
+				rateLimit.Record(ctx, dur.Microseconds())
 			}
 
 			observers = withObservers(ctx, observers, func(ctx context.Context, observer *observerContext) bool {
@@ -491,7 +510,7 @@ func (loop *Service) iterateSegments(ctx context.Context, observers []*observerC
 			}
 
 			processed.segments++
-			mon.IntVal("segmentsProcessed").Observe(processed.segments) //mon:locked
+			segmentsCounter.Add(ctx, 1)
 		}
 		return nil
 	})

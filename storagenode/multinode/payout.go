@@ -5,6 +5,10 @@ package multinode
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
 	"go.uber.org/zap"
@@ -46,7 +50,9 @@ func NewPayoutEndpoint(log *zap.Logger, apiKeys *apikeys.Service, db payouts.DB,
 
 // Earned returns total earned amount.
 func (payout *PayoutEndpoint) Earned(ctx context.Context, req *multinodepb.EarnedRequest) (_ *multinodepb.EarnedResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, payout.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -64,7 +70,9 @@ func (payout *PayoutEndpoint) Earned(ctx context.Context, req *multinodepb.Earne
 
 // EarnedSatellite returns total earned amount per satellite.
 func (payout *PayoutEndpoint) EarnedSatellite(ctx context.Context, req *multinodepb.EarnedSatelliteRequest) (_ *multinodepb.EarnedSatelliteResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, payout.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -94,7 +102,9 @@ func (payout *PayoutEndpoint) EarnedSatellite(ctx context.Context, req *multinod
 
 // EstimatedPayout returns estimated earnings for current month from all satellites.
 func (payout *PayoutEndpoint) EstimatedPayout(ctx context.Context, req *multinodepb.EstimatedPayoutRequest) (_ *multinodepb.EstimatedPayoutResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, payout.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -110,7 +120,9 @@ func (payout *PayoutEndpoint) EstimatedPayout(ctx context.Context, req *multinod
 
 // EstimatedPayoutSatellite returns estimated earnings for current month from specific satellite.
 func (payout *PayoutEndpoint) EstimatedPayoutSatellite(ctx context.Context, req *multinodepb.EstimatedPayoutSatelliteRequest) (_ *multinodepb.EstimatedPayoutSatelliteResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, payout.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -126,7 +138,9 @@ func (payout *PayoutEndpoint) EstimatedPayoutSatellite(ctx context.Context, req 
 
 // Summary returns all satellites all time payout summary.
 func (payout *PayoutEndpoint) Summary(ctx context.Context, req *multinodepb.SummaryRequest) (_ *multinodepb.SummaryResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, payout.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -154,7 +168,9 @@ func (payout *PayoutEndpoint) Summary(ctx context.Context, req *multinodepb.Summ
 
 // SummaryPeriod returns all satellites period payout summary.
 func (payout *PayoutEndpoint) SummaryPeriod(ctx context.Context, req *multinodepb.SummaryPeriodRequest) (_ *multinodepb.SummaryPeriodResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, payout.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -182,7 +198,9 @@ func (payout *PayoutEndpoint) SummaryPeriod(ctx context.Context, req *multinodep
 
 // SummarySatellite returns satellite all time payout summary.
 func (payout *PayoutEndpoint) SummarySatellite(ctx context.Context, req *multinodepb.SummarySatelliteRequest) (_ *multinodepb.SummarySatelliteResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, payout.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -200,7 +218,9 @@ func (payout *PayoutEndpoint) SummarySatellite(ctx context.Context, req *multino
 
 // SummarySatellitePeriod returns satellite period payout summary.
 func (payout *PayoutEndpoint) SummarySatellitePeriod(ctx context.Context, req *multinodepb.SummarySatellitePeriodRequest) (_ *multinodepb.SummarySatellitePeriodResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, payout.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -218,7 +238,9 @@ func (payout *PayoutEndpoint) SummarySatellitePeriod(ctx context.Context, req *m
 
 // Undistributed returns total undistributed amount.
 func (payout *PayoutEndpoint) Undistributed(ctx context.Context, req *multinodepb.UndistributedRequest) (_ *multinodepb.UndistributedResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, payout.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -234,7 +256,9 @@ func (payout *PayoutEndpoint) Undistributed(ctx context.Context, req *multinodep
 
 // PaystubSatellite returns summed amounts of all values from paystubs from all satellites.
 func (payout *PayoutEndpoint) PaystubSatellite(ctx context.Context, req *multinodepb.PaystubSatelliteRequest) (_ *multinodepb.PaystubSatelliteResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, payout.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -263,7 +287,9 @@ func (payout *PayoutEndpoint) PaystubSatellite(ctx context.Context, req *multino
 
 // Paystub returns summed amounts of all values from paystubs from all satellites.
 func (payout *PayoutEndpoint) Paystub(ctx context.Context, req *multinodepb.PaystubRequest) (_ *multinodepb.PaystubResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, payout.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -292,7 +318,9 @@ func (payout *PayoutEndpoint) Paystub(ctx context.Context, req *multinodepb.Pays
 
 // PaystubPeriod returns summed amounts of all values from paystubs from all satellites for specific period.
 func (payout *PayoutEndpoint) PaystubPeriod(ctx context.Context, req *multinodepb.PaystubPeriodRequest) (_ *multinodepb.PaystubPeriodResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, payout.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -321,7 +349,9 @@ func (payout *PayoutEndpoint) PaystubPeriod(ctx context.Context, req *multinodep
 
 // PaystubSatellitePeriod returns summed amounts of all values from paystubs from all satellites for specific period.
 func (payout *PayoutEndpoint) PaystubSatellitePeriod(ctx context.Context, req *multinodepb.PaystubSatellitePeriodRequest) (_ *multinodepb.PaystubSatellitePeriodResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, payout.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -350,7 +380,9 @@ func (payout *PayoutEndpoint) PaystubSatellitePeriod(ctx context.Context, req *m
 
 // HeldAmountHistory returns held amount history for all satellites.
 func (payout *PayoutEndpoint) HeldAmountHistory(ctx context.Context, req *multinodepb.HeldAmountHistoryRequest) (_ *multinodepb.HeldAmountHistoryResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, payout.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -384,7 +416,9 @@ func (payout *PayoutEndpoint) HeldAmountHistory(ctx context.Context, req *multin
 
 // PeriodPaystub returns summed amounts of all values from paystubs from all satellites for specific period.
 func (payout *PayoutEndpoint) PeriodPaystub(ctx context.Context, req *multinodepb.PeriodPaystubRequest) (_ *multinodepb.PeriodPaystubResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, payout.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -413,7 +447,9 @@ func (payout *PayoutEndpoint) PeriodPaystub(ctx context.Context, req *multinodep
 
 // EarnedPerSatellite returns total earned amount per satellite.
 func (payout *PayoutEndpoint) EarnedPerSatellite(ctx context.Context, req *multinodepb.EarnedPerSatelliteRequest) (_ *multinodepb.EarnedPerSatelliteResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, payout.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -442,7 +478,9 @@ func (payout *PayoutEndpoint) EarnedPerSatellite(ctx context.Context, req *multi
 
 // EstimatedPayoutTotal returns estimated earnings for current month from all satellites.
 func (payout *PayoutEndpoint) EstimatedPayoutTotal(ctx context.Context, req *multinodepb.EstimatedPayoutTotalRequest) (_ *multinodepb.EstimatedPayoutTotalResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, payout.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -458,7 +496,9 @@ func (payout *PayoutEndpoint) EstimatedPayoutTotal(ctx context.Context, req *mul
 
 // AllSatellitesSummary returns all satellites all time payout summary.
 func (payout *PayoutEndpoint) AllSatellitesSummary(ctx context.Context, req *multinodepb.AllSatellitesSummaryRequest) (_ *multinodepb.AllSatellitesSummaryResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, payout.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -485,7 +525,9 @@ func (payout *PayoutEndpoint) AllSatellitesSummary(ctx context.Context, req *mul
 
 // AllSatellitesPeriodSummary returns all satellites period payout summary.
 func (payout *PayoutEndpoint) AllSatellitesPeriodSummary(ctx context.Context, req *multinodepb.AllSatellitesPeriodSummaryRequest) (_ *multinodepb.AllSatellitesPeriodSummaryResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, payout.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -512,7 +554,9 @@ func (payout *PayoutEndpoint) AllSatellitesPeriodSummary(ctx context.Context, re
 
 // SatelliteSummary returns satellite all time payout summary.
 func (payout *PayoutEndpoint) SatelliteSummary(ctx context.Context, req *multinodepb.SatelliteSummaryRequest) (_ *multinodepb.SatelliteSummaryResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, payout.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -530,7 +574,9 @@ func (payout *PayoutEndpoint) SatelliteSummary(ctx context.Context, req *multino
 
 // SatellitePeriodSummary returns satellite period payout summary.
 func (payout *PayoutEndpoint) SatellitePeriodSummary(ctx context.Context, req *multinodepb.SatellitePeriodSummaryRequest) (_ *multinodepb.SatellitePeriodSummaryResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, payout.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -548,7 +594,9 @@ func (payout *PayoutEndpoint) SatellitePeriodSummary(ctx context.Context, req *m
 
 // SatellitePaystub returns summed amounts of all values from paystubs from all satellites.
 func (payout *PayoutEndpoint) SatellitePaystub(ctx context.Context, req *multinodepb.SatellitePaystubRequest) (_ *multinodepb.SatellitePaystubResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, payout.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -577,7 +625,9 @@ func (payout *PayoutEndpoint) SatellitePaystub(ctx context.Context, req *multino
 
 // SatellitePeriodPaystub returns summed amounts of all values from paystubs from all satellites for specific period.
 func (payout *PayoutEndpoint) SatellitePeriodPaystub(ctx context.Context, req *multinodepb.SatellitePeriodPaystubRequest) (_ *multinodepb.SatellitePeriodPaystubResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, payout.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)

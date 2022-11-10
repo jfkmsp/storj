@@ -6,12 +6,15 @@ package mailservice
 import (
 	"bytes"
 	"context"
+	"go.opentelemetry.io/otel"
 	htmltemplate "html/template"
+	"os"
 	"path/filepath"
+
+	"runtime"
 	"sync"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"go.uber.org/zap"
 
 	"storj.io/common/context2"
@@ -31,10 +34,6 @@ type Config struct {
 	ClientSecret      string `help:"oauth2 app's client secret" default:""`
 	TokenURI          string `help:"uri which is used when retrieving new access token" default:""`
 }
-
-var (
-	mon = monkit.Package()
-)
 
 // Sender sends emails.
 //
@@ -91,7 +90,9 @@ func (service *Service) Close() error {
 
 // Send is generalized method for sending custom email message.
 func (service *Service) Send(ctx context.Context, msg *post.Message) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return service.Sender.SendEmail(ctx, msg)
 }
 
@@ -125,7 +126,9 @@ func (service *Service) SendRenderedAsync(ctx context.Context, to []post.Address
 
 // SendRendered renders content from htmltemplate and texttemplate templates then sends it.
 func (service *Service) SendRendered(ctx context.Context, to []post.Address, msg Message) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var htmlBuffer bytes.Buffer
 	var textBuffer bytes.Buffer

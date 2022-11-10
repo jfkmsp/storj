@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 
 	"storj.io/common/base58"
@@ -36,7 +35,7 @@ const (
 )
 
 var (
-	mon = monkit.Package()
+
 	// Error is used when an error occurs involving an authorization.
 	Error = errs.Class("authorization")
 	// ErrInvalidToken is used when a token is invalid.

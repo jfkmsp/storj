@@ -9,8 +9,6 @@ import (
 	"net/mail"
 	"net/smtp"
 
-	hw "github.com/jtolds/monkit-hw/v2"
-	"github.com/spacemonkeygo/monkit/v3"
 	"go.uber.org/zap"
 
 	"storj.io/common/identity"
@@ -64,12 +62,6 @@ import (
 	"storj.io/storj/satellite/revocation"
 	"storj.io/storj/satellite/snopayouts"
 )
-
-var mon = monkit.Package()
-
-func init() {
-	hw.Register(monkit.Default)
-}
 
 // DB is the master database for the satellite.
 //

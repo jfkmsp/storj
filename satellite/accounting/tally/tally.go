@@ -5,9 +5,13 @@ package tally
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -21,7 +25,6 @@ import (
 // Error is a standard error class for this package.
 var (
 	Error = errs.Class("tally")
-	mon   = monkit.Package()
 )
 
 // Config contains configurable values for the tally service.
@@ -69,10 +72,11 @@ func New(log *zap.Logger, sdb accounting.StoragenodeAccounting, pdb accounting.P
 
 // Run the tally service loop.
 func (service *Service) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
-
 	return service.Loop.Run(ctx, func(ctx context.Context) error {
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
 		err := service.Tally(ctx)
+		span.End()
 		if err != nil {
 			service.log.Error("tally failed", zap.Error(err))
 		}
@@ -112,7 +116,10 @@ func (service *Service) SetNow(now func() time.Time) {
 // accounted for. So to calculate the new live accounting totals, we sum the
 // metainfo totals and 50% of the deltas.
 func (service *Service) Tally(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	// No-op unless that there isn't an error getting the
 	// liveAccounting.GetAllProjectTotals
@@ -219,27 +226,32 @@ func (service *Service) Tally(ctx context.Context) (err error) {
 		// most probably need to add inline/remote information to object in
 		// metabase. We didn't decide yet if that is really needed right now.
 		for _, bucket := range collector.Bucket {
-			monAccounting.IntVal("bucket_objects").Observe(bucket.ObjectCount) //mon:locked
-			monAccounting.IntVal("bucket_segments").Observe(bucket.Segments()) //mon:locked
+			counter, _ := meter.SyncInt64().Histogram("bucket_objects")
+			counter.Record(ctx, bucket.ObjectCount)
+			counter, _ = meter.SyncInt64().Histogram("bucket_segments")
+			counter.Record(ctx, bucket.Segments())
 			// monAccounting.IntVal("bucket_inline_segments").Observe(bucket.InlineSegments) //mon:locked
 			// monAccounting.IntVal("bucket_remote_segments").Observe(bucket.RemoteSegments) //mon:locked
 
-			monAccounting.IntVal("bucket_bytes").Observe(bucket.Bytes()) //mon:locked
+			counter, _ = meter.SyncInt64().Histogram("bucket_bytes")
+			counter.Record(ctx, bucket.Bytes())
 			// monAccounting.IntVal("bucket_inline_bytes").Observe(bucket.InlineBytes) //mon:locked
 			// monAccounting.IntVal("bucket_remote_bytes").Observe(bucket.RemoteBytes) //mon:locked
 			total.Combine(bucket)
 		}
-		monAccounting.IntVal("total_objects").Observe(total.ObjectCount) //mon:locked
-		monAccounting.IntVal("total_segments").Observe(total.Segments()) //mon:locked
-		monAccounting.IntVal("total_bytes").Observe(total.Bytes())       //mon:locked
-		monAccounting.IntVal("total_pending_objects").Observe(total.PendingObjectCount)
+		counter, _ := meter.SyncInt64().Histogram("total_objects")
+		counter.Record(ctx, total.ObjectCount)
+		counter, _ = meter.SyncInt64().Histogram("total_segments")
+		counter.Record(ctx, total.Segments())
+		counter, _ = meter.SyncInt64().Histogram("total_bytes")
+		counter.Record(ctx, total.Bytes())
+		counter, _ = meter.SyncInt64().Histogram("total_pending_objects")
+		counter.Record(ctx, total.PendingObjectCount)
 	}
 
 	// return errors if something went wrong.
 	return errAtRest
 }
-
-var objectFunc = mon.Task()
 
 // BucketTallyCollector collects and adds up tallies for buckets.
 type BucketTallyCollector struct {
@@ -268,8 +280,6 @@ func NewBucketTallyCollector(log *zap.Logger, now time.Time, db *metabase.DB, bu
 
 // Run runs collecting bucket tallies.
 func (observer *BucketTallyCollector) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
-
 	startingTime, err := observer.metabase.Now(ctx)
 	if err != nil {
 		return err
@@ -286,7 +296,10 @@ func (observer *BucketTallyCollector) Run(ctx context.Context) (err error) {
 	}, func(ctx context.Context, it metabase.LoopObjectsIterator) (err error) {
 		var entry metabase.LoopObjectEntry
 		for it.Next(ctx, &entry) {
+			pc, _, _, _ := runtime.Caller(0)
+			ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
 			err = observer.object(ctx, entry)
+			span.End()
 			if err != nil {
 				return err
 			}
@@ -297,7 +310,9 @@ func (observer *BucketTallyCollector) Run(ctx context.Context) (err error) {
 
 // fillBucketTallies collects all bucket tallies and fills observer's buckets map with results.
 func (observer *BucketTallyCollector) fillBucketTallies(ctx context.Context, startingTime time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var lastBucketLocation metabase.BucketLocation
 	var bucketLocationsSize int
@@ -361,7 +376,9 @@ func (observer *BucketTallyCollector) ensureBucket(location metabase.ObjectLocat
 
 // Object is called for each object once.
 func (observer *BucketTallyCollector) object(ctx context.Context, object metabase.LoopObjectEntry) error {
-	defer objectFunc(&ctx)(nil)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if object.Expired(observer.Now) {
 		return nil
@@ -389,6 +406,3 @@ func projectTotalsFromBuckets(buckets map[metabase.BucketLocation]*accounting.Bu
 	}
 	return projectTallyTotals
 }
-
-// using custom name to avoid breaking monitoring.
-var monAccounting = monkit.ScopeNamed("storj.io/storj/satellite/accounting")

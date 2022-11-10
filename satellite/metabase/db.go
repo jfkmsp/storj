@@ -12,7 +12,6 @@ import (
 
 	_ "github.com/jackc/pgx/v4"        // registers pgx as a tagsql driver.
 	_ "github.com/jackc/pgx/v4/stdlib" // registers pgx as a tagsql driver.
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -21,10 +20,6 @@ import (
 	"storj.io/private/dbutil/pgutil"
 	"storj.io/private/tagsql"
 	"storj.io/storj/private/migrate"
-)
-
-var (
-	mon = monkit.Package()
 )
 
 // Config is a configuration struct for part validation.
@@ -78,7 +73,6 @@ func Open(ctx context.Context, log *zap.Logger, connstr string, config Config) (
 	if err != nil {
 		return nil, Error.Wrap(err)
 	}
-	dbutil.Configure(ctx, rawdb, "metabase", mon)
 
 	db := &DB{
 		log:         log,

@@ -5,7 +5,13 @@ package authorization
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel/trace"
 	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -100,7 +106,9 @@ func (authDB *DB) Close() error {
 
 // Create creates a new authorization and adds it to the authorization database.
 func (authDB *DB) Create(ctx context.Context, userID string, count int) (_ Group, err error) {
-	defer mon.Task()(&ctx, userID, count)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("user ID", userID)), trace.WithAttributes(attribute.Int("count", count)))
+	defer span.End()
 	if len(userID) == 0 {
 		return nil, ErrEmptyUserID
 	}
@@ -126,7 +134,9 @@ func (authDB *DB) Create(ctx context.Context, userID string, count int) (_ Group
 
 // Get retrieves authorizations by user ID.
 func (authDB *DB) Get(ctx context.Context, userID string) (_ Group, err error) {
-	defer mon.Task()(&ctx, userID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("user ID", userID)))
+	defer span.End()
 	authsBytes, err := authDB.db.Get(ctx, storage.Key(userID))
 	if storage.ErrKeyNotFound.Has(err) {
 		return nil, ErrNotFound.New("userID: %s", userID)
@@ -147,7 +157,9 @@ func (authDB *DB) Get(ctx context.Context, userID string) (_ Group, err error) {
 
 // UserIDs returns a list of all userIDs present in the authorization database.
 func (authDB *DB) UserIDs(ctx context.Context) (userIDs []string, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	err = authDB.db.Iterate(ctx, storage.IterateOptions{
 		Recurse: true,
 	}, func(ctx context.Context, iterator storage.Iterator) error {
@@ -162,7 +174,9 @@ func (authDB *DB) UserIDs(ctx context.Context) (userIDs []string, err error) {
 
 // List returns all authorizations in the database.
 func (authDB *DB) List(ctx context.Context) (auths Group, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	err = authDB.db.Iterate(ctx, storage.IterateOptions{
 		Recurse: true,
 	}, func(ctx context.Context, iterator storage.Iterator) error {
@@ -182,7 +196,10 @@ func (authDB *DB) List(ctx context.Context) (auths Group, err error) {
 
 // Claim marks an authorization as claimed and records claim information.
 func (authDB *DB) Claim(ctx context.Context, opts *ClaimOpts) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 	now := time.Now()
 	reqTime := time.Unix(opts.Req.Timestamp, 0)
 	if (now.Sub(reqTime) > MaxClockSkew) ||
@@ -244,13 +261,17 @@ func (authDB *DB) Claim(ctx context.Context, opts *ClaimOpts) (err error) {
 		return ErrNotFound.New("%s", tokenFmt.String())
 	}
 
-	mon.Meter("authorization_claim").Mark(1)
+	counter, _ := meter.SyncInt64().Counter("authorization_claim")
+	counter.Add(ctx, 1)
 	return nil
 }
 
 // Unclaim removes a claim from an authorization.
 func (authDB *DB) Unclaim(ctx context.Context, authToken string) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 	token, err := ParseToken(authToken)
 	if err != nil {
 		return err
@@ -267,12 +288,15 @@ func (authDB *DB) Unclaim(ctx context.Context, authToken string) (err error) {
 			return authDB.put(ctx, token.UserID, auths)
 		}
 	}
-	mon.Meter("authorization_unclaim").Mark(1)
+	counter, _ := meter.SyncInt64().Counter("authorization_unclaim")
+	counter.Add(ctx, 1)
 	return errs.New("token not found in authorizations DB")
 }
 
 func (authDB *DB) add(ctx context.Context, userID string, newAuths Group) (err error) {
-	defer mon.Task()(&ctx, userID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("user ID", userID)))
+	defer span.End()
 
 	auths, err := authDB.Get(ctx, userID)
 	if err != nil && !ErrNotFound.Has(err) {
@@ -284,7 +308,9 @@ func (authDB *DB) add(ctx context.Context, userID string, newAuths Group) (err e
 }
 
 func (authDB *DB) put(ctx context.Context, userID string, auths Group) (err error) {
-	defer mon.Task()(&ctx, userID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("user ID", userID)))
+	defer span.End()
 
 	authsBytes, err := auths.Marshal()
 	if err != nil {

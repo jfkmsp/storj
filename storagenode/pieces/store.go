@@ -5,12 +5,14 @@ package pieces
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
 	"database/sql"
 	"io"
 	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -24,8 +26,6 @@ import (
 var (
 	// Error is the default error class.
 	Error = errs.Class("pieces error")
-
-	mon = monkit.Package()
 )
 
 // Info contains all the information we need to know about a Piece to manage them.
@@ -210,7 +210,9 @@ func (store *Store) VerifyStorageDir(ctx context.Context, id storj.NodeID) error
 
 // Writer returns a new piece writer.
 func (store *Store) Writer(ctx context.Context, satellite storj.NodeID, pieceID storj.PieceID, hashAlgorithm pb.PieceHashAlgorithm) (_ *Writer, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	blobWriter, err := store.blobs.Create(ctx, storage.BlobRef{
 		Namespace: satellite.Bytes(),
 		Key:       pieceID.Bytes(),
@@ -229,7 +231,9 @@ func (store *Store) Writer(ctx context.Context, satellite storj.NodeID, pieceID 
 func (store StoreForTest) WriterForFormatVersion(ctx context.Context, satellite storj.NodeID,
 	pieceID storj.PieceID, formatVersion storage.FormatVersion, hashAlgorithm pb.PieceHashAlgorithm) (_ *Writer, err error) {
 
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	blobRef := storage.BlobRef{
 		Namespace: satellite.Bytes(),
@@ -259,7 +263,9 @@ func (store StoreForTest) WriterForFormatVersion(ctx context.Context, satellite 
 
 // Reader returns a new piece reader.
 func (store *Store) Reader(ctx context.Context, satellite storj.NodeID, pieceID storj.PieceID) (_ *Reader, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	blob, err := store.blobs.Open(ctx, storage.BlobRef{
 		Namespace: satellite.Bytes(),
 		Key:       pieceID.Bytes(),
@@ -280,7 +286,9 @@ func (store *Store) Reader(ctx context.Context, satellite storj.NodeID, pieceID 
 func (store *Store) ReaderWithStorageFormat(ctx context.Context, satellite storj.NodeID,
 	pieceID storj.PieceID, formatVersion storage.FormatVersion) (_ *Reader, err error) {
 
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	ref := storage.BlobRef{Namespace: satellite.Bytes(), Key: pieceID.Bytes()}
 	blob, err := store.blobs.OpenWithStorageFormat(ctx, ref, formatVersion)
 	if err != nil {
@@ -296,7 +304,9 @@ func (store *Store) ReaderWithStorageFormat(ctx context.Context, satellite storj
 
 // Delete deletes the specified piece.
 func (store *Store) Delete(ctx context.Context, satellite storj.NodeID, pieceID storj.PieceID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	err = store.blobs.Delete(ctx, storage.BlobRef{
 		Namespace: satellite.Bytes(),
 		Key:       pieceID.Bytes(),
@@ -318,7 +328,9 @@ func (store *Store) Delete(ctx context.Context, satellite storj.NodeID, pieceID 
 // DeleteExpired deletes records in both the piece_expirations and pieceinfo DBs, wherever we find it.
 // Should return no error if the requested record is not found in any of the DBs.
 func (store *Store) DeleteExpired(ctx context.Context, satellite storj.NodeID, pieceID storj.PieceID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if store.expirationInfo != nil {
 		_, err = store.expirationInfo.DeleteExpiration(ctx, satellite, pieceID)
@@ -332,7 +344,9 @@ func (store *Store) DeleteExpired(ctx context.Context, satellite storj.NodeID, p
 
 // DeleteSatelliteBlobs deletes blobs folder of specific satellite after successful GE.
 func (store *Store) DeleteSatelliteBlobs(ctx context.Context, satellite storj.NodeID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	err = store.blobs.DeleteNamespace(ctx, satellite.Bytes())
 	return Error.Wrap(err)
@@ -342,7 +356,9 @@ func (store *Store) DeleteSatelliteBlobs(ctx context.Context, satellite storj.No
 // the v0 piece to a v1 piece. It also marks the item as "trashed" in the
 // pieceExpirationDB.
 func (store *Store) Trash(ctx context.Context, satellite storj.NodeID, pieceID storj.PieceID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// Check if the MaxFormatVersionSupported piece exists. If not, we assume
 	// this is an old piece version and attempt to migrate it.
@@ -376,7 +392,9 @@ func (store *Store) Trash(ctx context.Context, satellite storj.NodeID, pieceID s
 
 // EmptyTrash deletes pieces in the trash that have been in there longer than trashExpiryInterval.
 func (store *Store) EmptyTrash(ctx context.Context, satelliteID storj.NodeID, trashedBefore time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, deletedIDs, err := store.blobs.EmptyTrash(ctx, satelliteID[:], trashedBefore)
 	if err != nil {
@@ -396,7 +414,9 @@ func (store *Store) EmptyTrash(ctx context.Context, satelliteID storj.NodeID, tr
 
 // RestoreTrash restores all pieces in the trash.
 func (store *Store) RestoreTrash(ctx context.Context, satelliteID storj.NodeID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = store.blobs.RestoreTrash(ctx, satelliteID.Bytes())
 	if err != nil {
@@ -414,7 +434,9 @@ func (store *Store) RestoreTrash(ctx context.Context, satelliteID storj.NodeID) 
 //   - Fail to Delete v0 piece. In this case v0 piece may remain,
 //     but v1 piece will exist and be preferred in future calls.
 func (store *Store) MigrateV0ToV1(ctx context.Context, satelliteID storj.NodeID, pieceID storj.PieceID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	info, err := store.v0PieceInfo.Get(ctx, satelliteID, pieceID)
 	if err != nil {
@@ -508,7 +530,9 @@ func (store *Store) GetHashAndLimit(ctx context.Context, satellite storj.NodeID,
 //
 // Note that this method includes all locally stored pieces, both V0 and higher.
 func (store *Store) WalkSatellitePieces(ctx context.Context, satellite storj.NodeID, walkFunc func(StoredPieceAccess) error) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	// first iterate over all in V1 storage, then all in V0
 	err = store.blobs.WalkNamespace(ctx, satellite.Bytes(), func(blobInfo storage.BlobInfo) error {
 		if blobInfo.StorageFormatVersion() < filestore.FormatV1 {
@@ -532,7 +556,9 @@ func (store *Store) WalkSatellitePieces(ctx context.Context, satellite storj.Nod
 
 // GetExpired gets piece IDs that are expired and were created before the given time.
 func (store *Store) GetExpired(ctx context.Context, expiredAt time.Time, limit int64) (_ []ExpiredInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	expired, err := store.expirationInfo.GetExpired(ctx, expiredAt, limit)
 	if err != nil {
@@ -555,7 +581,9 @@ func (store *Store) SetExpiration(ctx context.Context, satellite storj.NodeID, p
 
 // DeleteFailed marks piece as a failed deletion.
 func (store *Store) DeleteFailed(ctx context.Context, expired ExpiredInfo, when time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if expired.InPieceInfo {
 		return store.v0PieceInfo.DeleteFailed(ctx, expired.SatelliteID, expired.PieceID, when)
@@ -637,7 +665,9 @@ func (store *Store) getAllStoringSatellites(ctx context.Context) ([]storj.NodeID
 //
 // This returns both the total size of pieces plus the contentSize of pieces.
 func (store *Store) SpaceUsedBySatellite(ctx context.Context, satelliteID storj.NodeID) (piecesTotal, piecesContentSize int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if cache, ok := store.blobs.(*BlobsUsageCache); ok {
 		return cache.SpaceUsedBySatellite(ctx, satelliteID)
 	}
@@ -661,7 +691,9 @@ func (store *Store) SpaceUsedBySatellite(ctx context.Context, satelliteID storj.
 
 // SpaceUsedTotalAndBySatellite adds up the space used by and for all satellites for blob storage.
 func (store *Store) SpaceUsedTotalAndBySatellite(ctx context.Context) (piecesTotal, piecesContentSize int64, totalBySatellite map[storj.NodeID]SatelliteUsage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	satelliteIDs, err := store.getAllStoringSatellites(ctx)
 	if err != nil {
@@ -712,7 +744,9 @@ type StorageStatus struct {
 
 // StorageStatus returns information about the disk.
 func (store *Store) StorageStatus(ctx context.Context) (_ StorageStatus, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	diskFree, err := store.blobs.FreeSpace(ctx)
 	if err != nil {
 		return StorageStatus{}, err
@@ -758,7 +792,9 @@ func (access storedPieceAccess) Satellite() (storj.NodeID, error) {
 
 // Size gives the size of the piece on disk, and the size of the content (not including the piece header, if applicable).
 func (access storedPieceAccess) Size(ctx context.Context) (size, contentSize int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	stat, err := access.Stat(ctx)
 	if err != nil {
 		return 0, 0, err
@@ -775,7 +811,9 @@ func (access storedPieceAccess) Size(ctx context.Context) (size, contentSize int
 // not the same as the file mtime). This requires opening the file and unmarshaling the piece
 // header. If exact precision is not required, ModTime() may be a better solution.
 func (access storedPieceAccess) CreationTime(ctx context.Context) (cTime time.Time, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	satellite, err := access.Satellite()
 	if err != nil {
 		return time.Time{}, err
@@ -795,7 +833,9 @@ func (access storedPieceAccess) CreationTime(ctx context.Context) (cTime time.Ti
 // much faster. This gets the piece creation time from to the filesystem instead of the
 // piece header.
 func (access storedPieceAccess) ModTime(ctx context.Context) (mTime time.Time, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	stat, err := access.Stat(ctx)
 	if err != nil {
 		return time.Time{}, err

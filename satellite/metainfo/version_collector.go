@@ -4,12 +4,16 @@
 package metainfo
 
 import (
+	"context"
 	"fmt"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+	"os"
 	"sort"
 	"strings"
 
 	"github.com/blang/semver"
-	"github.com/spacemonkeygo/monkit/v3"
 	"go.uber.org/zap"
 
 	"storj.io/common/useragent"
@@ -51,7 +55,9 @@ func (vc *versionCollector) collect(useragentRaw []byte, method string) {
 	entries, err := useragent.ParseEntries(useragentRaw)
 	if err != nil {
 		vc.log.Warn("unable to collect uplink version", zap.Error(err))
-		mon.Meter("user_agents", monkit.NewSeriesTag("user_agent", "unparseable")).Mark(1)
+		_, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(context.Background(), "user_agents")
+		span.AddEvent("user_agents", trace.WithAttributes(attribute.String("user_agent", "unparseable")))
+		span.End()
 		return
 	}
 
@@ -70,9 +76,13 @@ func (vc *versionCollector) collect(useragentRaw []byte, method string) {
 	if len(foundProducts) > 0 {
 		sort.Strings(foundProducts)
 		// concatenate all known products for this metric, EG "gateway-mt + rclone"
-		mon.Meter("user_agents", monkit.NewSeriesTag("user_agent", strings.Join(foundProducts, " + "))).Mark(1)
+		_, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(context.Background(), "user_agents")
+		span.AddEvent("user_agents", trace.WithAttributes(attribute.String("user_agent", strings.Join(foundProducts, " + "))))
+		span.End()
 	} else { // lets keep also general value for user agents with no known product
-		mon.Meter("user_agents", monkit.NewSeriesTag("user_agent", "other")).Mark(1)
+		_, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(context.Background(), "user_agents")
+		span.AddEvent("user_agents", trace.WithAttributes(attribute.String("user_agent", "other")))
+		span.End()
 	}
 }
 
@@ -97,14 +107,18 @@ func (vc *versionCollector) sendUplinkMetric(vo versionOccurrence) {
 		vo.Version = fmt.Sprintf("v%d.%d", 1, semVer.Minor)
 	}
 
-	mon.Meter("uplink_versions", monkit.NewSeriesTag("version", vo.Version), monkit.NewSeriesTag("method", vo.Method)).Mark(1)
+	_, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(context.Background(), "uplink_versions")
+	span.AddEvent("uplink_versions", trace.WithAttributes(attribute.String("version", vo.Version)), trace.WithAttributes(attribute.String("method", vo.Method)))
+	span.End()
 }
 
 func (vc *versionCollector) collectTransferStats(useragentRaw []byte, transfer transfer, transferSize int) {
 	entries, err := useragent.ParseEntries(useragentRaw)
 	if err != nil {
 		vc.log.Warn("unable to collect transfer statistics", zap.Error(err))
-		mon.Meter("user_agents_transfer_stats", monkit.NewSeriesTag("user_agent", "unparseable"), monkit.NewSeriesTag("type", string(transfer))).Mark(transferSize)
+		_, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(context.Background(), "user_agents_transfer_stats")
+		span.AddEvent("user_agents_transfer_stats", trace.WithAttributes(attribute.String("user_agent", "unparseable")), trace.WithAttributes(attribute.String("type", string(transfer))), trace.WithAttributes(attribute.Int("transferSize", transferSize)))
+		span.End()
 		return
 	}
 
@@ -120,9 +134,13 @@ func (vc *versionCollector) collectTransferStats(useragentRaw []byte, transfer t
 	if len(foundProducts) > 0 {
 		sort.Strings(foundProducts)
 		// concatenate all known products for this metric, EG "gateway-mt + rclone"
-		mon.Meter("user_agents_transfer_stats", monkit.NewSeriesTag("user_agent", strings.Join(foundProducts, " + ")), monkit.NewSeriesTag("type", string(transfer))).Mark(transferSize)
+		_, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(context.Background(), "user_agents_transfer_stats")
+		span.AddEvent("user_agents_transfer_stats", trace.WithAttributes(attribute.String("user_agent", strings.Join(foundProducts, " + "))), trace.WithAttributes(attribute.String("type", string(transfer))), trace.WithAttributes(attribute.Int("transferSize", transferSize)))
+		span.End()
 	} else { // lets keep also general value for user agents with no known product
-		mon.Meter("user_agents_transfer_stats", monkit.NewSeriesTag("user_agent", "other"), monkit.NewSeriesTag("type", string(transfer))).Mark(transferSize)
+		_, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(context.Background(), "user_agents_transfer_stats")
+		span.AddEvent("user_agents_transfer_stats", trace.WithAttributes(attribute.String("user_agent", "other")), trace.WithAttributes(attribute.String("type", string(transfer))), trace.WithAttributes(attribute.Int("transferSize", transferSize)))
+		span.End()
 	}
 }
 

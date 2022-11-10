@@ -5,8 +5,12 @@ package main
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
 
-	pgx "github.com/jackc/pgx/v4"
+	"runtime"
+
+	"github.com/jackc/pgx/v4"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -17,7 +21,9 @@ import (
 
 // MigrateProjects updates all rows in the projects table, giving them a new UUID if they do not already have one.
 func MigrateProjects(ctx context.Context, log *zap.Logger, conn *pgx.Conn, config Config) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	lastID := []byte{}
 	var total int

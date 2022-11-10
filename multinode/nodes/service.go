@@ -6,9 +6,12 @@ package nodes
 import (
 	"bytes"
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -19,8 +22,6 @@ import (
 )
 
 var (
-	mon = monkit.Package()
-
 	// Error is an error class for nodes service error.
 	Error = errs.Class("nodes")
 	// ErrNodeNotReachable is an error class that indicates that we are not able to establish drpc connection with node.
@@ -49,7 +50,9 @@ func NewService(log *zap.Logger, dialer rpc.Dialer, nodes DB) *Service {
 
 // Add adds new node to the system.
 func (service *Service) Add(ctx context.Context, node Node) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// trying to connect to node to check its availability.
 	conn, err := service.dialer.DialNodeURL(ctx, storj.NodeURL{
@@ -82,7 +85,9 @@ func (service *Service) Add(ctx context.Context, node Node) (err error) {
 
 // List returns list of all nodes.
 func (service *Service) List(ctx context.Context) (_ []Node, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	nodes, err := service.nodes.List(ctx)
 	if err != nil {
@@ -94,13 +99,17 @@ func (service *Service) List(ctx context.Context) (_ []Node, err error) {
 
 // UpdateName will update name of the specified node.
 func (service *Service) UpdateName(ctx context.Context, id storj.NodeID, name string) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return Error.Wrap(service.nodes.UpdateName(ctx, id, name))
 }
 
 // Get retrieves node by id.
 func (service *Service) Get(ctx context.Context, id storj.NodeID) (_ Node, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	node, err := service.nodes.Get(ctx, id)
 	if err != nil {
@@ -112,13 +121,17 @@ func (service *Service) Get(ctx context.Context, id storj.NodeID) (_ Node, err e
 
 // Remove removes node from the system.
 func (service *Service) Remove(ctx context.Context, id storj.NodeID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return Error.Wrap(service.nodes.Remove(ctx, id))
 }
 
 // ListInfos queries node basic info from all nodes via rpc.
 func (service *Service) ListInfos(ctx context.Context) (_ []NodeInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	nodes, err := service.nodes.List(ctx)
 	if err != nil {
@@ -216,7 +229,9 @@ func (service *Service) ListInfos(ctx context.Context) (_ []NodeInfo, err error)
 
 // ListInfosSatellite queries node satellite specific info from all nodes via rpc.
 func (service *Service) ListInfosSatellite(ctx context.Context, satelliteID storj.NodeID) (_ []NodeInfoSatellite, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	nodes, err := service.nodes.List(ctx)
 	if err != nil {
@@ -306,7 +321,9 @@ func (service *Service) ListInfosSatellite(ctx context.Context, satelliteID stor
 
 // TrustedSatellites returns list of unique trusted satellites node urls.
 func (service *Service) TrustedSatellites(ctx context.Context) (_ storj.NodeURLs, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	listNodes, err := service.nodes.List(ctx)
 	if err != nil {
@@ -332,7 +349,9 @@ func (service *Service) TrustedSatellites(ctx context.Context) (_ storj.NodeURLs
 
 // trustedSatellites retrieves list of trusted satellites node urls for a node.
 func (service *Service) trustedSatellites(ctx context.Context, node Node) (_ storj.NodeURLs, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	conn, err := service.dialer.DialNodeURL(ctx, storj.NodeURL{
 		ID:      node.ID,

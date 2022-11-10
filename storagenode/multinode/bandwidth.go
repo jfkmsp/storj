@@ -5,6 +5,10 @@ package multinode
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
 	"go.uber.org/zap"
@@ -40,7 +44,9 @@ func NewBandwidthEndpoint(log *zap.Logger, apiKeys *apikeys.Service, db bandwidt
 
 // MonthSummary returns bandwidth used current month.
 func (bandwidth *BandwidthEndpoint) MonthSummary(ctx context.Context, req *multinodepb.BandwidthMonthSummaryRequest) (_ *multinodepb.BandwidthMonthSummaryResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, bandwidth.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -58,7 +64,9 @@ func (bandwidth *BandwidthEndpoint) MonthSummary(ctx context.Context, req *multi
 
 // BandwidthSummarySatellite returns bandwidth summary for specific satellite.
 func (bandwidth *BandwidthEndpoint) BandwidthSummarySatellite(ctx context.Context, req *multinodepb.BandwidthSummarySatelliteRequest) (_ *multinodepb.BandwidthSummarySatelliteResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, bandwidth.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -76,7 +84,9 @@ func (bandwidth *BandwidthEndpoint) BandwidthSummarySatellite(ctx context.Contex
 
 // BandwidthSummary returns bandwidth summary.
 func (bandwidth *BandwidthEndpoint) BandwidthSummary(ctx context.Context, req *multinodepb.BandwidthSummaryRequest) (_ *multinodepb.BandwidthSummaryResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, bandwidth.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -94,7 +104,9 @@ func (bandwidth *BandwidthEndpoint) BandwidthSummary(ctx context.Context, req *m
 
 // EgressSummarySatellite returns egress summary for specific satellite.
 func (bandwidth *BandwidthEndpoint) EgressSummarySatellite(ctx context.Context, req *multinodepb.EgressSummarySatelliteRequest) (_ *multinodepb.EgressSummarySatelliteResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, bandwidth.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -112,7 +124,9 @@ func (bandwidth *BandwidthEndpoint) EgressSummarySatellite(ctx context.Context, 
 
 // EgressSummary returns egress summary.
 func (bandwidth *BandwidthEndpoint) EgressSummary(ctx context.Context, req *multinodepb.EgressSummaryRequest) (_ *multinodepb.EgressSummaryResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, bandwidth.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -130,7 +144,9 @@ func (bandwidth *BandwidthEndpoint) EgressSummary(ctx context.Context, req *mult
 
 // IngressSummarySatellite returns ingress summary for specific satellite.
 func (bandwidth *BandwidthEndpoint) IngressSummarySatellite(ctx context.Context, req *multinodepb.IngressSummarySatelliteRequest) (_ *multinodepb.IngressSummarySatelliteResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, bandwidth.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -148,7 +164,9 @@ func (bandwidth *BandwidthEndpoint) IngressSummarySatellite(ctx context.Context,
 
 // IngressSummary returns ingress summary.
 func (bandwidth *BandwidthEndpoint) IngressSummary(ctx context.Context, req *multinodepb.IngressSummaryRequest) (_ *multinodepb.IngressSummaryResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, bandwidth.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -166,7 +184,9 @@ func (bandwidth *BandwidthEndpoint) IngressSummary(ctx context.Context, req *mul
 
 // DailySatellite returns bandwidth summary split by days current month for specific satellite.
 func (bandwidth *BandwidthEndpoint) DailySatellite(ctx context.Context, req *multinodepb.DailySatelliteRequest) (_ *multinodepb.DailySatelliteResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, bandwidth.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -201,7 +221,9 @@ func (bandwidth *BandwidthEndpoint) DailySatellite(ctx context.Context, req *mul
 
 // Daily returns bandwidth summary split by days current month.
 func (bandwidth *BandwidthEndpoint) Daily(ctx context.Context, req *multinodepb.DailyRequest) (_ *multinodepb.DailyResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, bandwidth.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)

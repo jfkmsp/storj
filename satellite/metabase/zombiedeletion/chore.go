@@ -5,9 +5,12 @@ package zombiedeletion
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -18,7 +21,6 @@ import (
 var (
 	// Error defines the zombiedeletion chore errors class.
 	Error = errs.Class("zombie deletion chore")
-	mon   = monkit.Package()
 )
 
 // Config contains configurable values for zombie object cleanup.
@@ -55,8 +57,6 @@ func NewChore(log *zap.Logger, config Config, metabase *metabase.DB) *Chore {
 
 // Run starts the zombiedeletion loop service.
 func (chore *Chore) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
-
 	if !chore.config.Enabled {
 		return nil
 	}
@@ -76,7 +76,9 @@ func (chore *Chore) TestingSetNow(nowFn func() time.Time) {
 }
 
 func (chore *Chore) deleteZombieObjects(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	chore.log.Debug("deleting zombie objects")
 
 	return chore.metabase.DeleteZombieObjects(ctx, metabase.DeleteZombieObjects{

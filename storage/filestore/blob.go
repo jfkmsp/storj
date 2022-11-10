@@ -6,8 +6,11 @@ package filestore
 import (
 	"bufio"
 	"context"
+	"go.opentelemetry.io/otel"
 	"io"
 	"os"
+
+	"runtime"
 
 	"github.com/zeebo/errs"
 
@@ -91,7 +94,9 @@ func (blob *blobWriter) Write(p []byte) (int, error) {
 
 // Cancel discards the blob.
 func (blob *blobWriter) Cancel(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if blob.closed {
 		return nil
@@ -105,7 +110,9 @@ func (blob *blobWriter) Cancel(ctx context.Context) (err error) {
 
 // Commit moves the file to the target location.
 func (blob *blobWriter) Commit(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if blob.closed {
 		return Error.New("already closed")

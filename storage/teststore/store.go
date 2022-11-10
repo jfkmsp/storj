@@ -7,16 +7,19 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+	"os"
+
+	"runtime"
 	"sort"
 	"sync"
-
-	"github.com/spacemonkeygo/monkit/v3"
 
 	"storj.io/storj/storage"
 )
 
 var errInternal = errors.New("internal error")
-var mon = monkit.Package()
 
 // Client implements in-memory key value store.
 type Client struct {
@@ -80,7 +83,9 @@ func (store *Client) forcedError() bool {
 
 // Put adds a value to store.
 func (store *Client) Put(ctx context.Context, key storage.Key, value storage.Value) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	defer store.locked()()
 
 	store.version++
@@ -106,7 +111,9 @@ func (store *Client) Put(ctx context.Context, key storage.Key, value storage.Val
 
 // Get gets a value to store.
 func (store *Client) Get(ctx context.Context, key storage.Key) (_ storage.Value, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	defer store.locked()()
 
 	store.CallCount.Get++
@@ -129,7 +136,9 @@ func (store *Client) Get(ctx context.Context, key storage.Key) (_ storage.Value,
 
 // GetAll gets all values from the store.
 func (store *Client) GetAll(ctx context.Context, keys storage.Keys) (_ storage.Values, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	defer store.locked()()
 
 	store.CallCount.GetAll++
@@ -155,7 +164,9 @@ func (store *Client) GetAll(ctx context.Context, keys storage.Keys) (_ storage.V
 
 // Delete deletes key and the value.
 func (store *Client) Delete(ctx context.Context, key storage.Key) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	defer store.locked()()
 
 	store.version++
@@ -180,7 +191,9 @@ func (store *Client) Delete(ctx context.Context, key storage.Key) (err error) {
 
 // DeleteMultiple deletes keys ignoring missing keys.
 func (store *Client) DeleteMultiple(ctx context.Context, keys []storage.Key) (_ storage.Items, err error) {
-	defer mon.Task()(&ctx, len(keys))(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.Int("keys length", len(keys))))
+	defer span.End()
 	defer store.locked()()
 
 	store.version++
@@ -209,7 +222,9 @@ func (store *Client) DeleteMultiple(ctx context.Context, keys []storage.Key) (_ 
 
 // List lists all keys starting from start and upto limit items.
 func (store *Client) List(ctx context.Context, first storage.Key, limit int) (_ storage.Keys, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	store.mu.Lock()
 	store.CallCount.List++
 	if store.forcedError() {
@@ -233,13 +248,17 @@ func (store *Client) Close() error {
 
 // Iterate iterates over items based on opts.
 func (store *Client) Iterate(ctx context.Context, opts storage.IterateOptions, fn func(context.Context, storage.Iterator) error) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return store.IterateWithoutLookupLimit(ctx, opts, fn)
 }
 
 // IterateWithoutLookupLimit calls the callback with an iterator over the keys, but doesn't enforce default limit on opts.
 func (store *Client) IterateWithoutLookupLimit(ctx context.Context, opts storage.IterateOptions, fn func(context.Context, storage.Iterator) error) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	store.mu.Lock()
 	store.CallCount.Iterate++
@@ -380,7 +399,9 @@ func (cursor *cursor) next() (*storage.ListItem, bool) {
 
 // CompareAndSwap atomically compares and swaps oldValue with newValue.
 func (store *Client) CompareAndSwap(ctx context.Context, key storage.Key, oldValue, newValue storage.Value) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	defer store.locked()()
 
 	store.version++

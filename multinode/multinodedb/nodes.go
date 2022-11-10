@@ -7,6 +7,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 
 	"github.com/zeebo/errs"
 
@@ -32,7 +36,9 @@ type nodesdb struct {
 
 // List returns all connected nodes.
 func (n *nodesdb) List(ctx context.Context) (allNodes []nodes.Node, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	dbxNodes, err := n.methods.All_Node(ctx)
 	if err != nil {
@@ -56,7 +62,9 @@ func (n *nodesdb) List(ctx context.Context) (allNodes []nodes.Node, err error) {
 
 // ListPaged returns paginated nodes list.
 func (n *nodesdb) ListPaged(ctx context.Context, cursor nodes.Cursor) (page nodes.Page, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	page = nodes.Page{
 		CurrentPage: cursor.Page,
 		Limit:       cursor.Limit,
@@ -87,7 +95,9 @@ func (n *nodesdb) ListPaged(ctx context.Context, cursor nodes.Cursor) (page node
 
 // Get return node from NodesDB by its id.
 func (n *nodesdb) Get(ctx context.Context, id storj.NodeID) (_ nodes.Node, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	dbxNode, err := n.methods.Get_Node_By_Id(ctx, dbx.Node_Id(id.Bytes()))
 	if err != nil {
@@ -104,7 +114,9 @@ func (n *nodesdb) Get(ctx context.Context, id storj.NodeID) (_ nodes.Node, err e
 
 // Add creates new node in NodesDB.
 func (n *nodesdb) Add(ctx context.Context, node nodes.Node) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = n.methods.Create_Node(
 		ctx,
@@ -119,7 +131,9 @@ func (n *nodesdb) Add(ctx context.Context, node nodes.Node) (err error) {
 
 // Remove removed node from NodesDB.
 func (n *nodesdb) Remove(ctx context.Context, id storj.NodeID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = n.methods.Delete_Node_By_Id(ctx, dbx.Node_Id(id.Bytes()))
 
@@ -128,7 +142,9 @@ func (n *nodesdb) Remove(ctx context.Context, id storj.NodeID) (err error) {
 
 // UpdateName will update name of the specified node in database.
 func (n *nodesdb) UpdateName(ctx context.Context, id storj.NodeID, name string) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	err = n.methods.UpdateNoReturn_Node_By_Id(ctx, dbx.Node_Id(id.Bytes()), dbx.Node_Update_Fields{
 		Name: dbx.Node_Name(name),
@@ -139,7 +155,9 @@ func (n *nodesdb) UpdateName(ctx context.Context, id storj.NodeID, name string) 
 
 // fromDBXNode converts dbx.Node to console.Node.
 func fromDBXNode(ctx context.Context, node *dbx.Node) (_ nodes.Node, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	id, err := storj.NodeIDFromBytes(node.Id)
 	if err != nil {

@@ -7,11 +7,16 @@ import (
 	"bytes"
 	"context"
 	"crypto/subtle"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+	"os"
+
 	"regexp"
+	"runtime"
 	"strconv"
 	"time"
 
-	"github.com/jtolio/eventkit"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
@@ -36,10 +41,10 @@ var (
 	ipRegexp = regexp.MustCompile(`^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$`)
 )
 
-var ek = eventkit.Package()
-
 func getAPIKey(ctx context.Context, header *pb.RequestHeader) (key *macaroon.APIKey, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if header != nil {
 		return macaroon.ParseRawAPIKey(header.ApiKey)
 	}
@@ -54,7 +59,9 @@ func getAPIKey(ctx context.Context, header *pb.RequestHeader) (key *macaroon.API
 
 // validateAuth validates things like API key, user permissions and rate limit and always returns valid rpc error.
 func (endpoint *Endpoint) validateAuth(ctx context.Context, header *pb.RequestHeader, action macaroon.Action) (_ *console.APIKeyInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	key, keyInfo, err := endpoint.validateBasic(ctx, header)
 	if err != nil {
@@ -82,7 +89,9 @@ type verifyPermission struct {
 // least one required (not optional) permission. In case all permissions are
 // optional, it will return an error. It always returns valid RPC errors.
 func (endpoint *Endpoint) validateAuthN(ctx context.Context, header *pb.RequestHeader, permissions ...verifyPermission) (_ *console.APIKeyInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	allOptional := true
 
@@ -120,7 +129,9 @@ func (endpoint *Endpoint) validateAuthN(ctx context.Context, header *pb.RequestH
 // At least one of the action from actions must be permitted to return successfully.
 // It always returns valid RPC errors.
 func (endpoint *Endpoint) validateAuthAny(ctx context.Context, header *pb.RequestHeader, actions ...macaroon.Action) (_ *console.APIKeyInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	key, keyInfo, err := endpoint.validateBasic(ctx, header)
 	if err != nil {
@@ -145,7 +156,9 @@ func (endpoint *Endpoint) validateAuthAny(ctx context.Context, header *pb.Reques
 }
 
 func (endpoint *Endpoint) validateBasic(ctx context.Context, header *pb.RequestHeader) (_ *macaroon.APIKey, _ *console.APIKeyInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	key, err := getAPIKey(ctx, header)
 	if err != nil {
@@ -163,11 +176,10 @@ func (endpoint *Endpoint) validateBasic(ctx context.Context, header *pb.RequestH
 	if keyInfo.UserAgent != nil {
 		userAgent = string(keyInfo.UserAgent)
 	}
-	ek.Event("auth",
-		eventkit.String("user-agent", userAgent),
-		eventkit.String("project", keyInfo.ProjectID.String()),
-		eventkit.String("partner", keyInfo.PartnerID.String()),
-	)
+	span.AddEvent("auth", trace.WithAttributes(
+		attribute.String("user-agent", userAgent),
+		attribute.String("project", keyInfo.ProjectID.String()),
+		attribute.String("partner", keyInfo.PartnerID.String())))
 
 	if err = endpoint.checkRate(ctx, keyInfo.ProjectID); err != nil {
 		endpoint.log.Debug("rate check failed", zap.Error(err))
@@ -178,7 +190,9 @@ func (endpoint *Endpoint) validateBasic(ctx context.Context, header *pb.RequestH
 }
 
 func (endpoint *Endpoint) validateRevoke(ctx context.Context, header *pb.RequestHeader, macToRevoke *macaroon.Macaroon) (_ *console.APIKeyInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	key, keyInfo, err := endpoint.validateBasic(ctx, header)
 	if err != nil {
 		return nil, err
@@ -204,7 +218,9 @@ func (endpoint *Endpoint) validateRevoke(ctx context.Context, header *pb.Request
 }
 
 func (endpoint *Endpoint) checkRate(ctx context.Context, projectID uuid.UUID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if !endpoint.config.RateLimiter.Enabled {
 		return nil
 	}
@@ -237,7 +253,7 @@ func (endpoint *Endpoint) checkRate(ctx context.Context, projectID uuid.UUID) (e
 			zap.Float64("rate limit", float64(limiter.(*rate.Limiter).Limit())),
 			zap.Float64("burst limit", float64(limiter.(*rate.Limiter).Burst())))
 
-		mon.Event("metainfo_rate_limit_exceeded") //mon:locked
+		span.AddEvent("metainfo_rate_limit_exceeded")
 
 		return rpcstatus.Error(rpcstatus.ResourceExhausted, "Too Many Requests")
 	}
@@ -246,7 +262,9 @@ func (endpoint *Endpoint) checkRate(ctx context.Context, projectID uuid.UUID) (e
 }
 
 func (endpoint *Endpoint) validateBucket(ctx context.Context, bucket []byte) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if len(bucket) == 0 {
 		return Error.Wrap(storj.ErrNoBucket.New(""))
@@ -304,7 +322,9 @@ func isDigit(r byte) bool {
 }
 
 func (endpoint *Endpoint) validateRemoteSegment(ctx context.Context, commitRequest metabase.CommitSegment, originalLimits []*pb.OrderLimit) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if len(originalLimits) == 0 {
 		return Error.New("no order limits")

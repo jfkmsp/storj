@@ -5,7 +5,11 @@ package audit
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
 	"math/rand"
+	"os"
+
+	"runtime"
 	"time"
 
 	"go.uber.org/zap"
@@ -43,9 +47,10 @@ func NewChore(log *zap.Logger, queues *Queues, loop *segmentloop.Service, config
 
 // Run starts the chore.
 func (chore *Chore) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
 	return chore.Loop.Run(ctx, func(ctx context.Context) (err error) {
-		defer mon.Task()(&ctx)(&err)
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		defer span.End()
 
 		// If the previously pushed queue is still waiting to be swapped in, wait.
 		err = chore.queues.WaitForSwap(ctx)

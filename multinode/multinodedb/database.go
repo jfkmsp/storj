@@ -7,7 +7,6 @@ import (
 	"context"
 	"strings"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -23,8 +22,6 @@ import (
 var (
 	// ensures that multinodeDB implements multinode.DB.
 	_ multinode.DB = (*DB)(nil)
-
-	mon = monkit.Package()
 
 	// Error is the default multinodedb errs class.
 	Error = errs.Class("multinodedb")
@@ -70,8 +67,6 @@ func Open(ctx context.Context, log *zap.Logger, databaseURL string) (*DB, error)
 			source, err)
 	}
 	log.Debug("Connected to:", zap.String("db source", source))
-
-	dbutil.Configure(ctx, dbxDB.DB, "multinodedb", mon)
 
 	core := &DB{
 		DB: dbxDB,

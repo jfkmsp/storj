@@ -6,11 +6,17 @@ package piecedeletion
 import (
 	"context"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel/trace"
+	"os"
+
+	"runtime"
 	"strconv"
 	"sync"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"go.uber.org/zap"
 
 	"storj.io/common/errs2"
@@ -48,7 +54,10 @@ func NewDialer(log *zap.Logger, dialer rpc.Dialer, requestTimeout, failThreshold
 
 // Handle tries to send the deletion requests to the specified node.
 func (dialer *Dialer) Handle(ctx context.Context, node storj.NodeURL, queue Queue) {
-	defer mon.Task()(&ctx, node.ID.String())(nil)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("node id", node.ID.String())))
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 	defer FailPending(queue)
 
 	if dialer.recentlyFailed(ctx, node) {
@@ -74,8 +83,7 @@ func (dialer *Dialer) Handle(ctx context.Context, node storj.NodeURL, queue Queu
 
 		jobs, ok := queue.PopAll()
 		// Add metrics on to the span
-		s := monkit.SpanFromCtx(ctx)
-		s.Annotate("delete jobs size", strconv.Itoa(len(jobs)))
+		span.AddEvent("delete jobs size", trace.WithAttributes(attribute.String("number of jobs", strconv.Itoa(len(jobs)))))
 
 		if !ok {
 			return
@@ -84,9 +92,10 @@ func (dialer *Dialer) Handle(ctx context.Context, node storj.NodeURL, queue Queu
 		for len(jobs) > 0 {
 			batch, promises, rest := batchJobs(jobs, dialer.piecesPerRequest)
 			// Aggregation metrics
-			mon.IntVal("delete_batch_size").Observe(int64(len(batch))) //mon:locked
+			counter, _ := meter.SyncInt64().Histogram("delete_batch_size")
+			counter.Record(ctx, int64(len(batch)))
 			// Tracing metrics
-			s.Annotate("delete_batch_size", strconv.Itoa(len(batch)))
+			span.AddEvent("delete_batch_size", trace.WithAttributes(attribute.String("size of delete batch", strconv.Itoa(len(batch)))))
 
 			jobs = rest
 
@@ -112,7 +121,8 @@ func (dialer *Dialer) Handle(ctx context.Context, node storj.NodeURL, queue Queu
 				}
 				break
 			} else {
-				mon.IntVal("deletion_pieces_unhandled_count").Observe(resp.UnhandledCount) //mon:locked
+				counter, _ := meter.SyncInt64().Histogram("deletion_pieces_unhandled_count")
+				counter.Record(ctx, resp.UnhandledCount)
 			}
 
 			jobs = append(jobs, queue.PopAllWithoutClose()...)

@@ -5,7 +5,11 @@ package nodestats
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
 	"math/rand"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -146,7 +150,9 @@ func (cache *Cache) Run(ctx context.Context) error {
 // CacheReputationStats queries node stats from all the satellites
 // known to the storagenode and stores information into db.
 func (cache *Cache) CacheReputationStats(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return cache.satelliteLoop(ctx, func(satellite storj.NodeID) error {
 		stats, err := cache.service.GetReputationStats(ctx, satellite)
@@ -166,7 +172,9 @@ func (cache *Cache) CacheReputationStats(ctx context.Context) (err error) {
 // CacheSpaceUsage queries disk space usage from all the satellites
 // known to the storagenode and stores information into db.
 func (cache *Cache) CacheSpaceUsage(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// get current month edges
 	startDate, endDate := date.MonthBoundary(time.Now().UTC())
@@ -191,7 +199,9 @@ func (cache *Cache) CacheSpaceUsage(ctx context.Context) (err error) {
 // CacheHeldAmount queries held amount stats and payments from
 // all the satellites known to the storagenode and stores info into db.
 func (cache *Cache) CacheHeldAmount(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return cache.satelliteLoop(ctx, func(satellite storj.NodeID) error {
 		now := time.Now().String()
@@ -266,7 +276,9 @@ func (cache *Cache) satelliteLoop(ctx context.Context, fn func(id storj.NodeID) 
 
 // Close closes underlying cycles.
 func (cache *Cache) Close() error {
-	defer mon.Task()(nil)(nil)
+	pc, _, _, _ := runtime.Caller(0)
+	_, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(context.Background(), runtime.FuncForPC(pc).Name())
+	defer span.End()
 	cache.Reputation.Close()
 	cache.Storage.Close()
 	return nil

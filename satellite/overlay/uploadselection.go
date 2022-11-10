@@ -5,6 +5,11 @@ package overlay
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
+	"os"
+
+	"runtime"
 	"time"
 
 	"go.uber.org/zap"
@@ -58,7 +63,9 @@ func (cache *UploadSelectionCache) Run(ctx context.Context) (err error) {
 // Refresh populates the cache with all of the reputableNodes and newNode nodes
 // This method is useful for tests.
 func (cache *UploadSelectionCache) Refresh(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	_, err = cache.cache.RefreshAndGet(ctx, time.Now())
 	return err
 }
@@ -67,7 +74,10 @@ func (cache *UploadSelectionCache) Refresh(ctx context.Context) (err error) {
 // data from the nodes table, then sets time that the last refresh occurred so we know when
 // to refresh again in the future.
 func (cache *UploadSelectionCache) read(ctx context.Context) (_ interface{}, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	reputableNodes, newNodes, err := cache.db.SelectAllStorageNodesUpload(ctx, cache.selectionConfig)
 	if err != nil {
@@ -76,8 +86,10 @@ func (cache *UploadSelectionCache) read(ctx context.Context) (_ interface{}, err
 
 	state := uploadselection.NewState(convSelectedNodesToNodes(reputableNodes), convSelectedNodesToNodes(newNodes))
 
-	mon.IntVal("refresh_cache_size_reputable").Observe(int64(len(reputableNodes)))
-	mon.IntVal("refresh_cache_size_new").Observe(int64(len(newNodes)))
+	histCounter, _ := meter.SyncInt64().Histogram("refresh_cache_size_reputable")
+	histCounter.Record(ctx, int64(len(reputableNodes)))
+	histCounter, _ = meter.SyncInt64().Histogram("refresh_cache_size_new")
+	histCounter.Record(ctx, int64(len(newNodes)))
 
 	return state, nil
 }
@@ -86,7 +98,9 @@ func (cache *UploadSelectionCache) read(ctx context.Context) (_ interface{}, err
 // Every node selected will be from a distinct network.
 // If the cache hasn't been refreshed recently it will do so first.
 func (cache *UploadSelectionCache) GetNodes(ctx context.Context, req FindStorageNodesRequest) (_ []*SelectedNode, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	stateAny, err := cache.cache.Get(ctx, time.Now())
 	if err != nil {

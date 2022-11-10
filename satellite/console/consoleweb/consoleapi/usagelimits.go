@@ -5,7 +5,11 @@ package consoleapi
 
 import (
 	"encoding/json"
+	"go.opentelemetry.io/otel"
 	"net/http"
+	"os"
+
+	"runtime"
 	"strconv"
 	"time"
 
@@ -41,7 +45,9 @@ func NewUsageLimits(log *zap.Logger, service *console.Service) *UsageLimits {
 func (ul *UsageLimits) ProjectUsageLimits(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -84,7 +90,9 @@ func (ul *UsageLimits) ProjectUsageLimits(w http.ResponseWriter, r *http.Request
 func (ul *UsageLimits) TotalUsageLimits(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	usageLimits, err := ul.service.GetTotalUsageLimits(ctx)
 	if err != nil {
@@ -107,7 +115,9 @@ func (ul *UsageLimits) TotalUsageLimits(w http.ResponseWriter, r *http.Request) 
 func (ul *UsageLimits) DailyUsage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var ok bool
 	var idParam string

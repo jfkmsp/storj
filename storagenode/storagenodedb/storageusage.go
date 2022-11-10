@@ -6,6 +6,12 @@ package storagenodedb
 import (
 	"context"
 	"database/sql"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -25,7 +31,9 @@ type storageUsageDB struct {
 
 // Store stores storage usage stamps to db replacing conflicting entries.
 func (db *storageUsageDB) Store(ctx context.Context, stamps []storageusage.Stamp) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if len(stamps) == 0 {
 		return nil
@@ -50,7 +58,9 @@ func (db *storageUsageDB) Store(ctx context.Context, stamps []storageusage.Stamp
 // GetDaily returns daily storage usage stamps for particular satellite
 // for provided time range.
 func (db *storageUsageDB) GetDaily(ctx context.Context, satelliteID storj.NodeID, from, to time.Time) (_ []storageusage.Stamp, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// the at_rest_total is in bytes*hours, so to find the total number
 	// of hours used to get the at_rest_total, we find the hour difference,
@@ -108,7 +118,9 @@ func (db *storageUsageDB) GetDaily(ctx context.Context, satelliteID storj.NodeID
 // GetDailyTotal returns daily storage usage stamps summed across all known satellites
 // for provided time range.
 func (db *storageUsageDB) GetDailyTotal(ctx context.Context, from, to time.Time) (_ []storageusage.Stamp, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// the at_rest_total is in bytes*hours, so to find the total number
 	// of hours used to get the at_rest_total, we find the hour difference,
@@ -167,7 +179,9 @@ func (db *storageUsageDB) GetDailyTotal(ctx context.Context, from, to time.Time)
 
 // Summary returns aggregated storage usage across all satellites.
 func (db *storageUsageDB) Summary(ctx context.Context, from, to time.Time) (_ float64, err error) {
-	defer mon.Task()(&ctx, from, to)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("from", from.String())), trace.WithAttributes(attribute.String("to", to.String())))
+	defer span.End()
 	var summary sql.NullFloat64
 
 	query := `SELECT SUM(usages.at_rest_total)
@@ -195,7 +209,12 @@ func (db *storageUsageDB) Summary(ctx context.Context, from, to time.Time) (_ fl
 
 // SatelliteSummary returns aggregated storage usage for a particular satellite.
 func (db *storageUsageDB) SatelliteSummary(ctx context.Context, satelliteID storj.NodeID, from, to time.Time) (_ float64, err error) {
-	defer mon.Task()(&ctx, satelliteID, from, to)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(),
+		trace.WithAttributes(attribute.String("satelliteID", satelliteID.String())),
+		trace.WithAttributes(attribute.String("from", from.String())),
+		trace.WithAttributes(attribute.String("to", to.String())))
+	defer span.End()
 	var summary sql.NullFloat64
 
 	query := `SELECT SUM(usages.at_rest_total)

@@ -7,6 +7,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"strings"
 
 	"storj.io/common/uuid"
@@ -55,7 +59,9 @@ type ListObjectsResult struct {
 
 // ListObjects lists objects.
 func (db *DB) ListObjects(ctx context.Context, opts ListObjects) (result ListObjectsResult, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err := opts.Verify(); err != nil {
 		return ListObjectsResult{}, err

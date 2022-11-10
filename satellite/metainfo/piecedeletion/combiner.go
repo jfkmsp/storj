@@ -5,6 +5,8 @@ package piecedeletion
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
 	"sync"
 
 	"storj.io/common/storj"
@@ -132,7 +134,8 @@ func (worker *worker) start(combiner *Combiner) {
 	// Try to add to worker pool, this may fail when we are shutting things down.
 	workerStarted := combiner.workers.Go(func() {
 
-		defer mon.TaskNamed("worker_start")(nil)(nil)
+		_, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(context.Background(), "worker_start")
+		defer span.End()
 		defer close(worker.done)
 		// Ensure we fail any jobs that the handler didn't handle.
 		defer FailPending(worker.jobs)

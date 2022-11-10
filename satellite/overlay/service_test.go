@@ -6,7 +6,7 @@ package overlay_test
 import (
 	"context"
 	"fmt"
-	"reflect"
+
 	"sort"
 	"testing"
 	"time"

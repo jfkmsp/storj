@@ -6,7 +6,13 @@ package live
 import (
 	"context"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"net/url"
+	"os"
+
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -72,7 +78,9 @@ func openRedisLiveAccounting(ctx context.Context, address string) (*redisLiveAcc
 // GetProjectStorageUsage gets inline and remote storage totals for a given
 // project, back to the time of the last accounting tally.
 func (cache *redisLiveAccounting) GetProjectStorageUsage(ctx context.Context, projectID uuid.UUID) (totalUsed int64, err error) {
-	defer mon.Task()(&ctx, projectID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("projectID", projectID.String())))
+	defer span.End()
 
 	return cache.getInt64(ctx, string(projectID[:]))
 }
@@ -80,7 +88,9 @@ func (cache *redisLiveAccounting) GetProjectStorageUsage(ctx context.Context, pr
 // GetProjectBandwidthUsage returns the current bandwidth usage
 // from specific project.
 func (cache *redisLiveAccounting) GetProjectBandwidthUsage(ctx context.Context, projectID uuid.UUID, now time.Time) (currentUsed int64, err error) {
-	defer mon.Task()(&ctx, projectID, now)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("projectID", projectID.String())), trace.WithAttributes(attribute.String("now", now.String())))
+	defer span.End()
 
 	return cache.getInt64(ctx, createBandwidthProjectIDKey(projectID, now))
 }
@@ -88,7 +98,13 @@ func (cache *redisLiveAccounting) GetProjectBandwidthUsage(ctx context.Context, 
 // InsertProjectBandwidthUsage inserts a project bandwidth usage if it
 // doesn't exist. It returns true if it's inserted, otherwise false.
 func (cache *redisLiveAccounting) InsertProjectBandwidthUsage(ctx context.Context, projectID uuid.UUID, value int64, ttl time.Duration, now time.Time) (inserted bool, err error) {
-	mon.Task()(&ctx, projectID, value, ttl, now)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(),
+		trace.WithAttributes(attribute.String("projectID", projectID.String())),
+		trace.WithAttributes(attribute.Int64("value", value)),
+		trace.WithAttributes(attribute.String("ttl", ttl.String())),
+		trace.WithAttributes(attribute.String("now", now.String())))
+	defer span.End()
 
 	// The following script will set the cache key to a specific value with an
 	// expiration time to live when it doesn't exist, otherwise it ignores it.
@@ -119,7 +135,13 @@ func (cache *redisLiveAccounting) InsertProjectBandwidthUsage(ctx context.Contex
 
 // UpdateProjectBandwidthUsage increment the bandwidth cache key value.
 func (cache *redisLiveAccounting) UpdateProjectBandwidthUsage(ctx context.Context, projectID uuid.UUID, increment int64, ttl time.Duration, now time.Time) (err error) {
-	mon.Task()(&ctx, projectID, increment, ttl, now)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(),
+		trace.WithAttributes(attribute.String("projectID", projectID.String())),
+		trace.WithAttributes(attribute.Int64("increment", increment)),
+		trace.WithAttributes(attribute.String("ttl", ttl.String())),
+		trace.WithAttributes(attribute.String("now", now.String())))
+	defer span.End()
 
 	// The following script will increment the cache key
 	// by a specific value. If the key does not exist, it is
@@ -147,14 +169,18 @@ func (cache *redisLiveAccounting) UpdateProjectBandwidthUsage(ctx context.Contex
 
 // GetProjectSegmentUsage returns the current segment usage from specific project.
 func (cache *redisLiveAccounting) GetProjectSegmentUsage(ctx context.Context, projectID uuid.UUID) (currentUsed int64, err error) {
-	defer mon.Task()(&ctx, projectID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("projectID", projectID.String())))
+	defer span.End()
 
 	return cache.getInt64(ctx, createSegmentProjectIDKey(projectID))
 }
 
 // UpdateProjectSegmentUsage increment the segment cache key value.
 func (cache *redisLiveAccounting) UpdateProjectSegmentUsage(ctx context.Context, projectID uuid.UUID, increment int64) (err error) {
-	mon.Task()(&ctx, projectID, increment)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("projectID", projectID.String())), trace.WithAttributes(attribute.Int64("increment", increment)))
+	defer span.End()
 
 	key := createSegmentProjectIDKey(projectID)
 	_, err = cache.client.IncrBy(ctx, key, increment).Result()
@@ -167,7 +193,9 @@ func (cache *redisLiveAccounting) UpdateProjectSegmentUsage(ctx context.Context,
 // AddProjectSegmentUsageUpToLimit increases segment usage up to the limit.
 // If the limit is exceeded, the usage is not increased and accounting.ErrProjectLimitExceeded is returned.
 func (cache *redisLiveAccounting) AddProjectSegmentUsageUpToLimit(ctx context.Context, projectID uuid.UUID, increment int64, segmentLimit int64) (err error) {
-	defer mon.Task()(&ctx, projectID, increment)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("projectID", projectID.String())), trace.WithAttributes(attribute.Int64("increment", increment)))
+	defer span.End()
 
 	key := createSegmentProjectIDKey(projectID)
 
@@ -195,7 +223,9 @@ func (cache *redisLiveAccounting) AddProjectSegmentUsageUpToLimit(ctx context.Co
 // project has just added spaceUsed bytes of storage (from the user's
 // perspective; i.e. segment size).
 func (cache *redisLiveAccounting) AddProjectStorageUsage(ctx context.Context, projectID uuid.UUID, spaceUsed int64) (err error) {
-	defer mon.Task()(&ctx, projectID, spaceUsed)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("projectID", projectID.String())), trace.WithAttributes(attribute.Int64("spaceUsed", spaceUsed)))
+	defer span.End()
 
 	_, err = cache.client.IncrBy(ctx, string(projectID[:]), spaceUsed).Result()
 	if err != nil {
@@ -208,7 +238,9 @@ func (cache *redisLiveAccounting) AddProjectStorageUsage(ctx context.Context, pr
 // AddProjectStorageUsageUpToLimit increases storage usage up to the limit.
 // If the limit is exceeded, the usage is not increased and accounting.ErrProjectLimitExceeded is returned.
 func (cache *redisLiveAccounting) AddProjectStorageUsageUpToLimit(ctx context.Context, projectID uuid.UUID, increment int64, spaceLimit int64) (err error) {
-	defer mon.Task()(&ctx, projectID, increment)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("projectID", projectID.String())), trace.WithAttributes(attribute.Int64("increment", increment)))
+	defer span.End()
 
 	// do a blind increment and checking the limit afterwards,
 	// so that the success path has only one round-trip.
@@ -235,7 +267,9 @@ func (cache *redisLiveAccounting) AddProjectStorageUsageUpToLimit(ctx context.Co
 // TODO (https://storjlabs.atlassian.net/browse/IN-173): see if it possible to
 // get key/value pairs with one single call.
 func (cache *redisLiveAccounting) GetAllProjectTotals(ctx context.Context) (_ map[uuid.UUID]accounting.Usage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	projects := make(map[uuid.UUID]accounting.Usage)
 	it := cache.client.Scan(ctx, 0, "*", 0).Iterator()
@@ -316,7 +350,9 @@ func (cache *redisLiveAccounting) Close() error {
 }
 
 func (cache *redisLiveAccounting) getInt64(ctx context.Context, key string) (_ int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	val, err := cache.client.Get(ctx, key).Bytes()
 	if err != nil {

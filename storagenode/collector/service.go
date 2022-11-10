@@ -6,10 +6,12 @@ package collector
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
 	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -17,8 +19,6 @@ import (
 	"storj.io/storj/storagenode/pieces"
 	"storj.io/storj/storagenode/piecestore/usedserials"
 )
-
-var mon = monkit.Package()
 
 // Config defines parameters for storage node Collector.
 type Config struct {
@@ -48,9 +48,10 @@ func NewService(log *zap.Logger, pieces *pieces.Store, usedSerials *usedserials.
 
 // Run runs collector service.
 func (service *Service) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
-
 	return service.Loop.Run(ctx, func(ctx context.Context) error {
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		defer span.End()
 		// V3-3143 Pieces should be collected at least 24 hours after expiration
 		// to avoid premature deletion due to timezone issues, which may lead to
 		// storage node disqualification.
@@ -70,7 +71,9 @@ func (service *Service) Close() (err error) {
 
 // Collect collects pieces that have expired by now.
 func (service *Service) Collect(ctx context.Context, now time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	service.usedSerials.DeleteExpired(now)
 

@@ -5,6 +5,12 @@ package storagenodedb
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -31,7 +37,9 @@ type notificationDB struct {
 
 // Insert puts new notification to database.
 func (db *notificationDB) Insert(ctx context.Context, notification notifications.NewNotification) (_ notifications.Notification, err error) {
-	defer mon.Task()(&ctx, notification)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("notification", notification.Title)))
+	defer span.End()
 
 	id, err := uuid.New()
 	if err != nil {
@@ -65,7 +73,11 @@ func (db *notificationDB) Insert(ctx context.Context, notification notifications
 
 // List returns listed page of notifications from database.
 func (db *notificationDB) List(ctx context.Context, cursor notifications.Cursor) (_ notifications.Page, err error) {
-	defer mon.Task()(&ctx, cursor)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(),
+		trace.WithAttributes(attribute.Int64("cursor Limit", int64(cursor.Limit))),
+		trace.WithAttributes(attribute.Int64("cursor Page", int64(cursor.Page))))
+	defer span.End()
 
 	if cursor.Limit > 50 {
 		cursor.Limit = 50
@@ -146,7 +158,9 @@ func (db *notificationDB) List(ctx context.Context, cursor notifications.Cursor)
 
 // Read updates specific notification in database as read.
 func (db *notificationDB) Read(ctx context.Context, notificationID uuid.UUID) (err error) {
-	defer mon.Task()(&ctx, notificationID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("notificationID", notificationID.String())))
+	defer span.End()
 
 	query := `
 		UPDATE
@@ -174,7 +188,9 @@ func (db *notificationDB) Read(ctx context.Context, notificationID uuid.UUID) (e
 
 // ReadAll updates all notifications in database as read.
 func (db *notificationDB) ReadAll(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query := `
 		UPDATE
@@ -192,7 +208,9 @@ func (db *notificationDB) ReadAll(ctx context.Context) (err error) {
 
 // UnreadAmount returns amount on unread notifications.
 func (db *notificationDB) UnreadAmount(ctx context.Context) (_ int, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var amount int
 
 	query := `

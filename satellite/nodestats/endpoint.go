@@ -5,8 +5,11 @@ package nodestats
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
 
-	"github.com/spacemonkeygo/monkit/v3"
+	"runtime"
+
 	"go.uber.org/zap"
 
 	"storj.io/common/identity"
@@ -16,10 +19,6 @@ import (
 	"storj.io/storj/satellite/overlay"
 	"storj.io/storj/satellite/payments/paymentsconfig"
 	"storj.io/storj/satellite/reputation"
-)
-
-var (
-	mon = monkit.Package()
 )
 
 // Endpoint for querying node stats for the SNO.
@@ -48,7 +47,9 @@ func NewEndpoint(log *zap.Logger, overlay overlay.DB, reputation *reputation.Ser
 
 // GetStats sends node stats for client node.
 func (e *Endpoint) GetStats(ctx context.Context, req *pb.GetStatsRequest) (_ *pb.GetStatsResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	peer, err := identity.PeerIdentityFromContext(ctx)
 	if err != nil {
@@ -100,7 +101,9 @@ func (e *Endpoint) GetStats(ctx context.Context, req *pb.GetStatsRequest) (_ *pb
 
 // DailyStorageUsage returns slice of daily storage usage for given period of time sorted in ASC order by date.
 func (e *Endpoint) DailyStorageUsage(ctx context.Context, req *pb.DailyStorageUsageRequest) (_ *pb.DailyStorageUsageResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	peer, err := identity.PeerIdentityFromContext(ctx)
 	if err != nil {
@@ -129,7 +132,9 @@ func (e *Endpoint) DailyStorageUsage(ctx context.Context, req *pb.DailyStorageUs
 
 // PricingModel returns pricing model for storagenode.
 func (e *Endpoint) PricingModel(ctx context.Context, req *pb.PricingModelRequest) (_ *pb.PricingModelResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return &pb.PricingModelResponse{
 		EgressBandwidthPrice: e.config.NodeEgressBandwidthPrice,

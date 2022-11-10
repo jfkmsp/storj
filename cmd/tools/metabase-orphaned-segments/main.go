@@ -6,9 +6,12 @@ package main
 import (
 	"context"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 
 	"github.com/jackc/pgx/v4"
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 	"github.com/zeebo/errs"
@@ -19,8 +22,6 @@ import (
 	"storj.io/private/process"
 	"storj.io/storj/satellite/metabase"
 )
-
-var mon = monkit.Package()
 
 var (
 	rootCmd = &cobra.Command{
@@ -104,7 +105,9 @@ func main() {
 
 // Report finds and reports orphaned segments, nothing is deleted.
 func Report(ctx context.Context, log *zap.Logger, config Config) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	ids, err := findOrphanedSegments(ctx, log, config)
 	if err != nil {
@@ -120,7 +123,9 @@ func Report(ctx context.Context, log *zap.Logger, config Config) (err error) {
 
 // Delete finds and deletes orphaned segments.
 func Delete(ctx context.Context, log *zap.Logger, config Config) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	ids, err := findOrphanedSegments(ctx, log, config)
 	if err != nil {
@@ -153,7 +158,9 @@ func Delete(ctx context.Context, log *zap.Logger, config Config) (err error) {
 }
 
 func findOrphanedSegments(ctx context.Context, log *zap.Logger, config Config) (_ []uuid.UUID, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	metabaseDB, err := metabase.Open(ctx, log.Named("metabase"), config.MetabaseDB, metabase.Config{ApplicationName: "metabase-orphaned-segments"})
 	if err != nil {
@@ -229,7 +236,9 @@ func findOrphanedSegments(ctx context.Context, log *zap.Logger, config Config) (
 }
 
 func sendDelete(ctx context.Context, conn *pgx.Conn, ids []uuid.UUID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if len(ids) == 0 {
 		return nil

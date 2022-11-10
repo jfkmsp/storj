@@ -6,7 +6,7 @@ package revocation_test
 import (
 	"crypto/x509"
 	"os"
-	"reflect"
+
 	"testing"
 	"time"
 

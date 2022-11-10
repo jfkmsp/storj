@@ -7,11 +7,8 @@ import (
 	"bytes"
 	"context"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 )
-
-var mon = monkit.Package()
 
 // Delimiter separates nested paths in storage.
 const Delimiter = '/'

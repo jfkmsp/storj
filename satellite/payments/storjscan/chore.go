@@ -5,6 +5,10 @@ package storjscan
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -44,9 +48,10 @@ func NewChore(log *zap.Logger, client *Client, paymentsDB PaymentsDB, confirmati
 
 // Run runs storjscan payment loop.
 func (chore *Chore) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
-
 	return chore.TransactionCycle.Run(ctx, func(ctx context.Context) error {
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		defer span.End()
 		var from int64
 
 		if chore.disableLoop {
@@ -115,7 +120,9 @@ func (chore *Chore) Run(ctx context.Context) (err error) {
 
 // Close closes all underlying resources.
 func (chore *Chore) Close() (err error) {
-	defer mon.Task()(nil)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	_, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(context.Background(), runtime.FuncForPC(pc).Name())
+	defer span.End()
 	chore.TransactionCycle.Close()
 	return nil
 }

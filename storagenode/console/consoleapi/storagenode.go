@@ -5,7 +5,11 @@ package consoleapi
 
 import (
 	"encoding/json"
+	"go.opentelemetry.io/otel"
 	"net/http"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -38,7 +42,9 @@ func NewStorageNode(log *zap.Logger, service *console.Service) *StorageNode {
 func (dashboard *StorageNode) StorageNode(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set(contentType, applicationJSON)
 
@@ -58,7 +64,9 @@ func (dashboard *StorageNode) StorageNode(w http.ResponseWriter, r *http.Request
 func (dashboard *StorageNode) Satellites(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set(contentType, applicationJSON)
 
@@ -78,7 +86,9 @@ func (dashboard *StorageNode) Satellites(w http.ResponseWriter, r *http.Request)
 func (dashboard *StorageNode) Satellite(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set(contentType, applicationJSON)
 
@@ -115,8 +125,9 @@ func (dashboard *StorageNode) Satellite(w http.ResponseWriter, r *http.Request) 
 // EstimatedPayout returns estimated payouts from specific satellite or all satellites if current traffic level remains same.
 func (dashboard *StorageNode) EstimatedPayout(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set(contentType, applicationJSON)
 

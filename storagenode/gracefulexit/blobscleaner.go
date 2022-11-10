@@ -7,7 +7,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"go.opentelemetry.io/otel"
 	"os"
+
+	"runtime"
 
 	"go.uber.org/zap"
 
@@ -40,7 +43,9 @@ func NewBlobsCleaner(log *zap.Logger, store *pieces.Store, trust *trust.Pool, sa
 // On node's restart checks if any of trusted satellites has GE status "successfully exited"
 // Deletes blobs/satellite folder if exists, so if garbage collector didn't clean all SNO won't keep trash.
 func (blobsCleaner *BlobsCleaner) RemoveBlobs(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	satelliteIDs := blobsCleaner.trust.GetSatellites(ctx)
 	for i := 0; i < len(satelliteIDs); i++ {

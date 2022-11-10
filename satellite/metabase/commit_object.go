@@ -8,6 +8,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
+	"os"
+
+	"runtime"
 
 	"github.com/zeebo/errs"
 
@@ -32,7 +37,10 @@ type CommitObjectWithSegments struct {
 
 // CommitObjectWithSegments commits pending object to the database.
 func (db *DB) CommitObjectWithSegments(ctx context.Context, opts CommitObjectWithSegments) (object Object, deletedSegments []DeletedSegmentInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	if err := opts.ObjectStream.Verify(); err != nil {
 		return Object{}, nil, err
@@ -147,10 +155,14 @@ func (db *DB) CommitObjectWithSegments(ctx context.Context, opts CommitObjectWit
 		return Object{}, nil, err
 	}
 
-	mon.Meter("object_commit").Mark(1)
-	mon.IntVal("object_commit_segments").Observe(int64(object.SegmentCount))
-	mon.IntVal("object_commit_encrypted_size").Observe(object.TotalEncryptedSize)
-	mon.Meter("segment_delete").Mark(len(deletedSegments))
+	counter, _ := meter.SyncInt64().Counter("object_commit")
+	counter.Add(ctx, 1)
+	histCounter, _ := meter.SyncInt64().Histogram("object_commit_segments")
+	histCounter.Record(ctx, int64(object.SegmentCount))
+	histCounter, _ = meter.SyncInt64().Histogram("object_commit_encrypted_size")
+	histCounter.Record(ctx, object.TotalEncryptedSize)
+	counter, _ = meter.SyncInt64().Counter("segment_delete")
+	counter.Add(ctx, int64(len(deletedSegments)))
 
 	return object, deletedSegments, nil
 }
@@ -181,7 +193,9 @@ type segmentInfoForCommit struct {
 
 // fetchSegmentsForCommit loads information necessary for validating segment existence and offsets.
 func fetchSegmentsForCommit(ctx context.Context, tx tagsql.Tx, streamID uuid.UUID) (segments []segmentInfoForCommit, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	err = withRows(tx.QueryContext(ctx, `
 		SELECT position, encrypted_size, plain_offset, plain_size
@@ -264,7 +278,9 @@ func convertToFinalSegments(segmentsInDatabase []segmentInfoForCommit) (commit [
 
 // updateSegmentOffsets updates segment offsets that didn't match the database state.
 func updateSegmentOffsets(ctx context.Context, tx tagsql.Tx, streamID uuid.UUID, updates []segmentToCommit) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if len(updates) == 0 {
 		return
 	}
@@ -312,7 +328,9 @@ func updateSegmentOffsets(ctx context.Context, tx tagsql.Tx, streamID uuid.UUID,
 
 // deleteSegmentsNotInCommit deletes the listed segments inside the tx.
 func (db *DB) deleteSegmentsNotInCommit(ctx context.Context, tx tagsql.Tx, streamID uuid.UUID, segments []SegmentPosition) (deletedSegments []DeletedSegmentInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if len(segments) == 0 {
 		return nil, nil
 	}

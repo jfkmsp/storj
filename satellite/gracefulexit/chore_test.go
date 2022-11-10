@@ -202,7 +202,7 @@ func TestDurabilityRatio(t *testing.T) {
 
 		for _, segment := range segments {
 			remotePieces := segment.Pieces
-			var newPieces metabase.Pieces = make(metabase.Pieces, len(remotePieces)-1)
+			var newPieces = make(metabase.Pieces, len(remotePieces)-1)
 			idx := 0
 			for _, p := range remotePieces {
 				if p.StorageNode != nodeToRemove.ID() {

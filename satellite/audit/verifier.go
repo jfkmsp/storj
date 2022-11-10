@@ -7,11 +7,15 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
 	"io"
 	"math/rand"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/vivint/infectious"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
@@ -32,7 +36,6 @@ import (
 )
 
 var (
-	mon = monkit.Package()
 
 	// ErrNotEnoughShares is the errs class for when not enough shares are available to do an audit.
 	ErrNotEnoughShares = errs.Class("not enough shares for successful audit")
@@ -86,7 +89,10 @@ func NewVerifier(log *zap.Logger, metabase *metabase.DB, dialer rpc.Dialer, over
 
 // Verify downloads shares then verifies the data correctness at a random stripe.
 func (verifier *Verifier) Verify(ctx context.Context, segment Segment, skip map[storj.NodeID]bool) (report Report, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	var segmentInfo metabase.Segment
 	defer func() {
@@ -124,8 +130,10 @@ func (verifier *Verifier) Verify(ctx context.Context, segment Segment, skip map[
 	orderLimits, privateKey, cachedNodesInfo, err := verifier.orders.CreateAuditOrderLimits(ctx, segmentInfo, skip)
 	if err != nil {
 		if orders.ErrDownloadFailedNotEnoughPieces.Has(err) {
-			mon.Counter("not_enough_shares_for_audit").Inc(1)   //mon:locked
-			mon.Counter("audit_not_enough_nodes_online").Inc(1) //mon:locked
+			counter, _ := meter.SyncInt64().Counter("not_enough_shares_for_audit")
+			counter.Add(context.Background(), 1)
+			counter, _ = meter.SyncInt64().Counter("audit_not_enough_nodes_online")
+			counter.Add(context.Background(), 1)
 			err = ErrNotEnoughShares.Wrap(err)
 		}
 		return Report{}, err
@@ -228,20 +236,24 @@ func (verifier *Verifier) Verify(ctx context.Context, segment Segment, skip map[
 			zap.String("Segment", segmentInfoString(segment)),
 			zap.Error(share.Error))
 	}
-	mon.IntVal("verify_shares_downloaded_successfully").Observe(int64(len(sharesToAudit))) //mon:locked
+	histCounter, _ := meter.SyncInt64().Histogram("verify_shares_downloaded_successfully")
+	histCounter.Record(ctx, int64(len(sharesToAudit)))
 
 	required := segmentInfo.Redundancy.RequiredShares
 	total := segmentInfo.Redundancy.TotalShares
 
 	if len(sharesToAudit) < int(required) {
-		mon.Counter("not_enough_shares_for_audit").Inc(1) //mon:locked
+		counter, _ := meter.SyncInt64().Counter("not_enough_shares_for_audit")
+		counter.Add(context.Background(), 1)
 		// if we have reached this point, most likely something went wrong
 		// like a network problem or a forgotten delete. Don't fail nodes.
 		// We have an alert on this. Check the logs and see what happened.
 		if len(offlineNodes)+len(containedNodes) > len(sharesToAudit)+len(failedNodes)+len(unknownNodes) {
-			mon.Counter("audit_suspected_network_problem").Inc(1) //mon:locked
+			counter, _ := meter.SyncInt64().Counter("audit_suspected_network_problem")
+			counter.Add(context.Background(), 1)
 		} else {
-			mon.Counter("audit_not_enough_shares_acquired").Inc(1) //mon:locked
+			counter, _ := meter.SyncInt64().Counter("audit_not_enough_shares_acquired")
+			counter.Add(context.Background(), 1)
 		}
 		report := Report{
 			Offlines: offlineNodes,
@@ -251,15 +263,21 @@ func (verifier *Verifier) Verify(ctx context.Context, segment Segment, skip map[
 			len(sharesToAudit), required, len(failedNodes), len(offlineNodes), len(unknownNodes), len(containedNodes))
 	}
 	// ensure we get values, even if only zero values, so that redash can have an alert based on these
-	mon.Counter("not_enough_shares_for_audit").Inc(0)      //mon:locked
-	mon.Counter("audit_not_enough_nodes_online").Inc(0)    //mon:locked
-	mon.Counter("audit_not_enough_shares_acquired").Inc(0) //mon:locked
-	mon.Counter("could_not_verify_audit_shares").Inc(0)    //mon:locked
-	mon.Counter("audit_suspected_network_problem").Inc(0)  //mon:locked
+	counter, _ := meter.SyncInt64().Counter("not_enough_shares_for_audit")
+	counter.Add(context.Background(), 0)
+	counter, _ = meter.SyncInt64().Counter("audit_not_enough_nodes_online")
+	counter.Add(context.Background(), 0)
+	counter, _ = meter.SyncInt64().Counter("audit_not_enough_shares_acquired")
+	counter.Add(context.Background(), 0)
+	counter, _ = meter.SyncInt64().Counter("could_not_verify_audit_shares")
+	counter.Add(context.Background(), 0)
+	counter, _ = meter.SyncInt64().Counter("audit_suspected_network_problem")
+	counter.Add(context.Background(), 0)
 
 	pieceNums, correctedShares, err := auditShares(ctx, required, total, sharesToAudit)
 	if err != nil {
-		mon.Counter("could_not_verify_audit_shares").Inc(1) //mon:locked
+		counter, _ := meter.SyncInt64().Counter("could_not_verify_audit_shares")
+		counter.Add(context.Background(), 1)
 		verifier.log.Error("could not verify shares", zap.String("Segment", segmentInfoString(segment)), zap.Error(err))
 		return Report{
 			Fails:    failedNodes,
@@ -305,7 +323,9 @@ func segmentInfoString(segment Segment) string {
 
 // DownloadShares downloads shares from the nodes where remote pieces are located.
 func (verifier *Verifier) DownloadShares(ctx context.Context, limits []*pb.AddressedOrderLimit, piecePrivateKey storj.PiecePrivateKey, cachedNodesInfo map[storj.NodeID]overlay.NodeReputation, stripeIndex int32, shareSize int32) (shares map[int]Share, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	shares = make(map[int]Share, len(limits))
 	ch := make(chan *Share, len(limits))
@@ -348,7 +368,10 @@ func (verifier *Verifier) DownloadShares(ctx context.Context, limits []*pb.Addre
 
 // Reverify reverifies the contained nodes in the stripe.
 func (verifier *Verifier) Reverify(ctx context.Context, segment Segment) (report Report, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	// result status enum
 	const (
@@ -582,27 +605,41 @@ func (verifier *Verifier) Reverify(ctx context.Context, segment Segment) (report
 	}
 	report.NodesReputation = reputations
 
-	mon.Meter("reverify_successes_global").Mark(len(report.Successes))     //mon:locked
-	mon.Meter("reverify_offlines_global").Mark(len(report.Offlines))       //mon:locked
-	mon.Meter("reverify_fails_global").Mark(len(report.Fails))             //mon:locked
-	mon.Meter("reverify_contained_global").Mark(len(report.PendingAudits)) //mon:locked
-	mon.Meter("reverify_unknown_global").Mark(len(report.Unknown))         //mon:locked
+	histCounter, _ := meter.SyncInt64().Histogram("reverify_successes_global")
+	histCounter.Record(ctx, int64(len(report.Successes)))
+	histCounter, _ = meter.SyncInt64().Histogram("reverify_offlines_global")
+	histCounter.Record(ctx, int64(len(report.Offlines)))
+	histCounter, _ = meter.SyncInt64().Histogram("reverify_fails_global")
+	histCounter.Record(ctx, int64(len(report.Fails)))
+	histCounter, _ = meter.SyncInt64().Histogram("reverify_contained_global")
+	histCounter.Record(ctx, int64(len(report.PendingAudits)))
+	histCounter, _ = meter.SyncInt64().Histogram("reverify_unknown_global")
+	histCounter.Record(ctx, int64(len(report.Unknown)))
 
-	mon.IntVal("reverify_successes").Observe(int64(len(report.Successes)))     //mon:locked
-	mon.IntVal("reverify_offlines").Observe(int64(len(report.Offlines)))       //mon:locked
-	mon.IntVal("reverify_fails").Observe(int64(len(report.Fails)))             //mon:locked
-	mon.IntVal("reverify_contained").Observe(int64(len(report.PendingAudits))) //mon:locked
-	mon.IntVal("reverify_unknown").Observe(int64(len(report.Unknown)))         //mon:locked
+	histCounter, _ = meter.SyncInt64().Histogram("reverify_successes")
+	histCounter.Record(ctx, int64(len(report.Successes)))
+	histCounter, _ = meter.SyncInt64().Histogram("reverify_offlines")
+	histCounter.Record(ctx, int64(len(report.Offlines)))
+	histCounter, _ = meter.SyncInt64().Histogram("reverify_fails")
+	histCounter.Record(ctx, int64(len(report.Fails)))
+	histCounter, _ = meter.SyncInt64().Histogram("reverify_contained")
+	histCounter.Record(ctx, int64(len(report.PendingAudits)))
+	histCounter, _ = meter.SyncInt64().Histogram("reverify_unknown")
+	histCounter.Record(ctx, int64(len(report.Unknown)))
 
-	mon.IntVal("reverify_contained_in_segment").Observe(containedInSegment) //mon:locked
-	mon.IntVal("reverify_total_in_segment").Observe(int64(len(pieces)))     //mon:locked
+	histCounter, _ = meter.SyncInt64().Histogram("reverify_contained_in_segment")
+	histCounter.Record(ctx, containedInSegment)
+	histCounter, _ = meter.SyncInt64().Histogram("reverify_total_in_segment")
+	histCounter.Record(ctx, int64(len(pieces)))
 
 	return report, err
 }
 
 // GetShare use piece store client to download shares from nodes.
 func (verifier *Verifier) GetShare(ctx context.Context, limit *pb.AddressedOrderLimit, piecePrivateKey storj.PiecePrivateKey, cachedIPAndPort string, stripeIndex, shareSize int32, pieceNum int) (share Share, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	bandwidthMsgSize := shareSize
 
@@ -677,7 +714,9 @@ func (verifier *Verifier) GetShare(ctx context.Context, limit *pb.AddressedOrder
 
 // checkIfSegmentAltered checks if oldSegment has been altered since it was selected for audit.
 func (verifier *Verifier) checkIfSegmentAltered(ctx context.Context, oldSegment metabase.Segment) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if verifier.OnTestingCheckSegmentAlteredHook != nil {
 		verifier.OnTestingCheckSegmentAlteredHook()
@@ -709,7 +748,9 @@ func (verifier *Verifier) SetNow(nowFn func() time.Time) {
 // haven't been altered. auditShares returns a slice containing the piece numbers of altered shares,
 // and a slice of the corrected shares.
 func auditShares(ctx context.Context, required, total int16, originals map[int]Share) (pieceNums []int, corrected []infectious.Share, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	f, err := infectious.NewFEC(int(required), int(total))
 	if err != nil {
 		return nil, nil, err
@@ -735,7 +776,9 @@ func auditShares(ctx context.Context, required, total int16, originals map[int]S
 
 // makeCopies takes in a map of audit Shares and deep copies their data to a slice of infectious Shares.
 func makeCopies(ctx context.Context, originals map[int]Share) (copies []infectious.Share, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	copies = make([]infectious.Share, 0, len(originals))
 	for _, original := range originals {
 		copies = append(copies, infectious.Share{
@@ -768,7 +811,9 @@ func getOfflineNodes(segment metabase.Segment, limits []*pb.AddressedOrderLimit,
 
 // getSuccessNodes uses the failed nodes, offline nodes and contained nodes arrays to determine which nodes passed the audit.
 func getSuccessNodes(ctx context.Context, shares map[int]Share, failedNodes, offlineNodes, unknownNodes storj.NodeIDList, containedNodes map[int]storj.NodeID) (successNodes storj.NodeIDList) {
-	defer mon.Task()(&ctx)(nil)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	fails := make(map[storj.NodeID]bool)
 	for _, fail := range failedNodes {
 		fails[fail] = true
@@ -793,7 +838,9 @@ func getSuccessNodes(ctx context.Context, shares map[int]Share, failedNodes, off
 }
 
 func createPendingAudits(ctx context.Context, containedNodes map[int]storj.NodeID, correctedShares []infectious.Share, segment Segment, segmentInfo metabase.Segment, randomIndex int32) (pending []*PendingAudit, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if len(containedNodes) == 0 {
 		return nil, nil
@@ -834,7 +881,9 @@ func createPendingAudits(ctx context.Context, containedNodes map[int]storj.NodeI
 }
 
 func rebuildStripe(ctx context.Context, fec *infectious.FEC, corrected []infectious.Share, shareSize int) (_ []byte, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	stripe := make([]byte, fec.Required()*shareSize)
 	err = fec.Rebuild(corrected, func(share infectious.Share) {
 		copy(stripe[share.Number*shareSize:], share.Data)
@@ -847,7 +896,9 @@ func rebuildStripe(ctx context.Context, fec *infectious.FEC, corrected []infecti
 
 // GetRandomStripe takes a segment and returns a random stripe index within that segment.
 func GetRandomStripe(ctx context.Context, segment metabase.Segment) (index int32, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// the last segment could be smaller than stripe size
 	if segment.EncryptedSize < segment.Redundancy.StripeSize() {
@@ -863,6 +914,7 @@ func GetRandomStripe(ctx context.Context, segment metabase.Segment) (index int32
 }
 
 func recordStats(report Report, totalPieces int, verifyErr error) {
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
 	// If an audit was able to complete without auditing any nodes, that means
 	// the segment has been altered.
 	if verifyErr == nil && len(report.Successes) == 0 {
@@ -890,25 +942,46 @@ func recordStats(report Report, totalPieces int, verifyErr error) {
 		unknownPercentage = float64(numUnknown) / float64(totalAudited)
 	}
 
-	mon.Meter("audit_success_nodes_global").Mark(numSuccessful)     //mon:locked
-	mon.Meter("audit_fail_nodes_global").Mark(numFailed)            //mon:locked
-	mon.Meter("audit_offline_nodes_global").Mark(numOffline)        //mon:locked
-	mon.Meter("audit_contained_nodes_global").Mark(numContained)    //mon:locked
-	mon.Meter("audit_unknown_nodes_global").Mark(numUnknown)        //mon:locked
-	mon.Meter("audit_total_nodes_global").Mark(totalAudited)        //mon:locked
-	mon.Meter("audit_total_pointer_nodes_global").Mark(totalPieces) //mon:locked
+	ctx := context.Background()
+	histCounter, _ := meter.SyncInt64().Histogram("audit_success_nodes_global")
+	histCounter.Record(ctx, int64(numSuccessful))
+	histCounter, _ = meter.SyncInt64().Histogram("audit_fail_nodes_global")
+	histCounter.Record(ctx, int64(numFailed))
+	histCounter, _ = meter.SyncInt64().Histogram("audit_offline_nodes_global")
+	histCounter.Record(ctx, int64(numOffline))
+	histCounter, _ = meter.SyncInt64().Histogram("audit_contained_nodes_global")
+	histCounter.Record(ctx, int64(numContained))
+	histCounter, _ = meter.SyncInt64().Histogram("audit_unknown_nodes_global")
+	histCounter.Record(ctx, int64(numUnknown))
+	histCounter, _ = meter.SyncInt64().Histogram("audit_total_nodes_global")
+	histCounter.Record(ctx, int64(totalAudited))
+	histCounter, _ = meter.SyncInt64().Histogram("audit_total_pointer_nodes_global")
+	histCounter.Record(ctx, int64(totalPieces))
 
-	mon.IntVal("audit_success_nodes").Observe(int64(numSuccessful))           //mon:locked
-	mon.IntVal("audit_fail_nodes").Observe(int64(numFailed))                  //mon:locked
-	mon.IntVal("audit_offline_nodes").Observe(int64(numOffline))              //mon:locked
-	mon.IntVal("audit_contained_nodes").Observe(int64(numContained))          //mon:locked
-	mon.IntVal("audit_unknown_nodes").Observe(int64(numUnknown))              //mon:locked
-	mon.IntVal("audit_total_nodes").Observe(int64(totalAudited))              //mon:locked
-	mon.IntVal("audit_total_pointer_nodes").Observe(int64(totalPieces))       //mon:locked
-	mon.FloatVal("audited_percentage").Observe(auditedPercentage)             //mon:locked
-	mon.FloatVal("audit_offline_percentage").Observe(offlinePercentage)       //mon:locked
-	mon.FloatVal("audit_successful_percentage").Observe(successfulPercentage) //mon:locked
-	mon.FloatVal("audit_failed_percentage").Observe(failedPercentage)         //mon:locked
-	mon.FloatVal("audit_contained_percentage").Observe(containedPercentage)   //mon:locked
-	mon.FloatVal("audit_unknown_percentage").Observe(unknownPercentage)       //mon:locked
+	histCounter, _ = meter.SyncInt64().Histogram("audit_success_nodes")
+	histCounter.Record(ctx, int64(numSuccessful))
+	histCounter, _ = meter.SyncInt64().Histogram("audit_fail_nodes")
+	histCounter.Record(ctx, int64(numFailed))
+	histCounter, _ = meter.SyncInt64().Histogram("audit_offline_nodes")
+	histCounter.Record(ctx, int64(numOffline))
+	histCounter, _ = meter.SyncInt64().Histogram("audit_contained_nodes")
+	histCounter.Record(ctx, int64(numContained))
+	histCounter, _ = meter.SyncInt64().Histogram("audit_unknown_nodes")
+	histCounter.Record(ctx, int64(numUnknown))
+	histCounter, _ = meter.SyncInt64().Histogram("audit_total_nodes")
+	histCounter.Record(ctx, int64(totalAudited))
+	histCounter, _ = meter.SyncInt64().Histogram("audit_total_pointer_nodes")
+	histCounter.Record(ctx, int64(totalPieces))
+	histCounter, _ = meter.SyncInt64().Histogram("audited_percentage")
+	histCounter.Record(ctx, int64(auditedPercentage))
+	histCounter, _ = meter.SyncInt64().Histogram("audit_offline_percentage")
+	histCounter.Record(ctx, int64(offlinePercentage))
+	histCounter, _ = meter.SyncInt64().Histogram("audit_successful_percentage")
+	histCounter.Record(ctx, int64(successfulPercentage))
+	histCounter, _ = meter.SyncInt64().Histogram("audit_failed_percentage")
+	histCounter.Record(ctx, int64(failedPercentage))
+	histCounter, _ = meter.SyncInt64().Histogram("audit_contained_percentage")
+	histCounter.Record(ctx, int64(containedPercentage))
+	histCounter, _ = meter.SyncInt64().Histogram("audit_unknown_percentage")
+	histCounter.Record(ctx, int64(unknownPercentage))
 }

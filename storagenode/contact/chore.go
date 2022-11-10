@@ -41,7 +41,6 @@ func NewChore(log *zap.Logger, interval time.Duration, service *Service) *Chore 
 
 // Run the contact chore on a regular interval with jitter.
 func (chore *Chore) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
 	var group errgroup.Group
 
 	if !chore.service.initialized.Wait(ctx) {

@@ -6,12 +6,15 @@ package piecestore
 import (
 	"context"
 	"fmt"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
 	"io"
 	"os"
+
+	"runtime"
 	"sync/atomic"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -36,10 +39,6 @@ import (
 	"storj.io/storj/storagenode/piecestore/usedserials"
 	"storj.io/storj/storagenode/retain"
 	"storj.io/storj/storagenode/trust"
-)
-
-var (
-	mon = monkit.Package()
 )
 
 // OldConfig contains everything necessary for a server.
@@ -126,14 +125,13 @@ func NewEndpoint(log *zap.Logger, signer signing.Signer, trust *trust.Pool, moni
 	}, nil
 }
 
-var monLiveRequests = mon.TaskNamed("live-request")
-
 // Delete handles deleting a piece on piece store requested by uplink.
 //
 // Deprecated: use DeletePieces instead.
 func (endpoint *Endpoint) Delete(ctx context.Context, delete *pb.PieceDeleteRequest) (_ *pb.PieceDeleteResponse, err error) {
-	defer monLiveRequests(&ctx)(&err)
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	atomic.AddInt32(&endpoint.liveRequests, 1)
 	defer atomic.AddInt32(&endpoint.liveRequests, -1)
@@ -168,7 +166,9 @@ func (endpoint *Endpoint) Delete(ctx context.Context, delete *pb.PieceDeleteRequ
 func (endpoint *Endpoint) DeletePieces(
 	ctx context.Context, req *pb.DeletePiecesRequest,
 ) (_ *pb.DeletePiecesResponse, err error) {
-	defer mon.Task()(&ctx, req.PieceIds)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	peer, err := identity.PeerIdentityFromContext(ctx)
 	if err != nil {
@@ -190,8 +190,10 @@ func (endpoint *Endpoint) DeletePieces(
 // Upload handles uploading a piece on piece store.
 func (endpoint *Endpoint) Upload(stream pb.DRPCPiecestore_UploadStream) (err error) {
 	ctx := stream.Context()
-	defer monLiveRequests(&ctx)(&err)
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	liveRequests := atomic.AddInt32(&endpoint.liveRequests, 1)
 	defer atomic.AddInt32(&endpoint.liveRequests, -1)
@@ -271,25 +273,40 @@ func (endpoint *Endpoint) Upload(stream pb.DRPCPiecestore_UploadStream) (err err
 		uploadDuration := dt.Nanoseconds()
 
 		if err != nil && !errs2.IsCanceled(err) {
-			mon.Counter("upload_failure_count").Inc(1)
-			mon.Meter("upload_failure_byte_meter").Mark64(uploadSize)
-			mon.IntVal("upload_failure_size_bytes").Observe(uploadSize)
-			mon.IntVal("upload_failure_duration_ns").Observe(uploadDuration)
-			mon.FloatVal("upload_failure_rate_bytes_per_sec").Observe(uploadRate)
+			counter, _ := meter.SyncInt64().Counter("upload_failure_count")
+			counter.Add(ctx, 1)
+			histCounter, _ := meter.SyncInt64().Histogram("upload_failure_byte_meter")
+			histCounter.Record(ctx, uploadSize)
+			histCounter, _ = meter.SyncInt64().Histogram("upload_failure_size_bytes")
+			histCounter.Record(ctx, uploadSize)
+			histCounter, _ = meter.SyncInt64().Histogram("upload_failure_duration_ns")
+			histCounter.Record(ctx, uploadDuration)
+			histFloatCounter, _ := meter.SyncFloat64().Histogram("upload_failure_rate_bytes_per_sec")
+			histFloatCounter.Record(ctx, uploadRate)
 			endpoint.log.Error("upload failed", zap.Stringer("Piece ID", limit.PieceId), zap.Stringer("Satellite ID", limit.SatelliteId), zap.Stringer("Action", limit.Action), zap.Error(err), zap.Int64("Size", uploadSize))
 		} else if (errs2.IsCanceled(err) || drpc.ClosedError.Has(err)) && !committed {
-			mon.Counter("upload_cancel_count").Inc(1)
-			mon.Meter("upload_cancel_byte_meter").Mark64(uploadSize)
-			mon.IntVal("upload_cancel_size_bytes").Observe(uploadSize)
-			mon.IntVal("upload_cancel_duration_ns").Observe(uploadDuration)
-			mon.FloatVal("upload_cancel_rate_bytes_per_sec").Observe(uploadRate)
+			counter, _ := meter.SyncInt64().Counter("upload_cancel_count")
+			counter.Add(ctx, 1)
+			histCounter, _ := meter.SyncInt64().Histogram("upload_cancel_byte_meter")
+			histCounter.Record(ctx, uploadSize)
+			histCounter, _ = meter.SyncInt64().Histogram("upload_cancel_size_bytes")
+			histCounter.Record(ctx, uploadSize)
+			histCounter, _ = meter.SyncInt64().Histogram("upload_cancel_duration_ns")
+			histCounter.Record(ctx, uploadDuration)
+			histFloatCounter, _ := meter.SyncFloat64().Histogram("upload_cancel_rate_bytes_per_sec")
+			histFloatCounter.Record(ctx, uploadRate)
 			endpoint.log.Info("upload canceled", zap.Stringer("Piece ID", limit.PieceId), zap.Stringer("Satellite ID", limit.SatelliteId), zap.Stringer("Action", limit.Action), zap.Int64("Size", uploadSize))
 		} else {
-			mon.Counter("upload_success_count").Inc(1)
-			mon.Meter("upload_success_byte_meter").Mark64(uploadSize)
-			mon.IntVal("upload_success_size_bytes").Observe(uploadSize)
-			mon.IntVal("upload_success_duration_ns").Observe(uploadDuration)
-			mon.FloatVal("upload_success_rate_bytes_per_sec").Observe(uploadRate)
+			counter, _ := meter.SyncInt64().Counter("upload_success_count")
+			counter.Add(ctx, 1)
+			histCounter, _ := meter.SyncInt64().Histogram("upload_success_byte_meter")
+			histCounter.Record(ctx, uploadSize)
+			histCounter, _ = meter.SyncInt64().Histogram("upload_success_size_bytes")
+			histCounter.Record(ctx, uploadSize)
+			histCounter, _ = meter.SyncInt64().Histogram("upload_success_duration_ns")
+			histCounter.Record(ctx, uploadDuration)
+			histFloatCounter, _ := meter.SyncFloat64().Histogram("upload_success_rate_bytes_per_sec")
+			histFloatCounter.Record(ctx, uploadRate)
 			endpoint.log.Info("uploaded", zap.Stringer("Piece ID", limit.PieceId), zap.Stringer("Satellite ID", limit.SatelliteId), zap.Stringer("Action", limit.Action), zap.Int64("Size", uploadSize))
 		}
 	}()
@@ -299,7 +316,8 @@ func (endpoint *Endpoint) Upload(stream pb.DRPCPiecestore_UploadStream) (err err
 		zap.Stringer("Satellite ID", limit.SatelliteId),
 		zap.Stringer("Action", limit.Action),
 		zap.Int64("Available Space", availableSpace))
-	mon.Counter("upload_started_count").Inc(1)
+	counter, _ := meter.SyncInt64().Counter("upload_started_count")
+	counter.Add(ctx, 1)
 
 	pieceWriter, err = endpoint.store.Writer(ctx, limit.SatelliteId, limit.PieceId, hashAlgorithm)
 	if err != nil {
@@ -318,7 +336,7 @@ func (endpoint *Endpoint) Upload(stream pb.DRPCPiecestore_UploadStream) (err err
 	// Ensure that the order is saved even in the face of an error. In the
 	// success path, the order will be saved just before sending the response
 	// and closing the stream (in which case, orderSaved will be true).
-	commitOrderToStore, err := endpoint.beginSaveOrder(limit)
+	commitOrderToStore, err := endpoint.beginSaveOrder(ctx, limit)
 	if err != nil {
 		return rpcstatus.Wrap(rpcstatus.InvalidArgument, err)
 	}
@@ -461,8 +479,10 @@ func (endpoint *Endpoint) isCongested() bool {
 // Download handles Downloading a piece on piecestore.
 func (endpoint *Endpoint) Download(stream pb.DRPCPiecestore_DownloadStream) (err error) {
 	ctx := stream.Context()
-	defer monLiveRequests(&ctx)(&err)
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	atomic.AddInt32(&endpoint.liveRequests, 1)
 	defer atomic.AddInt32(&endpoint.liveRequests, -1)
@@ -498,14 +518,15 @@ func (endpoint *Endpoint) Download(stream pb.DRPCPiecestore_DownloadStream) (err
 			"requested more that order limit allows, limit=%v requested=%v", limit.Limit, chunk.ChunkSize)
 	}
 
-	actionSeriesTag := monkit.NewSeriesTag("action", limit.Action.String())
-
 	endpoint.log.Info("download started", zap.Stringer("Piece ID", limit.PieceId), zap.Stringer("Satellite ID", limit.SatelliteId), zap.Stringer("Action", limit.Action))
-	mon.Counter("download_started_count", actionSeriesTag).Inc(1)
+	counter, _ := meter.SyncInt64().Counter("download_started_count")
+	counter.Add(ctx, 1)
 
 	if err := endpoint.verifyOrderLimit(ctx, limit); err != nil {
-		mon.Counter("download_failure_count", actionSeriesTag).Inc(1)
-		mon.Meter("download_verify_orderlimit_failed", actionSeriesTag).Mark(1)
+		counter, _ := meter.SyncInt64().Counter("download_failure_count")
+		counter.Add(ctx, 1)
+		counter, _ = meter.SyncInt64().Counter("download_verify_orderlimit_failed")
+		counter.Add(ctx, 1)
 		endpoint.log.Error("download failed", zap.Stringer("Piece ID", limit.PieceId), zap.Stringer("Satellite ID", limit.SatelliteId), zap.Stringer("Action", limit.Action), zap.Error(err))
 		return err
 	}
@@ -524,25 +545,41 @@ func (endpoint *Endpoint) Download(stream pb.DRPCPiecestore_DownloadStream) (err
 		}
 		downloadDuration := dt.Nanoseconds()
 		if errs2.IsCanceled(err) || drpc.ClosedError.Has(err) {
-			mon.Counter("download_cancel_count", actionSeriesTag).Inc(1)
-			mon.Meter("download_cancel_byte_meter", actionSeriesTag).Mark64(downloadSize)
-			mon.IntVal("download_cancel_size_bytes", actionSeriesTag).Observe(downloadSize)
-			mon.IntVal("download_cancel_duration_ns", actionSeriesTag).Observe(downloadDuration)
-			mon.FloatVal("download_cancel_rate_bytes_per_sec", actionSeriesTag).Observe(downloadRate)
+			counter, _ := meter.SyncInt64().Counter("download_cancel_count: action " + limit.Action.String())
+			counter.Add(ctx, 1)
+			histCounter, _ := meter.SyncInt64().Histogram("download_cancel_byte_meter: action " + limit.Action.String())
+			histCounter.Record(ctx, downloadSize)
+			histCounter, _ = meter.SyncInt64().Histogram("download_cancel_size_bytes: action " + limit.Action.String())
+			histCounter.Record(ctx, downloadSize)
+			histCounter, _ = meter.SyncInt64().Histogram("download_cancel_duration_ns: action " + limit.Action.String())
+			histCounter.Record(ctx, downloadDuration)
+			histFloatCounter, _ := meter.SyncFloat64().Histogram("download_cancel_rate_bytes_per_sec: action " + limit.Action.String())
+			histFloatCounter.Record(ctx, downloadRate)
 			endpoint.log.Info("download canceled", zap.Stringer("Piece ID", limit.PieceId), zap.Stringer("Satellite ID", limit.SatelliteId), zap.Stringer("Action", limit.Action))
 		} else if err != nil {
-			mon.Counter("download_failure_count", actionSeriesTag).Inc(1)
-			mon.Meter("download_failure_byte_meter", actionSeriesTag).Mark64(downloadSize)
-			mon.IntVal("download_failure_size_bytes", actionSeriesTag).Observe(downloadSize)
-			mon.IntVal("download_failure_duration_ns", actionSeriesTag).Observe(downloadDuration)
-			mon.FloatVal("download_failure_rate_bytes_per_sec", actionSeriesTag).Observe(downloadRate)
+			counter, _ := meter.SyncInt64().Counter("download_failure_count: action " + limit.Action.String())
+			counter.Add(ctx, 1)
+			histCounter, _ := meter.SyncInt64().Histogram("download_failure_byte_meter: action " + limit.Action.String())
+			histCounter.Record(ctx, downloadSize)
+			histCounter, _ = meter.SyncInt64().Histogram("download_failure_size_bytes: action " + limit.Action.String())
+			histCounter.Record(ctx, downloadSize)
+			histCounter, _ = meter.SyncInt64().Histogram("download_failure_duration_ns: action " + limit.Action.String())
+			histCounter.Record(ctx, downloadDuration)
+			histFloatCounter, _ := meter.SyncFloat64().Histogram("download_failure_rate_bytes_per_sec: action " + limit.Action.String())
+			histFloatCounter.Record(ctx, downloadRate)
 			endpoint.log.Error("download failed", zap.Stringer("Piece ID", limit.PieceId), zap.Stringer("Satellite ID", limit.SatelliteId), zap.Stringer("Action", limit.Action), zap.Error(err))
 		} else {
-			mon.Counter("download_success_count", actionSeriesTag).Inc(1)
-			mon.Meter("download_success_byte_meter", actionSeriesTag).Mark64(downloadSize)
-			mon.IntVal("download_success_size_bytes", actionSeriesTag).Observe(downloadSize)
-			mon.IntVal("download_success_duration_ns", actionSeriesTag).Observe(downloadDuration)
-			mon.FloatVal("download_success_rate_bytes_per_sec", actionSeriesTag).Observe(downloadRate)
+
+			counter, _ := meter.SyncInt64().Counter("download_success_count: action " + limit.Action.String())
+			counter.Add(ctx, 1)
+			histCounter, _ := meter.SyncInt64().Histogram("download_success_byte_meter: action " + limit.Action.String())
+			histCounter.Record(ctx, downloadSize)
+			histCounter, _ = meter.SyncInt64().Histogram("download_success_size_bytes: action " + limit.Action.String())
+			histCounter.Record(ctx, downloadSize)
+			histCounter, _ = meter.SyncInt64().Histogram("download_success_duration_ns: action " + limit.Action.String())
+			histCounter.Record(ctx, downloadDuration)
+			histFloatCounter, _ := meter.SyncFloat64().Histogram("download_success_rate_bytes_per_sec: action " + limit.Action.String())
+			histFloatCounter.Record(ctx, downloadRate)
 			endpoint.log.Info("downloaded", zap.Stringer("Piece ID", limit.PieceId), zap.Stringer("Satellite ID", limit.SatelliteId), zap.Stringer("Action", limit.Action))
 		}
 	}()
@@ -648,7 +685,7 @@ func (endpoint *Endpoint) Download(stream pb.DRPCPiecestore_DownloadStream) (err
 	})
 
 	recvErr := func() (err error) {
-		commitOrderToStore, err := endpoint.beginSaveOrder(limit)
+		commitOrderToStore, err := endpoint.beginSaveOrder(ctx, limit)
 		if err != nil {
 			return err
 		}
@@ -699,8 +736,10 @@ func (endpoint *Endpoint) Download(stream pb.DRPCPiecestore_DownloadStream) (err
 }
 
 // beginSaveOrder saves the order with all necessary information. It assumes it has been already verified.
-func (endpoint *Endpoint) beginSaveOrder(limit *pb.OrderLimit) (_commit func(ctx context.Context, order *pb.Order), err error) {
-	defer mon.Task()(nil)(&err)
+func (endpoint *Endpoint) beginSaveOrder(ctx context.Context, limit *pb.OrderLimit) (_commit func(ctx context.Context, order *pb.Order), err error) {
+	pc, _, _, _ := runtime.Caller(0)
+	_, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	commit, err := endpoint.ordersStore.BeginEnqueue(limit.SatelliteId, limit.OrderCreation)
 	if err != nil {
@@ -738,7 +777,9 @@ func (endpoint *Endpoint) beginSaveOrder(limit *pb.OrderLimit) (_commit func(ctx
 
 // RestoreTrash restores all trashed items for the satellite issuing the call.
 func (endpoint *Endpoint) RestoreTrash(ctx context.Context, restoreTrashReq *pb.RestoreTrashRequest) (res *pb.RestoreTrashResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	peer, err := identity.PeerIdentityFromContext(ctx)
 	if err != nil {
@@ -763,7 +804,10 @@ func (endpoint *Endpoint) RestoreTrash(ctx context.Context, restoreTrashReq *pb.
 
 // Retain keeps only piece ids specified in the request.
 func (endpoint *Endpoint) Retain(ctx context.Context, retainReq *pb.RetainRequest) (res *pb.RetainResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	// if retain status is disabled, quit immediately
 	if endpoint.retain.Status() == retain.Disabled {
@@ -785,9 +829,12 @@ func (endpoint *Endpoint) Retain(ctx context.Context, retainReq *pb.RetainReques
 		return nil, rpcstatus.Wrap(rpcstatus.InvalidArgument, err)
 	}
 	filterHashCount, _ := filter.Parameters()
-	mon.IntVal("retain_filter_size").Observe(filter.Size())
-	mon.IntVal("retain_filter_hash_count").Observe(int64(filterHashCount))
-	mon.IntVal("retain_creation_date").Observe(retainReq.CreationDate.Unix())
+	histCounter, _ := meter.SyncInt64().Histogram("retain_filter_size")
+	histCounter.Record(ctx, filter.Size())
+	histCounter, _ = meter.SyncInt64().Histogram("retain_filter_hash_count")
+	histCounter.Record(ctx, int64(filterHashCount))
+	histCounter, _ = meter.SyncInt64().Histogram("retain_creation_date")
+	histCounter.Record(ctx, retainReq.CreationDate.Unix())
 
 	// the queue function will update the created before time based on the configurable retain buffer
 	queued := endpoint.retain.Queue(retain.Request{

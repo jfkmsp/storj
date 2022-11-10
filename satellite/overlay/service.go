@@ -6,7 +6,12 @@ package overlay
 import (
 	"context"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
 	"net"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -375,7 +380,9 @@ func (service *Service) Close() error {
 
 // Get looks up the provided nodeID from the overlay.
 func (service *Service) Get(ctx context.Context, nodeID storj.NodeID) (_ *NodeDossier, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if nodeID.IsZero() {
 		return nil, ErrEmptyNode
 	}
@@ -384,27 +391,35 @@ func (service *Service) Get(ctx context.Context, nodeID storj.NodeID) (_ *NodeDo
 
 // GetOnlineNodesForGetDelete returns a map of nodes for the supplied nodeIDs.
 func (service *Service) GetOnlineNodesForGetDelete(ctx context.Context, nodeIDs []storj.NodeID) (_ map[storj.NodeID]*SelectedNode, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return service.db.GetOnlineNodesForGetDelete(ctx, nodeIDs, service.config.Node.OnlineWindow, service.config.Node.AsOfSystemTime)
 }
 
 // CachedGetOnlineNodesForGet returns a map of nodes from the download selection cache from the suppliedIDs.
 func (service *Service) CachedGetOnlineNodesForGet(ctx context.Context, nodeIDs []storj.NodeID) (_ map[storj.NodeID]*SelectedNode, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return service.DownloadSelectionCache.GetNodes(ctx, nodeIDs)
 }
 
 // GetOnlineNodesForAuditRepair returns a map of nodes for the supplied nodeIDs.
 func (service *Service) GetOnlineNodesForAuditRepair(ctx context.Context, nodeIDs []storj.NodeID) (_ map[storj.NodeID]*NodeReputation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return service.db.GetOnlineNodesForAuditRepair(ctx, nodeIDs, service.config.Node.OnlineWindow)
 }
 
 // GetNodeIPs returns a map of node ip:port for the supplied nodeIDs.
 func (service *Service) GetNodeIPs(ctx context.Context, nodeIDs []storj.NodeID) (_ map[storj.NodeID]string, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return service.DownloadSelectionCache.GetNodeIPs(ctx, nodeIDs)
 }
 
@@ -415,7 +430,9 @@ func (service *Service) IsOnline(node *NodeDossier) bool {
 
 // FindStorageNodesForGracefulExit searches the overlay network for nodes that meet the provided requirements for graceful-exit requests.
 func (service *Service) FindStorageNodesForGracefulExit(ctx context.Context, req FindStorageNodesRequest) (_ []*SelectedNode, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return service.UploadSelectionCache.GetNodes(ctx, req)
 }
 
@@ -424,7 +441,9 @@ func (service *Service) FindStorageNodesForGracefulExit(ctx context.Context, req
 // When enabled it uses the cache to select nodes.
 // When the node selection from the cache fails, it falls back to the old implementation.
 func (service *Service) FindStorageNodesForUpload(ctx context.Context, req FindStorageNodesRequest) (_ []*SelectedNode, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if service.config.Node.AsOfSystemTime.Enabled && service.config.Node.AsOfSystemTime.DefaultInterval < 0 {
 		req.AsOfSystemInterval = service.config.Node.AsOfSystemTime.DefaultInterval
 	}
@@ -460,7 +479,9 @@ func (service *Service) FindStorageNodesForUpload(ctx context.Context, req FindS
 //
 // This does not use a cache.
 func (service *Service) FindStorageNodesWithPreferences(ctx context.Context, req FindStorageNodesRequest, preferences *NodeSelectionConfig) (nodes []*SelectedNode, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	// TODO: add sanity limits to requested node count
 	// TODO: add sanity limits to excluded nodes
 	totalNeededNodes := req.RequestedCount
@@ -504,7 +525,9 @@ func (service *Service) FindStorageNodesWithPreferences(ctx context.Context, req
 
 // KnownOffline filters a set of nodes to offline nodes.
 func (service *Service) KnownOffline(ctx context.Context, nodeIds storj.NodeIDList) (offlineNodes storj.NodeIDList, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	criteria := &NodeCriteria{
 		OnlineWindow: service.config.Node.OnlineWindow,
 	}
@@ -513,7 +536,9 @@ func (service *Service) KnownOffline(ctx context.Context, nodeIds storj.NodeIDLi
 
 // KnownUnreliableOrOffline filters a set of nodes to unhealth or offlines node, independent of new.
 func (service *Service) KnownUnreliableOrOffline(ctx context.Context, nodeIds storj.NodeIDList) (badNodes storj.NodeIDList, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	criteria := &NodeCriteria{
 		OnlineWindow: service.config.Node.OnlineWindow,
 	}
@@ -522,7 +547,9 @@ func (service *Service) KnownUnreliableOrOffline(ctx context.Context, nodeIds st
 
 // InsertOfflineNodeEvents inserts offline events into node events.
 func (service *Service) InsertOfflineNodeEvents(ctx context.Context, cooldown time.Duration, cutoff time.Duration, limit int) (count int, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if !service.config.SendNodeEmails {
 		return 0, nil
@@ -555,7 +582,9 @@ func (service *Service) InsertOfflineNodeEvents(ctx context.Context, cooldown ti
 
 // KnownReliableInExcludedCountries filters healthy nodes that are in excluded countries.
 func (service *Service) KnownReliableInExcludedCountries(ctx context.Context, nodeIds storj.NodeIDList) (reliableInExcluded storj.NodeIDList, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	criteria := &NodeCriteria{
 		OnlineWindow:      service.config.Node.OnlineWindow,
@@ -566,13 +595,17 @@ func (service *Service) KnownReliableInExcludedCountries(ctx context.Context, no
 
 // KnownReliable filters a set of nodes to reliable (online and qualified) nodes.
 func (service *Service) KnownReliable(ctx context.Context, nodeIDs storj.NodeIDList) (nodes []*pb.Node, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return service.db.KnownReliable(ctx, service.config.Node.OnlineWindow, nodeIDs)
 }
 
 // Reliable filters a set of nodes that are reliable, independent of new.
 func (service *Service) Reliable(ctx context.Context) (nodes storj.NodeIDList, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	criteria := &NodeCriteria{
 		OnlineWindow: service.config.Node.OnlineWindow,
@@ -583,7 +616,9 @@ func (service *Service) Reliable(ctx context.Context) (nodes storj.NodeIDList, e
 
 // UpdateReputation updates the DB columns for any of the reputation fields.
 func (service *Service) UpdateReputation(ctx context.Context, id storj.NodeID, email string, request ReputationUpdate, reputationChanges []nodeevents.Type) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	err = service.db.UpdateReputation(ctx, id, request)
 	if err != nil {
@@ -599,7 +634,9 @@ func (service *Service) UpdateReputation(ctx context.Context, id storj.NodeID, e
 
 // UpdateNodeInfo updates node dossier with info requested from the node itself like node type, email, wallet, capacity, and version.
 func (service *Service) UpdateNodeInfo(ctx context.Context, node storj.NodeID, nodeInfo *InfoResponse) (stats *NodeDossier, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return service.db.UpdateNodeInfo(ctx, node, nodeInfo)
 }
 
@@ -615,8 +652,11 @@ performing the update, so if two updates happen at about the same time it is
 not defined which one will end up in the database.
 */
 func (service *Service) UpdateCheckIn(ctx context.Context, node NodeCheckInInfo, timestamp time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
-	failureMeter := mon.Meter("geofencing_lookup_failed")
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
+	counter, _ := meter.SyncInt64().Counter("geofencing_lookup_failed")
 
 	oldInfo, err := service.Get(ctx, node.NodeID)
 	if err != nil && !ErrNodeNotFound.Has(err) {
@@ -632,7 +672,7 @@ func (service *Service) UpdateCheckIn(ctx context.Context, node NodeCheckInInfo,
 
 		node.CountryCode, err = service.GeoIP.LookupISOCountryCode(node.LastIPPort)
 		if err != nil {
-			failureMeter.Mark(1)
+			counter.Add(context.Background(), 1)
 			service.log.Debug("failed to resolve country code for node",
 				zap.String("node address", node.Address.Address),
 				zap.Stringer("Node ID", node.NodeID),
@@ -666,7 +706,7 @@ func (service *Service) UpdateCheckIn(ctx context.Context, node NodeCheckInInfo,
 	if oldInfo.CountryCode == location.CountryCode(0) || oldInfo.LastIPPort != node.LastIPPort {
 		node.CountryCode, err = service.GeoIP.LookupISOCountryCode(node.LastIPPort)
 		if err != nil {
-			failureMeter.Mark(1)
+			counter.Add(context.Background(), 1)
 			service.log.Debug("failed to resolve country code for node",
 				zap.String("node address", node.Address.Address),
 				zap.Stringer("Node ID", node.NodeID),
@@ -718,14 +758,16 @@ func (service *Service) UpdateCheckIn(ctx context.Context, node NodeCheckInInfo,
 	service.log.Debug("ignoring unnecessary check-in",
 		zap.String("node address", node.Address.Address),
 		zap.Stringer("Node ID", node.NodeID))
-	mon.Event("unnecessary_node_check_in")
+	span.AddEvent("unnecessary_node_check_in")
 
 	return nil
 }
 
 // GetMissingPieces returns the list of offline nodes and the corresponding pieces.
 func (service *Service) GetMissingPieces(ctx context.Context, pieces metabase.Pieces) (missingPieces []uint16, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var nodeIDs storj.NodeIDList
 	for _, p := range pieces {
 		nodeIDs = append(nodeIDs, p.StorageNode)
@@ -747,7 +789,9 @@ func (service *Service) GetMissingPieces(ctx context.Context, pieces metabase.Pi
 
 // GetReliablePiecesInExcludedCountries returns the list of pieces held by nodes located in excluded countries.
 func (service *Service) GetReliablePiecesInExcludedCountries(ctx context.Context, pieces metabase.Pieces) (piecesInExcluded []uint16, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var nodeIDs storj.NodeIDList
 	for _, p := range pieces {
 		nodeIDs = append(nodeIDs, p.StorageNode)
@@ -769,7 +813,9 @@ func (service *Service) GetReliablePiecesInExcludedCountries(ctx context.Context
 
 // DQNodesLastSeenBefore disqualifies nodes who have not been contacted since the cutoff time.
 func (service *Service) DQNodesLastSeenBefore(ctx context.Context, cutoff time.Time, limit int) (count int, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	nodes, count, err := service.db.DQNodesLastSeenBefore(ctx, cutoff, limit)
 	if err != nil {
@@ -788,7 +834,9 @@ func (service *Service) DQNodesLastSeenBefore(ctx context.Context, cutoff time.T
 
 // DisqualifyNode disqualifies a storage node.
 func (service *Service) DisqualifyNode(ctx context.Context, nodeID storj.NodeID, reason DisqualificationReason) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	email, err := service.db.DisqualifyNode(ctx, nodeID, time.Now().UTC(), reason)
 	if err != nil {
 		return err
@@ -804,13 +852,17 @@ func (service *Service) DisqualifyNode(ctx context.Context, nodeID storj.NodeID,
 
 // SelectAllStorageNodesDownload returns a nodes that are ready for downloading.
 func (service *Service) SelectAllStorageNodesDownload(ctx context.Context, onlineWindow time.Duration, asOf AsOfSystemTimeConfig) (_ []*SelectedNode, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return service.db.SelectAllStorageNodesDownload(ctx, onlineWindow, asOf)
 }
 
 // ResolveIPAndNetwork resolves the target address and determines its IP and /24 subnet IPv4 or /64 subnet IPv6.
 func ResolveIPAndNetwork(ctx context.Context, target string) (ip net.IP, port, network string, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	host, port, err := net.SplitHostPort(target)
 	if err != nil {
@@ -873,7 +925,9 @@ func (service *Service) TestNodeCountryCode(ctx context.Context, nodeID storj.No
 }
 
 func (service *Service) insertReputationNodeEvents(ctx context.Context, email string, id storj.NodeID, repEvents []nodeevents.Type) {
-	defer mon.Task()(&ctx)(nil)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	for _, event := range repEvents {
 		switch event {

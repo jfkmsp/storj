@@ -5,6 +5,10 @@ package metabase
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"sync"
 	"sync/atomic"
 
@@ -111,7 +115,9 @@ func (cache *NodeAliasCache) Aliases(ctx context.Context, nodes []storj.NodeID) 
 
 // Latest returns the latest NodeAliasMap.
 func (cache *NodeAliasCache) Latest(ctx context.Context) (_ *NodeAliasMap, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	latest, err := cache.refresh(ctx, nil, nil)
 	if err != nil {
@@ -126,7 +132,9 @@ func (cache *NodeAliasCache) Latest(ctx context.Context) (_ *NodeAliasMap, err e
 
 // ensure tries to ensure that the specified missing node ID-s are assigned a alias.
 func (cache *NodeAliasCache) ensure(ctx context.Context, missing ...storj.NodeID) (_ *NodeAliasMap, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err := cache.db.EnsureNodeAliases(ctx, EnsureNodeAliases{
 		Nodes: missing,
@@ -139,7 +147,9 @@ func (cache *NodeAliasCache) ensure(ctx context.Context, missing ...storj.NodeID
 // refresh refreshes the state of the cache, when missingNodes or missingAliases is still missing.
 // When both are nil, then it always refreshes.
 func (cache *NodeAliasCache) refresh(ctx context.Context, missingNodes []storj.NodeID, missingAliases []NodeAlias) (_ *NodeAliasMap, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	cache.refreshing.Lock()
 	defer cache.refreshing.Unlock()
@@ -172,7 +182,9 @@ func (cache *NodeAliasCache) refresh(ctx context.Context, missingNodes []storj.N
 // EnsurePiecesToAliases converts pieces to alias pieces and automatically adds storage node
 // to alias table when necessary.
 func (cache *NodeAliasCache) EnsurePiecesToAliases(ctx context.Context, pieces Pieces) (_ AliasPieces, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if len(pieces) == 0 {
 		return AliasPieces{}, nil

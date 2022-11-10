@@ -7,6 +7,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -72,7 +77,9 @@ func (obj *GetObjectExactVersion) Verify() error {
 
 // GetObjectExactVersion returns object information for exact version.
 func (db *DB) GetObjectExactVersion(ctx context.Context, opts GetObjectExactVersion) (_ Object, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err := opts.Verify(); err != nil {
 		return Object{}, err
@@ -129,7 +136,10 @@ type GetObjectLastCommitted struct {
 
 // GetObjectLastCommitted returns object information for last committed version.
 func (db *DB) GetObjectLastCommitted(ctx context.Context, opts GetObjectLastCommitted) (_ Object, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	if err := opts.Verify(); err != nil {
 		return Object{}, err
@@ -173,7 +183,8 @@ func (db *DB) GetObjectLastCommitted(ctx context.Context, opts GetObjectLastComm
 					zap.Stringer("Project ID", scannedObject.ProjectID), zap.String("Bucket Name", scannedObject.BucketName),
 					zap.String("Object Key", string(scannedObject.ObjectKey)), zap.Int("Version", int(scannedObject.Version)),
 					zap.Stringer("Stream ID", scannedObject.StreamID))
-				mon.Meter("multiple_committed_versions").Mark(1)
+				counter, _ := meter.SyncInt64().Counter("multiple_committed_versions")
+				counter.Add(ctx, 1)
 				continue
 			}
 			object = scannedObject
@@ -219,7 +230,9 @@ func (seg *GetSegmentByPosition) Verify() error {
 
 // GetSegmentByPosition returns information about segment on the specified position.
 func (db *DB) GetSegmentByPosition(ctx context.Context, opts GetSegmentByPosition) (segment Segment, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err := opts.Verify(); err != nil {
 		return Segment{}, err
@@ -283,7 +296,9 @@ type GetLatestObjectLastSegment struct {
 
 // GetLatestObjectLastSegment returns an object last segment information.
 func (db *DB) GetLatestObjectLastSegment(ctx context.Context, opts GetLatestObjectLastSegment) (segment Segment, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err := opts.Verify(); err != nil {
 		return Segment{}, err
@@ -392,7 +407,9 @@ type BucketEmpty struct {
 // BucketEmpty returns true if bucket does not contain objects (pending or committed).
 // This method doesn't check bucket existence.
 func (db *DB) BucketEmpty(ctx context.Context, opts BucketEmpty) (empty bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	switch {
 	case opts.ProjectID.IsZero():
@@ -424,7 +441,9 @@ func (db *DB) BucketEmpty(ctx context.Context, opts BucketEmpty) (empty bool, er
 // TestingAllCommittedObjects gets all objects from bucket.
 // Use only for testing purposes.
 func (db *DB) TestingAllCommittedObjects(ctx context.Context, projectID uuid.UUID, bucketName string) (objects []ObjectEntry, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return db.testingAllObjectsByStatus(ctx, projectID, bucketName, Committed)
 }
@@ -432,13 +451,17 @@ func (db *DB) TestingAllCommittedObjects(ctx context.Context, projectID uuid.UUI
 // TestingAllPendingObjects gets all objects from bucket.
 // Use only for testing purposes.
 func (db *DB) TestingAllPendingObjects(ctx context.Context, projectID uuid.UUID, bucketName string) (objects []ObjectEntry, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return db.testingAllObjectsByStatus(ctx, projectID, bucketName, Pending)
 }
 
 func (db *DB) testingAllObjectsByStatus(ctx context.Context, projectID uuid.UUID, bucketName string, status ObjectStatus) (objects []ObjectEntry, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	err = db.IterateObjectsAllVersionsWithStatus(ctx,
 		IterateObjectsWithStatus{
@@ -466,7 +489,9 @@ func (db *DB) testingAllObjectsByStatus(ctx context.Context, projectID uuid.UUID
 // TestingAllObjectSegments gets all segments for given object.
 // Use only for testing purposes.
 func (db *DB) TestingAllObjectSegments(ctx context.Context, objectLocation ObjectLocation) (segments []Segment, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	object, err := db.GetObjectLastCommitted(ctx, GetObjectLastCommitted{
 		ObjectLocation: objectLocation,
@@ -488,7 +513,9 @@ func (db *DB) TestingAllObjectSegments(ctx context.Context, objectLocation Objec
 // TestingAllObjects gets all objects.
 // Use only for testing purposes.
 func (db *DB) TestingAllObjects(ctx context.Context) (objects []Object, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	rawObjects, err := db.testingGetAllObjects(ctx)
 	if err != nil {
@@ -505,7 +532,9 @@ func (db *DB) TestingAllObjects(ctx context.Context) (objects []Object, err erro
 // TestingAllSegments gets all segments.
 // Use only for testing purposes.
 func (db *DB) TestingAllSegments(ctx context.Context) (segments []Segment, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	rawSegments, err := db.testingGetAllSegments(ctx)
 	if err != nil {

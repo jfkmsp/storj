@@ -5,7 +5,11 @@ package controllers
 
 import (
 	"encoding/json"
+	"go.opentelemetry.io/otel"
 	"net/http"
+	"os"
+
+	"runtime"
 
 	"github.com/gorilla/mux"
 	"github.com/zeebo/errs"
@@ -39,7 +43,9 @@ func NewNodes(log *zap.Logger, service *nodes.Service) *Nodes {
 func (controller *Nodes) Add(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Add("Content-Type", "application/json")
 
@@ -85,7 +91,9 @@ func (controller *Nodes) Add(w http.ResponseWriter, r *http.Request) {
 func (controller *Nodes) UpdateName(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Add("Content-Type", "application/json")
 
@@ -125,7 +133,9 @@ func (controller *Nodes) UpdateName(w http.ResponseWriter, r *http.Request) {
 func (controller *Nodes) Get(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Add("Content-Type", "application/json")
 
@@ -158,7 +168,9 @@ func (controller *Nodes) Get(w http.ResponseWriter, r *http.Request) {
 func (controller *Nodes) Delete(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Add("Content-Type", "application/json")
 
@@ -188,7 +200,9 @@ func (controller *Nodes) Delete(w http.ResponseWriter, r *http.Request) {
 func (controller *Nodes) ListInfos(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Add("Content-Type", "application/json")
 
@@ -209,7 +223,9 @@ func (controller *Nodes) ListInfos(w http.ResponseWriter, r *http.Request) {
 func (controller *Nodes) ListInfosSatellite(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Add("Content-Type", "application/json")
 
@@ -238,7 +254,9 @@ func (controller *Nodes) ListInfosSatellite(w http.ResponseWriter, r *http.Reque
 func (controller *Nodes) TrustedSatellites(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	nodeURLs, err := controller.service.TrustedSatellites(ctx)
 	if err != nil {

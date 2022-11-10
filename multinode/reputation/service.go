@@ -5,8 +5,11 @@ package reputation
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
 
-	"github.com/spacemonkeygo/monkit/v3"
+	"runtime"
+
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -18,7 +21,7 @@ import (
 )
 
 var (
-	mon = monkit.Package()
+
 	// Error is an error class for reputation service error.
 	Error = errs.Class("reputation")
 	// ErrorNoStats is an error class for reputation is not found error.
@@ -45,7 +48,9 @@ func NewService(log *zap.Logger, dialer rpc.Dialer, nodes nodes.DB) *Service {
 
 // Stats retrieves node reputation stats list for satellite.
 func (service *Service) Stats(ctx context.Context, satelliteID storj.NodeID) (_ []Stats, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	nodeList, err := service.nodes.List(ctx)
 	if err != nil {
@@ -75,7 +80,9 @@ func (service *Service) Stats(ctx context.Context, satelliteID storj.NodeID) (_ 
 
 // dialStats dials node and retrieves reputation stats for particular satellite.
 func (service *Service) dialStats(ctx context.Context, node nodes.Node, satelliteID storj.NodeID) (_ Stats, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	conn, err := service.dialer.DialNodeURL(ctx, storj.NodeURL{
 		ID:      node.ID,

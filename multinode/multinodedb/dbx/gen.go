@@ -4,13 +4,10 @@
 package dbx
 
 import (
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 )
 
 //go:generate sh gen.sh
-
-var mon = monkit.Package()
 
 func init() {
 	// catch dbx errors

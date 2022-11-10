@@ -5,12 +5,15 @@ package trust
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
 	"math/rand"
+	"os"
+
+	"runtime"
 	"sort"
 	"sync"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -26,8 +29,6 @@ import (
 // Error is the default error class.
 var (
 	Error = errs.Class("trust")
-
-	mon = monkit.Package()
 )
 
 // IdentityResolver resolves peer identities from a node URL.
@@ -48,7 +49,9 @@ func (fn IdentityResolverFunc) ResolveIdentity(ctx context.Context, url storj.No
 // Dialer implements an IdentityResolver using an RPC dialer.
 func Dialer(dialer rpc.Dialer) IdentityResolver {
 	return IdentityResolverFunc(func(ctx context.Context, url storj.NodeURL) (_ *identity.PeerIdentity, err error) {
-		defer mon.Task()(&ctx)(&err)
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		defer span.End()
 
 		conn, err := dialer.DialNodeURL(rpcpool.WithForceDial(ctx), url)
 		if err != nil {
@@ -131,7 +134,9 @@ func (pool *Pool) Run(ctx context.Context) error {
 
 // VerifySatelliteID checks whether id corresponds to a trusted satellite.
 func (pool *Pool) VerifySatelliteID(ctx context.Context, id storj.NodeID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = pool.getInfo(id)
 	return err
@@ -140,7 +145,9 @@ func (pool *Pool) VerifySatelliteID(ctx context.Context, id storj.NodeID) (err e
 // GetSignee gets the corresponding signee for verifying signatures.
 // It ignores passed in ctx cancellation to avoid miscaching between concurrent requests.
 func (pool *Pool) GetSignee(ctx context.Context, id storj.NodeID) (_ signing.Signee, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	info, err := pool.getInfo(id)
 	if err != nil {
@@ -163,7 +170,9 @@ func (pool *Pool) GetSignee(ctx context.Context, id storj.NodeID) (_ signing.Sig
 
 // GetSatellites returns a slice containing all trusted satellites.
 func (pool *Pool) GetSatellites(ctx context.Context) (satellites []storj.NodeID) {
-	defer mon.Task()(&ctx)(nil)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	for sat := range pool.satellites {
 		satellites = append(satellites, sat)
 	}
@@ -173,7 +182,9 @@ func (pool *Pool) GetSatellites(ctx context.Context) (satellites []storj.NodeID)
 
 // GetNodeURL returns the node url of a satellite in the trusted list.
 func (pool *Pool) GetNodeURL(ctx context.Context, id storj.NodeID) (_ storj.NodeURL, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	info, err := pool.getInfo(id)
 	if err != nil {

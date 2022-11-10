@@ -5,9 +5,12 @@ package expireddeletion
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -18,7 +21,6 @@ import (
 var (
 	// Error defines the expireddeletion chore errors class.
 	Error = errs.Class("expired deletion")
-	mon   = monkit.Package()
 )
 
 // Config contains configurable values for expired segment cleanup.
@@ -54,8 +56,6 @@ func NewChore(log *zap.Logger, config Config, metabase *metabase.DB) *Chore {
 
 // Run starts the expireddeletion loop service.
 func (chore *Chore) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
-
 	if !chore.config.Enabled {
 		return nil
 	}
@@ -75,7 +75,9 @@ func (chore *Chore) SetNow(nowFn func() time.Time) {
 }
 
 func (chore *Chore) deleteExpiredObjects(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	chore.log.Debug("deleting expired objects")
 
 	// TODO log error instead of crashing core until we will be sure

@@ -7,6 +7,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 
 	"storj.io/common/uuid"
 	"storj.io/storj/private/blockchain"
@@ -27,7 +31,9 @@ type storjscanWalletsDB struct {
 
 // Add creates new user/wallet association record.
 func (walletsDB storjscanWalletsDB) Add(ctx context.Context, userID uuid.UUID, walletAddress blockchain.Address) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return walletsDB.db.CreateNoReturn_StorjscanWallet(ctx,
 		dbx.StorjscanWallet_UserId(userID[:]),
 		dbx.StorjscanWallet_WalletAddress(walletAddress.Bytes()))
@@ -35,7 +41,9 @@ func (walletsDB storjscanWalletsDB) Add(ctx context.Context, userID uuid.UUID, w
 
 // GetWallet returns the wallet associated with the given user.
 func (walletsDB storjscanWalletsDB) GetWallet(ctx context.Context, userID uuid.UUID) (_ blockchain.Address, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	wallet, err := walletsDB.db.Get_StorjscanWallet_WalletAddress_By_UserId(ctx, dbx.StorjscanWallet_UserId(userID[:]))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -52,7 +60,9 @@ func (walletsDB storjscanWalletsDB) GetWallet(ctx context.Context, userID uuid.U
 
 // GetUser returns the userID associated with the given wallet.
 func (walletsDB storjscanWalletsDB) GetUser(ctx context.Context, walletAddress blockchain.Address) (_ uuid.UUID, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	userID, err := walletsDB.db.Get_StorjscanWallet_UserId_By_WalletAddress(ctx, dbx.StorjscanWallet_WalletAddress(walletAddress.Bytes()))
 	if err != nil {
 		return uuid.UUID{}, Error.Wrap(err)
@@ -66,7 +76,9 @@ func (walletsDB storjscanWalletsDB) GetUser(ctx context.Context, walletAddress b
 
 // GetAll returns all saved wallet entries.
 func (walletsDB storjscanWalletsDB) GetAll(ctx context.Context) (_ []storjscan.Wallet, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	entries, err := walletsDB.db.All_StorjscanWallet(ctx)
 	if err != nil {
 		return nil, Error.Wrap(err)

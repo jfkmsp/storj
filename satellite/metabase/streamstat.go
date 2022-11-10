@@ -7,6 +7,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 
 	"storj.io/common/storj"
 	"storj.io/common/uuid"
@@ -20,7 +24,9 @@ type GetStreamPieceCountByNodeID struct {
 
 // GetStreamPieceCountByNodeID returns piece count by node id.
 func (db *DB) GetStreamPieceCountByNodeID(ctx context.Context, opts GetStreamPieceCountByNodeID) (result map[storj.NodeID]int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if opts.StreamID.IsZero() {
 		return nil, ErrInvalidRequest.New("StreamID missing")

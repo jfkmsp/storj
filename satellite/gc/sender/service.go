@@ -7,10 +7,13 @@ import (
 	"archive/zip"
 	"context"
 	"errors"
+	"go.opentelemetry.io/otel"
 	"io"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -28,7 +31,6 @@ import (
 var (
 	// Error defines the gc service errors class.
 	Error = errs.Class("gc")
-	mon   = monkit.Package()
 )
 
 // Config contains configurable values for garbage collection.
@@ -75,8 +77,6 @@ type Service struct {
 
 // Run continuously polls for new retain filters and sends them out.
 func (service *Service) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
-
 	if !service.Config.Enabled {
 		return nil
 	}
@@ -86,7 +86,9 @@ func (service *Service) Run(ctx context.Context) (err error) {
 
 // RunOnce opens the bucket and sends out all the retain filters located in it to the storage nodes.
 func (service *Service) RunOnce(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	loopStartTime := time.Now()
 
@@ -157,7 +159,9 @@ func (service *Service) RunOnce(ctx context.Context) (err error) {
 }
 
 func (service *Service) sendRetainRequest(ctx context.Context, retainInfo *internalpb.RetainInfo) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	dossier, err := service.overlay.Get(ctx, retainInfo.StorageNodeId)
 	if err != nil {

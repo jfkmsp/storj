@@ -8,6 +8,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"strings"
 
 	"github.com/zeebo/errs"
@@ -23,7 +27,9 @@ type peerIdentities struct {
 
 // Set adds a peer identity entry.
 func (idents *peerIdentities) Set(ctx context.Context, nodeID storj.NodeID, ident *identity.PeerIdentity) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if ident == nil {
 		return Error.New("identitiy is nil")
@@ -57,7 +63,9 @@ func (idents *peerIdentities) Set(ctx context.Context, nodeID storj.NodeID, iden
 
 // Get gets the peer identity based on the certificate's nodeID.
 func (idents *peerIdentities) Get(ctx context.Context, nodeID storj.NodeID) (_ *identity.PeerIdentity, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	dbxIdent, err := idents.db.Get_PeerIdentity_By_NodeId(ctx, dbx.PeerIdentity_NodeId(nodeID.Bytes()))
 	if err != nil {
 		return nil, Error.Wrap(err)
@@ -72,7 +80,9 @@ func (idents *peerIdentities) Get(ctx context.Context, nodeID storj.NodeID) (_ *
 
 // BatchGet gets the peer idenities based on the certificate's nodeID.
 func (idents *peerIdentities) BatchGet(ctx context.Context, nodeIDs storj.NodeIDList) (peerIdents []*identity.PeerIdentity, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if len(nodeIDs) == 0 {
 		return nil, nil
 	}

@@ -7,10 +7,26 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	otelprom "go.opentelemetry.io/otel/exporters/prometheus"
+	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
+	"log"
 	"net"
-	"runtime/pprof"
+	"net/http"
+	"os"
 
-	"github.com/spacemonkeygo/monkit/v3"
+	"runtime/pprof"
+	"time"
+
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -216,7 +232,7 @@ func NewAPI(log *zap.Logger, full *identity.FullIdentity, db DB,
 		}
 		debugConfig := config.Debug
 		debugConfig.ControlTitle = "API"
-		peer.Debug.Server = debug.NewServerWithAtomicLevel(log.Named("debug"), peer.Debug.Listener, monkit.Default, debugConfig, atomicLogLevel)
+		peer.Debug.Server = debug.NewServerWithAtomicLevel(log.Named("debug"), peer.Debug.Listener, nil, debugConfig, atomicLogLevel)
 		peer.Servers.Add(lifecycle.Item{
 			Name:  "debug",
 			Run:   peer.Debug.Server.Run,
@@ -225,6 +241,17 @@ func NewAPI(log *zap.Logger, full *identity.FullIdentity, db DB,
 	}
 
 	var err error
+
+	{ // setup tracing
+		err = initTracer()
+		if err != nil {
+			return nil, errs.Combine(err, peer.Close())
+		}
+		err = initMeter()
+		if err != nil {
+			return nil, errs.Combine(err, peer.Close())
+		}
+	}
 
 	{
 		peer.Log.Info("Version info",
@@ -685,8 +712,6 @@ func NewAPI(log *zap.Logger, full *identity.FullIdentity, db DB,
 
 // Run runs satellite until it's either closed or it errors.
 func (peer *API) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
-
 	group, ctx := errgroup.WithContext(ctx)
 
 	pprof.Do(ctx, pprof.Labels("subsystem", "api"), func(ctx context.Context) {
@@ -723,3 +748,69 @@ func (peer *API) URL() storj.NodeURL {
 
 // PrivateAddr returns the private address.
 func (peer *API) PrivateAddr() string { return peer.Server.PrivateAddr().String() }
+
+func initTracer() error {
+	ctx := context.Background()
+
+	traceClient := otlptracegrpc.NewClient(
+		otlptracegrpc.WithInsecure(),
+		otlptracegrpc.WithEndpoint(os.Getenv("EXPORTER_ENDPOINT")))
+	sctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
+	traceExp, err := otlptrace.New(sctx, traceClient)
+	if err != nil {
+		return err
+	}
+
+	res, err := resource.New(ctx,
+		resource.WithFromEnv(),
+		resource.WithProcess(),
+		resource.WithTelemetrySDK(),
+		resource.WithHost(),
+		resource.WithAttributes(
+			// the service name used to display traces in backends
+			semconv.ServiceNameKey.String(os.Getenv("SERVICE_NAME")),
+		),
+	)
+	if err != nil {
+		return err
+	}
+
+	bsp := sdktrace.NewBatchSpanProcessor(traceExp)
+	tracerProvider := sdktrace.NewTracerProvider(
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithResource(res),
+		sdktrace.WithSpanProcessor(bsp),
+	)
+
+	// set global propagator to tracecontext (the default is no-op).
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
+	otel.SetTracerProvider(tracerProvider)
+	return nil
+}
+
+func initMeter() error {
+	// The exporter embeds a default OpenTelemetry Reader and
+	// implements prometheus.Collector, allowing it to be used as
+	// both a Reader and Collector.
+	wrappedRegisterer := prometheus.WrapRegistererWithPrefix("storj_", prometheus.NewRegistry())
+	exporter, err := otelprom.New(otelprom.WithRegisterer(wrappedRegisterer), otelprom.WithoutUnits())
+	if err != nil {
+		log.Fatal(err)
+	}
+	global.SetMeterProvider(metric.NewMeterProvider(metric.WithReader(exporter)))
+
+	// Start the prometheus HTTP server and pass the exporter Collector to it
+	go serveMetrics()
+	return nil
+}
+
+func serveMetrics() {
+	log.Printf("serving metrics at localhost:9153/metrics")
+	http.Handle("/metrics", promhttp.Handler())
+	err := http.ListenAndServe(":9153", nil)
+	if err != nil {
+		fmt.Printf("error serving http: %v", err)
+		return
+	}
+}

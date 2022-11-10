@@ -6,12 +6,15 @@ package consoleapi
 import (
 	"context"
 	"encoding/json"
+	"go.opentelemetry.io/otel"
 	"net/http"
+	"os"
+
+	"runtime"
 	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -49,7 +52,6 @@ type UserManagementService interface {
 // ProjectManagementHandler is an api handler that exposes all projects related functionality.
 type ProjectManagementHandler struct {
 	log     *zap.Logger
-	mon     *monkit.Scope
 	service ProjectManagementService
 	auth    api.Auth
 }
@@ -57,7 +59,6 @@ type ProjectManagementHandler struct {
 // APIKeyManagementHandler is an api handler that exposes all apikeys related functionality.
 type APIKeyManagementHandler struct {
 	log     *zap.Logger
-	mon     *monkit.Scope
 	service APIKeyManagementService
 	auth    api.Auth
 }
@@ -65,15 +66,13 @@ type APIKeyManagementHandler struct {
 // UserManagementHandler is an api handler that exposes all users related functionality.
 type UserManagementHandler struct {
 	log     *zap.Logger
-	mon     *monkit.Scope
 	service UserManagementService
 	auth    api.Auth
 }
 
-func NewProjectManagement(log *zap.Logger, mon *monkit.Scope, service ProjectManagementService, router *mux.Router, auth api.Auth) *ProjectManagementHandler {
+func NewProjectManagement(log *zap.Logger, service ProjectManagementService, router *mux.Router, auth api.Auth) *ProjectManagementHandler {
 	handler := &ProjectManagementHandler{
 		log:     log,
-		mon:     mon,
 		service: service,
 		auth:    auth,
 	}
@@ -90,10 +89,9 @@ func NewProjectManagement(log *zap.Logger, mon *monkit.Scope, service ProjectMan
 	return handler
 }
 
-func NewAPIKeyManagement(log *zap.Logger, mon *monkit.Scope, service APIKeyManagementService, router *mux.Router, auth api.Auth) *APIKeyManagementHandler {
+func NewAPIKeyManagement(log *zap.Logger, service APIKeyManagementService, router *mux.Router, auth api.Auth) *APIKeyManagementHandler {
 	handler := &APIKeyManagementHandler{
 		log:     log,
-		mon:     mon,
 		service: service,
 		auth:    auth,
 	}
@@ -105,10 +103,9 @@ func NewAPIKeyManagement(log *zap.Logger, mon *monkit.Scope, service APIKeyManag
 	return handler
 }
 
-func NewUserManagement(log *zap.Logger, mon *monkit.Scope, service UserManagementService, router *mux.Router, auth api.Auth) *UserManagementHandler {
+func NewUserManagement(log *zap.Logger, service UserManagementService, router *mux.Router, auth api.Auth) *UserManagementHandler {
 	handler := &UserManagementHandler{
 		log:     log,
-		mon:     mon,
 		service: service,
 		auth:    auth,
 	}
@@ -122,7 +119,9 @@ func NewUserManagement(log *zap.Logger, mon *monkit.Scope, service UserManagemen
 func (h *ProjectManagementHandler) handleGenCreateProject(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer h.mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -154,7 +153,9 @@ func (h *ProjectManagementHandler) handleGenCreateProject(w http.ResponseWriter,
 func (h *ProjectManagementHandler) handleGenUpdateProject(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer h.mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -198,7 +199,9 @@ func (h *ProjectManagementHandler) handleGenUpdateProject(w http.ResponseWriter,
 func (h *ProjectManagementHandler) handleGenDeleteProject(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer h.mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -230,7 +233,9 @@ func (h *ProjectManagementHandler) handleGenDeleteProject(w http.ResponseWriter,
 func (h *ProjectManagementHandler) handleGenGetUsersProjects(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer h.mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -256,7 +261,9 @@ func (h *ProjectManagementHandler) handleGenGetUsersProjects(w http.ResponseWrit
 func (h *ProjectManagementHandler) handleGenGetSingleBucketUsageRollup(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer h.mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -324,7 +331,9 @@ func (h *ProjectManagementHandler) handleGenGetSingleBucketUsageRollup(w http.Re
 func (h *ProjectManagementHandler) handleGenGetBucketUsageRollups(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer h.mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -386,7 +395,9 @@ func (h *ProjectManagementHandler) handleGenGetBucketUsageRollups(w http.Respons
 func (h *ProjectManagementHandler) handleGenGetAPIKeys(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer h.mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -482,7 +493,9 @@ func (h *ProjectManagementHandler) handleGenGetAPIKeys(w http.ResponseWriter, r 
 func (h *APIKeyManagementHandler) handleGenCreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer h.mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -514,7 +527,9 @@ func (h *APIKeyManagementHandler) handleGenCreateAPIKey(w http.ResponseWriter, r
 func (h *APIKeyManagementHandler) handleGenDeleteAPIKey(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer h.mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -546,7 +561,9 @@ func (h *APIKeyManagementHandler) handleGenDeleteAPIKey(w http.ResponseWriter, r
 func (h *UserManagementHandler) handleGenGetUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer h.mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set("Content-Type", "application/json")
 

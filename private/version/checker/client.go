@@ -7,13 +7,18 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"io"
 	"net/http"
+	"os"
 	"reflect"
+
+	"runtime"
 	"strings"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -22,7 +27,6 @@ import (
 )
 
 var (
-	mon = monkit.Package()
 
 	// Error is the error class for version checker client errors.
 	Error = errs.Class("version checker client")
@@ -50,7 +54,9 @@ func New(config ClientConfig) *Client {
 
 // All handles the HTTP request to gather the latest version information.
 func (client *Client) All(ctx context.Context) (ver version.AllowedVersions, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// Tune Client to have a custom Timeout (reduces hanging software)
 	httpClient := http.Client{
@@ -85,7 +91,9 @@ func (client *Client) All(ctx context.Context) (ver version.AllowedVersions, err
 // OldMinimum returns the version with the given name at the root-level of the version control response.
 // NB: This will be deprecated eventually in favor of what is currently the `processes` root-level object.
 func (client *Client) OldMinimum(ctx context.Context, serviceName string) (ver version.OldSemVer, err error) {
-	defer mon.Task()(&ctx, serviceName)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("serviceName", serviceName)))
+	defer span.End()
 
 	versions, err := client.All(ctx)
 	if err != nil {
@@ -103,7 +111,9 @@ func (client *Client) OldMinimum(ctx context.Context, serviceName string) (ver v
 
 // Process returns the version info for the named process from the version control server response.
 func (client *Client) Process(ctx context.Context, processName string) (process version.Process, err error) {
-	defer mon.Task()(&ctx, processName)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("processName", processName)))
+	defer span.End()
 
 	versions, err := client.All(ctx)
 	if err != nil {

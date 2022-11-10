@@ -5,9 +5,11 @@ package version
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"go.uber.org/zap"
 
 	"storj.io/common/storj"
@@ -15,10 +17,6 @@ import (
 	"storj.io/private/version"
 	"storj.io/storj/private/version/checker"
 	"storj.io/storj/storagenode/notifications"
-)
-
-var (
-	mon = monkit.Package()
 )
 
 // Chore contains the information and variables to ensure the Software is up to date for storagenode.
@@ -49,8 +47,6 @@ func NewChore(log *zap.Logger, service *checker.Service, notifications *notifica
 
 // Run logs the current version information and detects if software outdated, if so - sends notifications.
 func (chore *Chore) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
-
 	if !chore.service.Checked() {
 		_, err = chore.service.CheckVersion(ctx)
 		if err != nil {
@@ -62,6 +58,9 @@ func (chore *Chore) Run(ctx context.Context) (err error) {
 	chore.version.init(currentVer)
 
 	return chore.Loop.Run(ctx, func(ctx context.Context) error {
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		defer span.End()
 		suggested, err := chore.service.CheckVersion(ctx)
 		if err != nil {
 			return err

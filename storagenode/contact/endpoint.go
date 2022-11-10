@@ -5,6 +5,10 @@ package contact
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"sync"
 	"time"
 
@@ -45,7 +49,9 @@ func NewEndpoint(log *zap.Logger, trust *trust.Pool, pingStats *PingStats) *Endp
 
 // PingNode provides an easy way to verify a node is online and accepting requests.
 func (endpoint *Endpoint) PingNode(ctx context.Context, req *pb.ContactPingRequest) (_ *pb.ContactPingResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	peer, err := rpcpeer.FromContext(ctx)
 	if err != nil {
 		return nil, rpcstatus.Error(rpcstatus.Internal, err.Error())

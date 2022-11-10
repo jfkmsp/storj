@@ -7,6 +7,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 
 	"github.com/zeebo/errs"
 
@@ -24,7 +28,9 @@ type bucketsDB struct {
 
 // CreateBucket creates a new bucket.
 func (db *bucketsDB) CreateBucket(ctx context.Context, bucket storj.Bucket) (_ storj.Bucket, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	optionalFields := dbx.BucketMetainfo_Create_Fields{}
 	if !bucket.PartnerID.IsZero() || bucket.UserAgent != nil {
@@ -64,7 +70,9 @@ func (db *bucketsDB) CreateBucket(ctx context.Context, bucket storj.Bucket) (_ s
 
 // GetBucket returns a bucket.
 func (db *bucketsDB) GetBucket(ctx context.Context, bucketName []byte, projectID uuid.UUID) (_ storj.Bucket, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	dbxBucket, err := db.db.Get_BucketMetainfo_By_ProjectId_And_Name(ctx,
 		dbx.BucketMetainfo_ProjectId(projectID[:]),
 		dbx.BucketMetainfo_Name(bucketName),
@@ -80,7 +88,9 @@ func (db *bucketsDB) GetBucket(ctx context.Context, bucketName []byte, projectID
 
 // GetBucketPlacement returns with the placement constraint identifier.
 func (db *bucketsDB) GetBucketPlacement(ctx context.Context, bucketName []byte, projectID uuid.UUID) (placement storj.PlacementConstraint, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	dbxPlacement, err := db.db.Get_BucketMetainfo_Placement_By_ProjectId_And_Name(ctx,
 		dbx.BucketMetainfo_ProjectId(projectID[:]),
 		dbx.BucketMetainfo_Name(bucketName),
@@ -101,7 +111,9 @@ func (db *bucketsDB) GetBucketPlacement(ctx context.Context, bucketName []byte, 
 
 // GetMinimalBucket returns existing bucket with minimal number of fields.
 func (db *bucketsDB) GetMinimalBucket(ctx context.Context, bucketName []byte, projectID uuid.UUID) (_ buckets.Bucket, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	row, err := db.db.Get_BucketMetainfo_CreatedAt_By_ProjectId_And_Name(ctx,
 		dbx.BucketMetainfo_ProjectId(projectID[:]),
 		dbx.BucketMetainfo_Name(bucketName),
@@ -120,7 +132,9 @@ func (db *bucketsDB) GetMinimalBucket(ctx context.Context, bucketName []byte, pr
 
 // HasBucket returns if a bucket exists.
 func (db *bucketsDB) HasBucket(ctx context.Context, bucketName []byte, projectID uuid.UUID) (exists bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	exists, err = db.db.Has_BucketMetainfo_By_ProjectId_And_Name(ctx,
 		dbx.BucketMetainfo_ProjectId(projectID[:]),
@@ -131,7 +145,9 @@ func (db *bucketsDB) HasBucket(ctx context.Context, bucketName []byte, projectID
 
 // GetBucketID returns an existing bucket id.
 func (db *bucketsDB) GetBucketID(ctx context.Context, bucket metabase.BucketLocation) (_ uuid.UUID, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	dbxID, err := db.db.Get_BucketMetainfo_Id_By_ProjectId_And_Name(ctx,
 		dbx.BucketMetainfo_ProjectId(bucket.ProjectID[:]),
 		dbx.BucketMetainfo_Name([]byte(bucket.BucketName)),
@@ -152,7 +168,9 @@ func (db *bucketsDB) GetBucketID(ctx context.Context, bucket metabase.BucketLoca
 
 // UpdateBucket updates a bucket.
 func (db *bucketsDB) UpdateBucket(ctx context.Context, bucket storj.Bucket) (_ storj.Bucket, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var updateFields dbx.BucketMetainfo_Update_Fields
 	if !bucket.PartnerID.IsZero() {
@@ -174,7 +192,9 @@ func (db *bucketsDB) UpdateBucket(ctx context.Context, bucket storj.Bucket) (_ s
 
 // DeleteBucket deletes a bucket.
 func (db *bucketsDB) DeleteBucket(ctx context.Context, bucketName []byte, projectID uuid.UUID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	deleted, err := db.db.Delete_BucketMetainfo_By_ProjectId_And_Name(ctx,
 		dbx.BucketMetainfo_ProjectId(projectID[:]),
 		dbx.BucketMetainfo_Name(bucketName),
@@ -190,7 +210,9 @@ func (db *bucketsDB) DeleteBucket(ctx context.Context, bucketName []byte, projec
 
 // ListBuckets returns a list of buckets for a project.
 func (db *bucketsDB) ListBuckets(ctx context.Context, projectID uuid.UUID, listOpts storj.BucketListOptions, allowedBuckets macaroon.AllowedBuckets) (bucketList storj.BucketList, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	const defaultListLimit = 10000
 	if listOpts.Limit < 1 {
@@ -326,7 +348,9 @@ func convertDBXtoBucket(dbxBucket *dbx.BucketMetainfo) (bucket storj.Bucket, err
 
 // IterateBucketLocations iterates through all buckets from some point with limit.
 func (db *bucketsDB) IterateBucketLocations(ctx context.Context, projectID uuid.UUID, bucketName string, limit int, fn func([]metabase.BucketLocation) error) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var result []metabase.BucketLocation
 

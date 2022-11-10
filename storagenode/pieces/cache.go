@@ -6,6 +6,10 @@ package pieces
 import (
 	"context"
 	"fmt"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"sync"
 	"time"
 
@@ -47,7 +51,6 @@ func NewService(log *zap.Logger, usageCache *BlobsUsageCache, pieces *Store, int
 // Run recalculates the space used cache once and also runs a loop to sync the space used cache
 // to persistent storage on an interval.
 func (service *CacheService) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
 	defer service.InitFence.Release()
 
 	totalsAtStart := service.usageCache.copyCacheTotals()
@@ -84,7 +87,9 @@ func (service *CacheService) Run(ctx context.Context) (err error) {
 	}
 
 	return service.Loop.Run(ctx, func(ctx context.Context) (err error) {
-		defer mon.Task()(&ctx)(&err)
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		defer span.End()
 
 		// on a loop sync the cache values to the db so that we have the them saved
 		// in the case that the storagenode restarts

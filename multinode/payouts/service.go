@@ -5,8 +5,11 @@ package payouts
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
 
-	"github.com/spacemonkeygo/monkit/v3"
+	"runtime"
+
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -18,7 +21,7 @@ import (
 )
 
 var (
-	mon = monkit.Package()
+
 	// Error is an error class for payouts service error.
 	Error = errs.Class("payouts")
 )
@@ -43,7 +46,9 @@ func NewService(log *zap.Logger, dialer rpc.Dialer, nodes nodes.DB) *Service {
 
 // Earned retrieves all nodes earned amount for all time.
 func (service *Service) Earned(ctx context.Context) (earned int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	storageNodes, err := service.nodes.List(ctx)
 	if err != nil {
@@ -68,7 +73,9 @@ func (service *Service) Earned(ctx context.Context) (earned int64, err error) {
 
 // EarnedSatellite retrieves all nodes earned amount for all time per satellite.
 func (service *Service) EarnedSatellite(ctx context.Context) (earned []SatelliteSummary, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	storageNodes, err := service.nodes.List(ctx)
 	if err != nil {
@@ -121,7 +128,9 @@ func (service *Service) EarnedSatellite(ctx context.Context) (earned []Satellite
 
 // Summary returns all satellites all time stats.
 func (service *Service) Summary(ctx context.Context) (_ Summary, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var summary Summary
 
@@ -148,7 +157,9 @@ func (service *Service) Summary(ctx context.Context) (_ Summary, err error) {
 
 // SummaryPeriod returns all satellites stats for specific period.
 func (service *Service) SummaryPeriod(ctx context.Context, period string) (_ Summary, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var summary Summary
 
@@ -175,7 +186,9 @@ func (service *Service) SummaryPeriod(ctx context.Context, period string) (_ Sum
 
 // SummarySatellite returns specific satellite all time stats.
 func (service *Service) SummarySatellite(ctx context.Context, satelliteID storj.NodeID) (_ Summary, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var summary Summary
 
 	listNodes, err := service.nodes.List(ctx)
@@ -201,7 +214,9 @@ func (service *Service) SummarySatellite(ctx context.Context, satelliteID storj.
 
 // SummarySatellitePeriod returns specific satellite stats for specific period.
 func (service *Service) SummarySatellitePeriod(ctx context.Context, satelliteID storj.NodeID, period string) (_ Summary, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var summary Summary
 
 	listNodes, err := service.nodes.List(ctx)
@@ -335,7 +350,9 @@ func (service *Service) summary(ctx context.Context, node nodes.Node) (info *mul
 
 // NodeExpectations returns node's estimated and undistributed earnings.
 func (service *Service) NodeExpectations(ctx context.Context, nodeID storj.NodeID) (_ Expectations, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	node, err := service.nodes.Get(ctx, nodeID)
 	if err != nil {
@@ -352,7 +369,9 @@ func (service *Service) NodeExpectations(ctx context.Context, nodeID storj.NodeI
 
 // Expectations returns all nodes estimated and undistributed earnings.
 func (service *Service) Expectations(ctx context.Context) (_ Expectations, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var expectations Expectations
 
@@ -380,7 +399,9 @@ func (service *Service) Expectations(ctx context.Context) (_ Expectations, err e
 
 // HeldAmountSummary retrieves held amount history summary for a particular node.
 func (service *Service) HeldAmountSummary(ctx context.Context, nodeID storj.NodeID) (_ []HeldAmountSummary, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	node, err := service.nodes.Get(ctx, nodeID)
 	if err != nil {
@@ -455,7 +476,9 @@ func (service *Service) HeldAmountSummary(ctx context.Context, nodeID storj.Node
 
 // heldAmountHistory retrieves held amount history for a particular node.
 func (service *Service) heldAmountHistory(ctx context.Context, node nodes.Node, conn drpc.Conn) (_ []HeldAmountHistory, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	payoutClient := multinodepb.NewDRPCPayoutsClient(conn)
 
 	header := &multinodepb.RequestHeader{
@@ -576,7 +599,9 @@ func (service *Service) earnedSatellite(ctx context.Context, node nodes.Node) (_
 
 // PaystubSatellitePeriod returns specific satellite paystub for specific period.
 func (service *Service) PaystubSatellitePeriod(ctx context.Context, period string, nodeID, satelliteID storj.NodeID) (_ Paystub, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	node, err := service.nodes.Get(ctx, nodeID)
 	if err != nil {
@@ -627,7 +652,9 @@ func (service *Service) PaystubSatellitePeriod(ctx context.Context, period strin
 
 // PaystubPeriod returns all satellites paystub for specific period.
 func (service *Service) PaystubPeriod(ctx context.Context, period string, nodeID storj.NodeID) (_ Paystub, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	node, err := service.nodes.Get(ctx, nodeID)
 	if err != nil {
@@ -677,7 +704,9 @@ func (service *Service) PaystubPeriod(ctx context.Context, period string, nodeID
 
 // PaystubSatellite returns specific satellite summed paystubs.
 func (service *Service) PaystubSatellite(ctx context.Context, nodeID, satelliteID storj.NodeID) (_ Paystub, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	node, err := service.nodes.Get(ctx, nodeID)
 	if err != nil {
@@ -727,7 +756,9 @@ func (service *Service) PaystubSatellite(ctx context.Context, nodeID, satelliteI
 
 // Paystub returns summed all paystubs.
 func (service *Service) Paystub(ctx context.Context, nodeID storj.NodeID) (_ Paystub, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	node, err := service.nodes.Get(ctx, nodeID)
 	if err != nil {

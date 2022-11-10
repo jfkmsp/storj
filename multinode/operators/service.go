@@ -5,8 +5,11 @@ package operators
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
 
-	"github.com/spacemonkeygo/monkit/v3"
+	"runtime"
+
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -20,7 +23,7 @@ import (
 const MaxOperatorsOnPage = 5
 
 var (
-	mon = monkit.Package()
+
 	// Error is an error class for operators service error.
 	Error = errs.Class("operators")
 )
@@ -45,7 +48,9 @@ func NewService(log *zap.Logger, dialer rpc.Dialer, nodes nodes.DB) *Service {
 
 // ListPaginated returns paginated list of operators.
 func (service *Service) ListPaginated(ctx context.Context, cursor Cursor) (_ Page, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if cursor.Limit > MaxOperatorsOnPage {
 		cursor.Limit = MaxOperatorsOnPage
 	}
@@ -88,7 +93,9 @@ func (service *Service) ListPaginated(ctx context.Context, cursor Cursor) (_ Pag
 
 // GetOperator retrieves operator form node via rpc.
 func (service *Service) GetOperator(ctx context.Context, node nodes.Node) (_ Operator, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	conn, err := service.dialer.DialNodeURL(ctx, storj.NodeURL{
 		ID:      node.ID,

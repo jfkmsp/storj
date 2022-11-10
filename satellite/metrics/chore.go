@@ -5,9 +5,11 @@ package metrics
 
 import (
 	"context"
+	"go.opentelemetry.io/otel/metric/global"
+	"os"
+
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -18,7 +20,6 @@ import (
 var (
 	// Error defines the metrics chore errors class.
 	Error = errs.Class("metrics")
-	mon   = monkit.Package()
 )
 
 // Config contains configurable values for metrics collection.
@@ -49,10 +50,8 @@ func NewChore(log *zap.Logger, config Config, loop *segmentloop.Service) *Chore 
 
 // Run starts the metrics chore.
 func (chore *Chore) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
-
 	return chore.Loop.Run(ctx, func(ctx context.Context) (err error) {
-		defer mon.Task()(&ctx)(&err)
+		var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
 
 		chore.Counter = NewCounter()
 
@@ -61,14 +60,20 @@ func (chore *Chore) Run(ctx context.Context) (err error) {
 			chore.log.Error("error joining segment loop", zap.Error(err))
 			return nil
 		}
-		mon.IntVal("remote_dependent_object_count").Observe(chore.Counter.RemoteObjects)
-		mon.IntVal("inline_object_count").Observe(chore.Counter.InlineObjects)
+		histCounter, _ := meter.SyncInt64().Histogram("remote_dependent_object_count")
+		histCounter.Record(ctx, chore.Counter.RemoteObjects)
+		histCounter, _ = meter.SyncInt64().Histogram("inline_object_count")
+		histCounter.Record(ctx, chore.Counter.InlineObjects)
 
-		mon.IntVal("total_inline_bytes").Observe(chore.Counter.TotalInlineBytes) //mon:locked
-		mon.IntVal("total_remote_bytes").Observe(chore.Counter.TotalRemoteBytes) //mon:locked
+		histCounter, _ = meter.SyncInt64().Histogram("total_inline_bytes")
+		histCounter.Record(ctx, chore.Counter.TotalInlineBytes)
+		histCounter, _ = meter.SyncInt64().Histogram("total_remote_bytes")
+		histCounter.Record(ctx, chore.Counter.TotalRemoteBytes)
 
-		mon.IntVal("total_inline_segments").Observe(chore.Counter.TotalInlineSegments) //mon:locked
-		mon.IntVal("total_remote_segments").Observe(chore.Counter.TotalRemoteSegments) //mon:locked
+		histCounter, _ = meter.SyncInt64().Histogram("total_inline_segments")
+		histCounter.Record(ctx, chore.Counter.TotalInlineSegments)
+		histCounter, _ = meter.SyncInt64().Histogram("total_remote_segments")
+		histCounter.Record(ctx, chore.Counter.TotalRemoteSegments)
 
 		// TODO move this metric to a place where objects are iterated e.g. tally
 		// or drop it completely as we can easily get this value with redash

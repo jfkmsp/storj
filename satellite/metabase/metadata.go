@@ -5,6 +5,11 @@ package metabase
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
+	"os"
+
+	"runtime"
 
 	"go.uber.org/zap"
 
@@ -41,7 +46,10 @@ func (obj *UpdateObjectMetadata) Verify() error {
 
 // UpdateObjectMetadata updates an object metadata.
 func (db *DB) UpdateObjectMetadata(ctx context.Context, opts UpdateObjectMetadata) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	if err := opts.Verify(); err != nil {
 		return err
@@ -90,10 +98,12 @@ func (db *DB) UpdateObjectMetadata(ctx context.Context, opts UpdateObjectMetadat
 		db.log.Warn("object with multiple committed versions were found!",
 			zap.Stringer("Project ID", opts.ProjectID), zap.String("Bucket Name", opts.BucketName),
 			zap.String("Object Key", string(opts.ObjectKey)), zap.Stringer("Stream ID", opts.StreamID))
-		mon.Meter("multiple_committed_versions").Mark(1)
+		counter, _ := meter.SyncInt64().Counter("multiple_committed_versions")
+		counter.Add(ctx, 1)
 	}
 
-	mon.Meter("object_update_metadata").Mark(int(affected))
+	counter, _ := meter.SyncInt64().Counter("object_update_metadata")
+	counter.Add(ctx, affected)
 
 	return nil
 }

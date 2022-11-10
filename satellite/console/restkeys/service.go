@@ -8,16 +8,17 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 
 	"storj.io/common/uuid"
 	"storj.io/storj/satellite/oidc"
 )
-
-var mon = monkit.Package()
 
 var (
 	// Error describes internal rest keys error.
@@ -53,7 +54,9 @@ func NewService(db oidc.OAuthTokens, config Config) *Service {
 
 // Create creates and inserts an rest key into the db.
 func (s *Service) Create(ctx context.Context, userID uuid.UUID, expiration time.Duration) (apiKey string, expiresAt time.Time, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	apiKey, hash, err := s.GenerateNewKey(ctx)
 	if err != nil {
@@ -72,7 +75,9 @@ func (s *Service) Create(ctx context.Context, userID uuid.UUID, expiration time.
 
 // GenerateNewKey generates a new account management api key.
 func (s *Service) GenerateNewKey(ctx context.Context) (apiKey, hash string, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	id, err := uuid.New()
 	if err != nil {
@@ -86,7 +91,9 @@ func (s *Service) GenerateNewKey(ctx context.Context) (apiKey, hash string, err 
 
 // This is used for hashing during key creation so we don't need to convert from a string back to a uuid.
 func hashKeyFromUUID(ctx context.Context, apiKeyUUID uuid.UUID) string {
-	mon.Task()(&ctx)(nil)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	hashBytes := sha256.Sum256(apiKeyUUID.Bytes())
 	return string(hashBytes[:])
@@ -94,7 +101,9 @@ func hashKeyFromUUID(ctx context.Context, apiKeyUUID uuid.UUID) string {
 
 // HashKey returns a hash of api key. This is used for hashing inside GetUserFromKey.
 func (s *Service) HashKey(ctx context.Context, apiKey string) (hash string, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	id, err := uuid.FromString(apiKey)
 	if err != nil {
@@ -107,7 +116,9 @@ func (s *Service) HashKey(ctx context.Context, apiKey string) (hash string, err 
 // InsertIntoDB checks OAuthTokens DB for a token before inserting. This is because OAuthTokens DB allows
 // duplicate tokens, but we can't have duplicate api keys.
 func (s *Service) InsertIntoDB(ctx context.Context, oAuthToken oidc.OAuthToken, now time.Time, expiration time.Duration) (expiresAt time.Time, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// The token column is the key to the OAuthTokens table, but the Create method does not return an error if a duplicate token insert is attempted.
 	// We need to make sure a unique api key is created, so check that the value doesn't already exist.
@@ -138,7 +149,9 @@ func (s *Service) InsertIntoDB(ctx context.Context, oAuthToken oidc.OAuthToken, 
 
 // GetUserAndExpirationFromKey gets the userID and expiration date attached to an account management api key.
 func (s *Service) GetUserAndExpirationFromKey(ctx context.Context, apiKey string) (userID uuid.UUID, exp time.Time, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	hash, err := s.HashKey(ctx, apiKey)
 	if err != nil {
@@ -156,7 +169,9 @@ func (s *Service) GetUserAndExpirationFromKey(ctx context.Context, apiKey string
 
 // Revoke revokes an account management api key.
 func (s *Service) Revoke(ctx context.Context, apiKey string) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	hash, err := s.HashKey(ctx, apiKey)
 	if err != nil {

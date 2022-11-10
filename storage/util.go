@@ -6,6 +6,10 @@ package storage
 import (
 	"context"
 	"fmt"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 )
 
 // NextKey returns the successive key.
@@ -46,7 +50,9 @@ func CloneItems(items Items) Items {
 
 // PutAll adds multiple values to the store.
 func PutAll(ctx context.Context, store KeyValueStore, items ...ListItem) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	for _, item := range items {
 		err := store.Put(ctx, item.Key, item.Value)

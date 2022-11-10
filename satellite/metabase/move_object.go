@@ -7,6 +7,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
+	"os"
+
+	"runtime"
 
 	pgxerrcode "github.com/jackc/pgerrcode"
 
@@ -56,7 +61,9 @@ func (db *DB) BeginMoveObject(ctx context.Context, opts BeginMoveObject) (_ Begi
 
 // beginMoveCopyObject collects all data needed to begin object move/copy procedure.
 func (db *DB) beginMoveCopyObject(ctx context.Context, location ObjectLocation, segmentLimit int64, verifyLimits func(encryptedObjectSize int64, nSegments int64) error) (result BeginMoveCopyResults, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err := location.Verify(); err != nil {
 		return BeginMoveCopyResults{}, err
@@ -147,7 +154,10 @@ func (finishMove FinishMoveObject) Verify() error {
 
 // FinishMoveObject accepts new encryption keys for moved object and updates the corresponding object ObjectKey and segments EncryptedKey.
 func (db *DB) FinishMoveObject(ctx context.Context, opts FinishMoveObject) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	if err := opts.Verify(); err != nil {
 		return err
@@ -244,7 +254,8 @@ func (db *DB) FinishMoveObject(ctx context.Context, opts FinishMoveObject) (err 
 		return err
 	}
 
-	mon.Meter("finish_move_object").Mark(1)
+	counter, _ := meter.SyncInt64().Counter("finish_move_object")
+	counter.Add(ctx, 1)
 
 	return nil
 }

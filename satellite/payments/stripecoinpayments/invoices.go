@@ -5,6 +5,12 @@ package stripecoinpayments
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/stripe/stripe-go/v72"
@@ -22,7 +28,10 @@ type invoices struct {
 
 // List returns a list of invoices for a given payment account.
 func (invoices *invoices) List(ctx context.Context, userID uuid.UUID) (invoicesList []payments.Invoice, err error) {
-	defer mon.Task()(&ctx, userID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(),
+		trace.WithAttributes(attribute.String("userID", userID.String())))
+	defer span.End()
 
 	customerID, err := invoices.service.db.Customers().GetCustomerID(ctx, userID)
 	if err != nil {
@@ -65,7 +74,10 @@ func (invoices *invoices) List(ctx context.Context, userID uuid.UUID) (invoicesL
 
 // ListWithDiscounts returns a list of invoices and coupon usages for a given payment account.
 func (invoices *invoices) ListWithDiscounts(ctx context.Context, userID uuid.UUID) (invoicesList []payments.Invoice, couponUsages []payments.CouponUsage, err error) {
-	defer mon.Task()(&ctx, userID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(),
+		trace.WithAttributes(attribute.String("userID", userID.String())))
+	defer span.End()
 
 	customerID, err := invoices.service.db.Customers().GetCustomerID(ctx, userID)
 	if err != nil {
@@ -135,7 +147,10 @@ func (invoices *invoices) ListWithDiscounts(ctx context.Context, userID uuid.UUI
 
 // CheckPendingItems returns if pending invoice items for a given payment account exist.
 func (invoices *invoices) CheckPendingItems(ctx context.Context, userID uuid.UUID) (existingItems bool, err error) {
-	defer mon.Task()(&ctx, userID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(),
+		trace.WithAttributes(attribute.String("userID", userID.String())))
+	defer span.End()
 
 	customerID, err := invoices.service.db.Customers().GetCustomerID(ctx, userID)
 	if err != nil {

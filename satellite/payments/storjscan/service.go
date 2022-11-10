@@ -6,6 +6,10 @@ package storjscan
 import (
 	"context"
 	"encoding/json"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -53,7 +57,9 @@ func NewService(log *zap.Logger, walletsDB WalletsDB, paymentsDB PaymentsDB, cli
 
 // Claim gets a new crypto wallet and associates it with a user.
 func (service *Service) Claim(ctx context.Context, userID uuid.UUID) (_ blockchain.Address, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	wallet, err := service.walletsDB.GetWallet(ctx, userID)
 	switch {
@@ -82,7 +88,9 @@ func (service *Service) Claim(ctx context.Context, userID uuid.UUID) (_ blockcha
 
 // Get returns the crypto wallet address associated with the given user.
 func (service *Service) Get(ctx context.Context, userID uuid.UUID) (_ blockchain.Address, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	address, err := service.walletsDB.GetWallet(ctx, userID)
 	return address, ErrService.Wrap(err)
@@ -90,7 +98,9 @@ func (service *Service) Get(ctx context.Context, userID uuid.UUID) (_ blockchain
 
 // Payments retrieves payments for specific wallet.
 func (service *Service) Payments(ctx context.Context, wallet blockchain.Address, limit int, offset int64) (_ []payments.WalletPayment, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	cachedPayments, err := service.paymentsDB.ListWallet(ctx, wallet, limit, offset)
 	if err != nil {

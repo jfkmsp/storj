@@ -5,6 +5,11 @@ package overlay
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
+	"os"
+
+	"runtime"
 	"time"
 
 	"go.uber.org/zap"
@@ -56,28 +61,36 @@ func (cache *DownloadSelectionCache) Run(ctx context.Context) (err error) {
 // Refresh populates the cache with all of the reputableNodes and newNode nodes
 // This method is useful for tests.
 func (cache *DownloadSelectionCache) Refresh(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	_, err = cache.cache.RefreshAndGet(ctx, time.Now())
 	return err
 }
 
 // read loads the latest download selection state.
 func (cache *DownloadSelectionCache) read(ctx context.Context) (_ interface{}, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	onlineNodes, err := cache.db.SelectAllStorageNodesDownload(ctx, cache.config.OnlineWindow, cache.config.AsOfSystemTime)
 	if err != nil {
 		return nil, Error.Wrap(err)
 	}
 
-	mon.IntVal("refresh_cache_size_online").Observe(int64(len(onlineNodes)))
+	histCounter, _ := meter.SyncInt64().Histogram("refresh_cache_size_online")
+	histCounter.Record(ctx, int64(len(onlineNodes)))
 
 	return NewDownloadSelectionCacheState(onlineNodes), nil
 }
 
 // GetNodeIPs gets the last node ip:port from the cache, refreshing when needed.
 func (cache *DownloadSelectionCache) GetNodeIPs(ctx context.Context, nodes []storj.NodeID) (_ map[storj.NodeID]string, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	stateAny, err := cache.cache.Get(ctx, time.Now())
 	if err != nil {
@@ -90,7 +103,9 @@ func (cache *DownloadSelectionCache) GetNodeIPs(ctx context.Context, nodes []sto
 
 // GetNodes gets nodes by ID from the cache, and refreshes the cache if it is stale.
 func (cache *DownloadSelectionCache) GetNodes(ctx context.Context, nodes []storj.NodeID) (_ map[storj.NodeID]*SelectedNode, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	stateAny, err := cache.cache.Get(ctx, time.Now())
 	if err != nil {

@@ -7,13 +7,19 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"github.com/go-redis/redis/extra/redisotel/v8"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"net/url"
+	"os"
+
+	"runtime"
 	"sort"
 	"strconv"
 	"time"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 
 	"storj.io/storj/storage"
@@ -22,8 +28,6 @@ import (
 var (
 	// Error is a redis error.
 	Error = errs.Class("redis")
-
-	mon = monkit.Package()
 )
 
 // TODO(coyle): this should be set to 61 * time.Minute after we implement Ping and Refresh on Overlay.
@@ -40,12 +44,14 @@ type Client struct {
 
 // OpenClient returns a configured Client instance, verifying a successful connection to redis.
 func OpenClient(ctx context.Context, address, password string, db int) (*Client, error) {
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     address,
+		Password: password,
+		DB:       db,
+	})
+	rdb.AddHook(redisotel.NewTracingHook())
 	client := &Client{
-		db: redis.NewClient(&redis.Options{
-			Addr:     address,
-			Password: password,
-			DB:       db,
-		}),
+		db:          rdb,
 		TTL:         defaultNodeExpiration,
 		lookupLimit: storage.DefaultLookupLimit,
 	}
@@ -87,7 +93,9 @@ func (client *Client) LookupLimit() int { return client.lookupLimit }
 
 // Get looks up the provided key from redis returning either an error or the result.
 func (client *Client) Get(ctx context.Context, key storage.Key) (_ storage.Value, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if key.IsZero() {
 		return nil, storage.ErrEmptyKey.New("")
 	}
@@ -96,7 +104,9 @@ func (client *Client) Get(ctx context.Context, key storage.Key) (_ storage.Value
 
 // Put adds a value to the provided key in redis, returning an error on failure.
 func (client *Client) Put(ctx context.Context, key storage.Key, value storage.Value) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if key.IsZero() {
 		return storage.ErrEmptyKey.New("")
 	}
@@ -105,7 +115,9 @@ func (client *Client) Put(ctx context.Context, key storage.Key, value storage.Va
 
 // IncrBy increments the value stored in key by the specified value.
 func (client *Client) IncrBy(ctx context.Context, key storage.Key, value int64) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if key.IsZero() {
 		return storage.ErrEmptyKey.New("")
 	}
@@ -122,13 +134,17 @@ func (client *Client) Eval(ctx context.Context, script string, keys []string) (e
 
 // List returns either a list of keys for which boltdb has values or an error.
 func (client *Client) List(ctx context.Context, first storage.Key, limit int) (_ storage.Keys, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return storage.ListKeys(ctx, client, first, limit)
 }
 
 // Delete deletes a key/value pair from redis, for a given the key.
 func (client *Client) Delete(ctx context.Context, key storage.Key) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if key.IsZero() {
 		return storage.ErrEmptyKey.New("")
 	}
@@ -137,7 +153,9 @@ func (client *Client) Delete(ctx context.Context, key storage.Key) (err error) {
 
 // DeleteMultiple deletes keys ignoring missing keys.
 func (client *Client) DeleteMultiple(ctx context.Context, keys []storage.Key) (_ storage.Items, err error) {
-	defer mon.Task()(&ctx, len(keys))(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.Int("keys length", len(keys))))
+	defer span.End()
 	return deleteMultiple(ctx, client.db, keys)
 }
 
@@ -150,7 +168,9 @@ func (client *Client) Close() error {
 // The maximum keys returned will be LookupLimit. If more than that
 // is requested, an error will be returned.
 func (client *Client) GetAll(ctx context.Context, keys storage.Keys) (_ storage.Values, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if len(keys) == 0 {
 		return nil, nil
 	}
@@ -185,7 +205,9 @@ func (client *Client) GetAll(ctx context.Context, keys storage.Keys) (_ storage.
 
 // Iterate iterates over items based on opts.
 func (client *Client) Iterate(ctx context.Context, opts storage.IterateOptions, fn func(context.Context, storage.Iterator) error) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if opts.Limit <= 0 || opts.Limit > client.lookupLimit {
 		opts.Limit = client.lookupLimit
@@ -195,7 +217,9 @@ func (client *Client) Iterate(ctx context.Context, opts storage.IterateOptions, 
 
 // IterateWithoutLookupLimit calls the callback with an iterator over the keys, but doesn't enforce default limit on opts.
 func (client *Client) IterateWithoutLookupLimit(ctx context.Context, opts storage.IterateOptions, fn func(context.Context, storage.Iterator) error) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	all, err := client.allPrefixedItems(ctx, opts.Prefix, opts.First, nil, opts.Limit)
 	if err != nil {
@@ -256,7 +280,9 @@ func (client *Client) allPrefixedItems(ctx context.Context, prefix, first, last 
 
 // CompareAndSwap atomically compares and swaps oldValue with newValue.
 func (client *Client) CompareAndSwap(ctx context.Context, key storage.Key, oldValue, newValue storage.Value) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if key.IsZero() {
 		return storage.ErrEmptyKey.New("")
 	}
@@ -305,7 +331,9 @@ func (client *Client) CompareAndSwap(ctx context.Context, key storage.Key, oldVa
 }
 
 func get(ctx context.Context, cmdable redis.Cmdable, key storage.Key) (_ storage.Value, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	value, err := cmdable.Get(ctx, string(key)).Bytes()
 	if errors.Is(err, redis.Nil) {
 		return nil, storage.ErrKeyNotFound.New("%q", key)
@@ -317,7 +345,9 @@ func get(ctx context.Context, cmdable redis.Cmdable, key storage.Key) (_ storage
 }
 
 func put(ctx context.Context, cmdable redis.Cmdable, key storage.Key, value storage.Value, ttl time.Duration) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	err = cmdable.Set(ctx, key.String(), []byte(value), ttl).Err()
 	if err != nil && !errors.Is(err, redis.TxFailedErr) {
 		return Error.New("put error: %v", err)
@@ -326,7 +356,9 @@ func put(ctx context.Context, cmdable redis.Cmdable, key storage.Key, value stor
 }
 
 func delete(ctx context.Context, cmdable redis.Cmdable, key storage.Key) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	err = cmdable.Del(ctx, key.String()).Err()
 	if err != nil && !errors.Is(err, redis.TxFailedErr) {
 		return Error.New("delete error: %v", err)
@@ -335,7 +367,9 @@ func delete(ctx context.Context, cmdable redis.Cmdable, key storage.Key) (err er
 }
 
 func eval(ctx context.Context, cmdable redis.Cmdable, script string, keys []string) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	err = cmdable.Eval(ctx, script, keys, nil).Err()
 	if err != nil && !errors.Is(err, redis.TxFailedErr) {
 		return Error.New("eval error: %v", err)
@@ -344,7 +378,9 @@ func eval(ctx context.Context, cmdable redis.Cmdable, script string, keys []stri
 }
 
 func deleteMultiple(ctx context.Context, cmdable redis.Cmdable, keys []storage.Key) (_ storage.Items, err error) {
-	defer mon.Task()(&ctx, len(keys))(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.Int("keys length", len(keys))))
+	defer span.End()
 
 	var items storage.Items
 	for _, key := range keys {

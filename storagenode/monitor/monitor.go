@@ -7,9 +7,13 @@ package monitor
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -23,7 +27,6 @@ import (
 )
 
 var (
-	mon = monkit.Package()
 
 	// Error is the default error class for piecestore monitor errors.
 	Error = errs.Class("piecestore monitor")
@@ -83,8 +86,6 @@ func NewService(log *zap.Logger, store *pieces.Store, contact *contact.Service, 
 
 // Run runs monitor service.
 func (service *Service) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
-
 	// get the disk space details
 	// The returned path ends in a slash only if it represents a root directory, such as "/" on Unix or `C:\` on Windows.
 	storageStatus, err := service.store.StorageStatus(ctx)
@@ -127,6 +128,9 @@ func (service *Service) Run(ctx context.Context) (err error) {
 
 	group, ctx := errgroup.WithContext(ctx)
 	group.Go(func() error {
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		defer span.End()
 		return service.VerifyDirReadableLoop.Run(ctx, func(ctx context.Context) error {
 			err := service.store.VerifyStorageDir(ctx, service.contact.Local().ID)
 			if err != nil {
@@ -136,6 +140,9 @@ func (service *Service) Run(ctx context.Context) (err error) {
 		})
 	})
 	group.Go(func() error {
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		defer span.End()
 		return service.VerifyDirWritableLoop.Run(ctx, func(ctx context.Context) error {
 			err := service.store.CheckWritability(ctx)
 			if err != nil {
@@ -145,6 +152,9 @@ func (service *Service) Run(ctx context.Context) (err error) {
 		})
 	})
 	group.Go(func() error {
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		defer span.End()
 		return service.Loop.Run(ctx, func(ctx context.Context) error {
 			err := service.updateNodeInformation(ctx)
 			if err != nil {
@@ -154,6 +164,9 @@ func (service *Service) Run(ctx context.Context) (err error) {
 		})
 	})
 	service.cooldown.Start(ctx, group, func(ctx context.Context) error {
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		defer span.End()
 		err := service.updateNodeInformation(ctx)
 		if err != nil {
 			service.log.Error("error during updating node information: ", zap.Error(err))
@@ -183,7 +196,9 @@ func (service *Service) Close() (err error) {
 }
 
 func (service *Service) updateNodeInformation(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	freeSpace, err := service.AvailableSpace(ctx)
 	if err != nil {
@@ -198,7 +213,10 @@ func (service *Service) updateNodeInformation(ctx context.Context) (err error) {
 
 // AvailableSpace returns available disk space for upload.
 func (service *Service) AvailableSpace(ctx context.Context) (_ int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	usedSpace, err := service.store.SpaceUsedForPiecesAndTrash(ctx)
 	if err != nil {
@@ -215,16 +233,21 @@ func (service *Service) AvailableSpace(ctx context.Context) (_ int64, err error)
 		freeSpaceForStorj = diskStatus.DiskFree
 	}
 
-	mon.IntVal("allocated_space").Observe(service.allocatedDiskSpace)
-	mon.IntVal("used_space").Observe(usedSpace)
-	mon.IntVal("available_space").Observe(freeSpaceForStorj)
+	histCounter, _ := meter.SyncInt64().Histogram("allocated_space")
+	histCounter.Record(ctx, service.allocatedDiskSpace)
+	histCounter, _ = meter.SyncInt64().Histogram("used_space")
+	histCounter.Record(ctx, usedSpace)
+	histCounter, _ = meter.SyncInt64().Histogram("available_space")
+	histCounter.Record(ctx, freeSpaceForStorj)
 
 	return freeSpaceForStorj, nil
 }
 
 // DiskSpace returns consolidated disk space state info.
 func (service *Service) DiskSpace(ctx context.Context) (_ DiskSpace, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	usedForPieces, _, err := service.store.SpaceUsedForPieces(ctx)
 	if err != nil {

@@ -6,6 +6,10 @@ package authorization
 import (
 	"context"
 	"fmt"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
@@ -30,7 +34,9 @@ func NewService(log *zap.Logger, db *DB) *Service {
 
 // GetOrCreate will return an authorization for the given user ID.
 func (service *Service) GetOrCreate(ctx context.Context, userID string) (_ *Token, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if userID == "" {
 		msg := "missing user ID"

@@ -5,9 +5,12 @@ package storage
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -18,7 +21,7 @@ import (
 )
 
 var (
-	mon = monkit.Package()
+
 	// Error is an error class for storage service error.
 	Error = errs.Class("storage")
 )
@@ -43,7 +46,9 @@ func NewService(log *zap.Logger, dialer rpc.Dialer, nodes nodes.DB) *Service {
 
 // Usage retrieves node's daily storage usage for provided interval.
 func (service *Service) Usage(ctx context.Context, nodeID storj.NodeID, from, to time.Time) (_ Usage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	node, err := service.nodes.Get(ctx, nodeID)
 	if err != nil {
@@ -60,7 +65,9 @@ func (service *Service) Usage(ctx context.Context, nodeID storj.NodeID, from, to
 
 // UsageSatellite retrieves node's daily storage usage for provided interval and satellite.
 func (service *Service) UsageSatellite(ctx context.Context, nodeID, satelliteID storj.NodeID, from, to time.Time) (_ Usage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	node, err := service.nodes.Get(ctx, nodeID)
 	if err != nil {
@@ -77,7 +84,9 @@ func (service *Service) UsageSatellite(ctx context.Context, nodeID, satelliteID 
 
 // TotalUsage retrieves aggregated daily storage usage for provided interval.
 func (service *Service) TotalUsage(ctx context.Context, from, to time.Time) (_ Usage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	nodesList, err := service.nodes.List(ctx)
 	if err != nil {
@@ -111,7 +120,9 @@ func (service *Service) TotalUsage(ctx context.Context, from, to time.Time) (_ U
 
 // TotalUsageSatellite retrieves aggregated daily storage usage for provided interval and satellite.
 func (service *Service) TotalUsageSatellite(ctx context.Context, satelliteID storj.NodeID, from, to time.Time) (_ Usage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	nodesList, err := service.nodes.List(ctx)
 	if err != nil {
@@ -145,7 +156,9 @@ func (service *Service) TotalUsageSatellite(ctx context.Context, satelliteID sto
 
 // TotalDiskSpace returns all info about all storagenodes disk space usage.
 func (service *Service) TotalDiskSpace(ctx context.Context) (totalDiskSpace DiskSpace, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	listNodes, err := service.nodes.List(ctx)
 	if err != nil {
@@ -170,7 +183,9 @@ func (service *Service) TotalDiskSpace(ctx context.Context) (totalDiskSpace Disk
 
 // DiskSpace returns all info about concrete storagenode disk space usage.
 func (service *Service) DiskSpace(ctx context.Context, nodeID storj.NodeID) (_ DiskSpace, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	node, err := service.nodes.Get(ctx, nodeID)
 	if err != nil {
@@ -216,7 +231,9 @@ func (service *Service) dialDiskSpace(ctx context.Context, node nodes.Node) (dis
 
 // dialUsage dials node and retrieves it's storage usage for provided interval.
 func (service *Service) dialUsage(ctx context.Context, node nodes.Node, from, to time.Time) (_ Usage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	conn, err := service.dialer.DialNodeURL(ctx, storj.NodeURL{
 		ID:      node.ID,
@@ -259,7 +276,9 @@ func (service *Service) dialUsage(ctx context.Context, node nodes.Node, from, to
 
 // dialUsageSatellite dials node and retrieves it's storage usage for provided interval and satellite.
 func (service *Service) dialUsageSatellite(ctx context.Context, node nodes.Node, satelliteID storj.NodeID, from, to time.Time) (_ Usage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	conn, err := service.dialer.DialNodeURL(ctx, storj.NodeURL{
 		ID:      node.ID,

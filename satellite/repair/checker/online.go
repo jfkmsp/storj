@@ -5,6 +5,10 @@ package checker
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -101,7 +105,9 @@ func (cache *ReliabilityCache) loadFast(ctx context.Context, validUpTo time.Time
 
 // Refresh refreshes the cache.
 func (cache *ReliabilityCache) Refresh(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	cache.mu.Lock()
 	defer cache.mu.Unlock()
@@ -112,7 +118,9 @@ func (cache *ReliabilityCache) Refresh(ctx context.Context) (err error) {
 
 // refreshLocked does the refreshes assuming the write mutex is held.
 func (cache *ReliabilityCache) refreshLocked(ctx context.Context) (_ *reliabilityState, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	nodes, err := cache.overlay.Reliable(ctx)
 	if err != nil {

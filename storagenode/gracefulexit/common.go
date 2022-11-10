@@ -6,7 +6,6 @@ package gracefulexit
 import (
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 
 	"storj.io/common/memory"
@@ -15,8 +14,6 @@ import (
 var (
 	// Error is the default error class for graceful exit package.
 	Error = errs.Class("gracefulexit")
-
-	mon = monkit.Package()
 )
 
 // Config for graceful exit.

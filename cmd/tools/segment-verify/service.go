@@ -6,12 +6,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"go.opentelemetry.io/otel"
 	"os"
+
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -20,8 +22,6 @@ import (
 	"storj.io/storj/satellite/metabase"
 	"storj.io/storj/satellite/overlay"
 )
-
-var mon = monkit.Package()
 
 // Error is global error class.
 var Error = errs.Class("segment-verify")
@@ -218,7 +218,9 @@ func (service *Service) parseNodeFile(path string) (NodeAliasSet, error) {
 
 // ProcessRange processes segments between low and high uuid.UUID with the specified batchSize.
 func (service *Service) ProcessRange(ctx context.Context, low, high uuid.UUID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	aliasMap, err := service.metabase.LatestNodesAliasMap(ctx)
 	if err != nil {
@@ -302,7 +304,9 @@ func (service *Service) ProcessRange(ctx context.Context, low, high uuid.UUID) (
 
 // ProcessSegments processes a collection of segments.
 func (service *Service) ProcessSegments(ctx context.Context, segments []*Segment) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// Verify all the segments against storage nodes.
 	err = service.Verify(ctx, segments)
@@ -347,7 +351,9 @@ func (service *Service) ProcessSegments(ctx context.Context, segments []*Segment
 // RemoveDeleted modifies the slice and returns only the segments that
 // still exist in the database.
 func (service *Service) RemoveDeleted(ctx context.Context, segments []*Segment) (_ []*Segment, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	valid := segments[:0]
 	for _, seg := range segments {

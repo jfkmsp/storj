@@ -5,6 +5,10 @@ package satellitedb
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 
 	"github.com/zeebo/errs"
 
@@ -23,7 +27,9 @@ type registrationTokens struct {
 
 // Create creates new registration token.
 func (rt *registrationTokens) Create(ctx context.Context, projectLimit int) (_ *console.RegistrationToken, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	secret, err := console.NewRegistrationSecret()
 	if err != nil {
 		return nil, err
@@ -44,7 +50,9 @@ func (rt *registrationTokens) Create(ctx context.Context, projectLimit int) (_ *
 
 // GetBySecret retrieves RegTokenInfo with given Secret.
 func (rt *registrationTokens) GetBySecret(ctx context.Context, secret console.RegistrationSecret) (_ *console.RegistrationToken, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	regToken, err := rt.db.Get_RegistrationToken_By_Secret(ctx, dbx.RegistrationToken_Secret(secret[:]))
 	if err != nil {
 		return nil, err
@@ -55,7 +63,9 @@ func (rt *registrationTokens) GetBySecret(ctx context.Context, secret console.Re
 
 // GetByOwnerID retrieves RegTokenInfo by ownerID.
 func (rt *registrationTokens) GetByOwnerID(ctx context.Context, ownerID uuid.UUID) (_ *console.RegistrationToken, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	regToken, err := rt.db.Get_RegistrationToken_By_OwnerId(ctx, dbx.RegistrationToken_OwnerId(ownerID[:]))
 	if err != nil {
 		return nil, err
@@ -66,7 +76,9 @@ func (rt *registrationTokens) GetByOwnerID(ctx context.Context, ownerID uuid.UUI
 
 // UpdateOwner updates registration token's owner.
 func (rt *registrationTokens) UpdateOwner(ctx context.Context, secret console.RegistrationSecret, ownerID uuid.UUID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	_, err = rt.db.Update_RegistrationToken_By_Secret(
 		ctx,
 		dbx.RegistrationToken_Secret(secret[:]),

@@ -5,9 +5,12 @@ package rolluparchive
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -18,7 +21,6 @@ import (
 // Error is a standard error class for this package.
 var (
 	Error = errs.Class("rolluparchive")
-	mon   = monkit.Package()
 )
 
 // Config contains configurable values for rollup archiver.
@@ -55,11 +57,13 @@ func New(log *zap.Logger, sdb accounting.StoragenodeAccounting, pdb accounting.P
 
 // Run starts the archiver chore.
 func (chore *Chore) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
 	if chore.archiveAge < 0 {
 		return Error.New("archive age can't be less than 0")
 	}
 	return chore.Loop.Run(ctx, func(ctx context.Context) error {
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		defer span.End()
 		cutoff := time.Now().UTC().Add(-chore.archiveAge)
 		err := chore.ArchiveRollups(ctx, cutoff, chore.batchSize)
 		if err != nil {
@@ -77,7 +81,9 @@ func (chore *Chore) Close() error {
 
 // ArchiveRollups will remove old rollups from active rollup tables.
 func (chore *Chore) ArchiveRollups(ctx context.Context, cutoff time.Time, batchSize int) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	nodeRollupsArchived, err := chore.nodeAccounting.ArchiveRollupsBefore(ctx, cutoff, batchSize)
 	if err != nil {
 		chore.log.Error("archiving bandwidth rollups", zap.Int("node rollups archived", nodeRollupsArchived), zap.Error(err))

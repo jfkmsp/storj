@@ -7,6 +7,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"strings"
 	"time"
 
@@ -20,7 +24,9 @@ import (
 )
 
 func (cache *overlaycache) SelectStorageNodes(ctx context.Context, totalNeededNodes, newNodeCount int, criteria *overlay.NodeCriteria) (nodes []*overlay.SelectedNode, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if totalNeededNodes == 0 {
 		return nil, nil
 	}
@@ -91,7 +97,9 @@ func (cache *overlaycache) SelectStorageNodes(ctx context.Context, totalNeededNo
 }
 
 func (cache *overlaycache) selectStorageNodesOnce(ctx context.Context, reputableNodeCount, newNodeCount int, criteria *overlay.NodeCriteria, excludedIDs []storj.NodeID, excludedNetworks []string) (reputableNodes, newNodes []*overlay.SelectedNode, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	newNodesCondition, err := nodeSelectionCondition(ctx, criteria, excludedIDs, excludedNetworks, true)
 	if err != nil {

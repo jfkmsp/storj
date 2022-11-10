@@ -7,7 +7,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"go.opentelemetry.io/otel"
 	"net/http"
+	"os"
+
+	"runtime"
 	"strings"
 	"time"
 
@@ -15,16 +19,11 @@ import (
 	"github.com/go-oauth2/oauth2/v4/manage"
 	"github.com/go-oauth2/oauth2/v4/server"
 	"github.com/gorilla/mux"
-	"github.com/spacemonkeygo/monkit/v3"
 	"go.uber.org/zap"
 
 	"storj.io/common/storj"
 	"storj.io/common/uuid"
 	"storj.io/storj/satellite/console"
-)
-
-var (
-	mon = monkit.Package()
 )
 
 // NewEndpoint constructs an OpenID identity provider.
@@ -96,7 +95,9 @@ type Endpoint struct {
 func (e *Endpoint) WellKnownConfiguration(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -111,7 +112,9 @@ func (e *Endpoint) WellKnownConfiguration(w http.ResponseWriter, r *http.Request
 func (e *Endpoint) AuthorizeUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	err = e.server.HandleAuthorizeRequest(w, r)
 	if err != nil {
@@ -123,7 +126,9 @@ func (e *Endpoint) AuthorizeUser(w http.ResponseWriter, r *http.Request) {
 func (e *Endpoint) Tokens(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	err = e.server.HandleTokenRequest(w, r)
 	if err != nil {
@@ -135,7 +140,9 @@ func (e *Endpoint) Tokens(w http.ResponseWriter, r *http.Request) {
 func (e *Endpoint) UserInfo(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	accessToken := r.Header.Get("Authorization")
 	if !strings.HasPrefix(accessToken, "Bearer ") {
@@ -191,7 +198,9 @@ func (e *Endpoint) UserInfo(w http.ResponseWriter, r *http.Request) {
 func (e *Endpoint) GetClient(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	vars := mux.Vars(r)
 

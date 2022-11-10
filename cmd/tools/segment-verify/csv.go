@@ -7,8 +7,11 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
+	"go.opentelemetry.io/otel"
 	"io"
 	"os"
+
+	"runtime"
 )
 
 // CSVWriter writes segments to a file.
@@ -47,7 +50,9 @@ func (csv *CSVWriter) Close() error {
 
 // Write writes and flushes the segments.
 func (csv *CSVWriter) Write(ctx context.Context, segments []*Segment) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if !csv.header {
 		csv.header = true

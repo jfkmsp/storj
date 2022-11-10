@@ -5,10 +5,9 @@ package gracefulexit
 
 import (
 	"context"
-	"io"
-
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
+	"io"
 
 	"storj.io/common/errs2"
 	"storj.io/common/pb"
@@ -46,8 +45,6 @@ func NewWorker(log *zap.Logger, service *Service, transferService piecetransfer.
 // Run calls the satellite endpoint, transfers pieces, validates, and responds with success or failure.
 // It also marks the satellite finished once all the pieces have been transferred.
 func (worker *Worker) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
-
 	worker.log.Debug("started")
 	defer worker.log.Debug("finished")
 

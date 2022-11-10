@@ -9,6 +9,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"html/template"
 	"mime"
 	"net"
@@ -16,6 +20,8 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -23,7 +29,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/graphql/gqlerrors"
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -56,8 +61,6 @@ const (
 var (
 	// Error is satellite console error type.
 	Error = errs.Class("consoleweb")
-
-	mon = monkit.Package()
 )
 
 // Config contains configuration for console web server.
@@ -245,12 +248,12 @@ func NewServer(logger *zap.Logger, config Config, service *console.Service, oidc
 	router := mux.NewRouter()
 	// N.B. This middleware has to be the first one because it has to be called
 	// the earliest in the HTTP chain.
-	router.Use(newTraceRequestMiddleware(logger, router))
+	router.Use(otelmux.Middleware(os.Getenv("SERVICE_NAME")))
 
 	if server.config.GeneratedAPIEnabled {
-		consoleapi.NewProjectManagement(logger, mon, server.service, router, &apiAuth{&server})
-		consoleapi.NewAPIKeyManagement(logger, mon, server.service, router, &apiAuth{&server})
-		consoleapi.NewUserManagement(logger, mon, server.service, router, &apiAuth{&server})
+		consoleapi.NewProjectManagement(logger, server.service, router, &apiAuth{&server})
+		consoleapi.NewAPIKeyManagement(logger, server.service, router, &apiAuth{&server})
+		consoleapi.NewUserManagement(logger, server.service, router, &apiAuth{&server})
 	}
 
 	projectsController := consoleapi.NewProjects(logger, service)
@@ -369,7 +372,9 @@ func NewServer(logger *zap.Logger, config Config, service *console.Service, oidc
 
 // Run starts the server that host webapp and api endpoint.
 func (server *Server) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	//pc, _, _, _ := runtime.Caller(0)
+	//ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	//defer span.End()
 
 	server.schema, err = consoleql.CreateSchema(server.log, server.service, server.mailService)
 	if err != nil {
@@ -544,7 +549,9 @@ func (server *Server) withAuth(handler http.Handler) http.Handler {
 		var err error
 		ctx := r.Context()
 
-		defer mon.Task()(&ctx)(&err)
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		defer span.End()
 
 		defer func() {
 			if err != nil {
@@ -579,7 +586,9 @@ func (server *Server) withRequest(handler http.Handler) http.Handler {
 func (server *Server) bucketUsageReportHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	tokenInfo, err := server.cookieAuth.GetToken(r)
 	if err != nil {
@@ -638,7 +647,9 @@ func (server *Server) bucketUsageReportHandler(w http.ResponseWriter, r *http.Re
 // createRegistrationTokenHandler is web app http handler function.
 func (server *Server) createRegistrationTokenHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	defer mon.Task()(&ctx)(nil)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	w.Header().Set(contentType, applicationJSON)
 
 	var response struct {
@@ -683,7 +694,9 @@ func (server *Server) createRegistrationTokenHandler(w http.ResponseWriter, r *h
 // accountActivationHandler is web app http handler function.
 func (server *Server) accountActivationHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	defer mon.Task()(&ctx)(nil)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	activationToken := r.URL.Query().Get("token")
 
 	user, err := server.service.ActivateAccount(ctx, activationToken)
@@ -748,7 +761,9 @@ func (server *Server) accountActivationHandler(w http.ResponseWriter, r *http.Re
 
 func (server *Server) cancelPasswordRecoveryHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	defer mon.Task()(&ctx)(nil)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	recoveryToken := r.URL.Query().Get("token")
 
 	// No need to check error as we anyway redirect user to support page
@@ -761,7 +776,9 @@ func (server *Server) cancelPasswordRecoveryHandler(w http.ResponseWriter, r *ht
 // graphqlHandler is graphql endpoint http handler function.
 func (server *Server) graphqlHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	defer mon.Task()(&ctx)(nil)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	handleError := func(code int, err error) {
 		w.WriteHeader(code)
@@ -1038,9 +1055,10 @@ func newTraceRequestMiddleware(log *zap.Logger, root *mux.Router) mux.Middleware
 					zap.Duration("elapse", time.Since(begin)),
 				)
 
-				span := monkit.SpanFromCtx(ctx)
+				_, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, "incoming_connection")
+				defer span.End()
 				if span != nil {
-					fields = append(fields, zap.Int64("trace-id", span.Trace().Id()))
+					fields = append(fields, zap.String("trace-id", span.SpanContext().TraceID().String()))
 				}
 
 				log.Info("client HTTP request", fields...)
@@ -1073,7 +1091,9 @@ func newTraceRequestMiddleware(log *zap.Logger, root *mux.Router) mux.Middleware
 				boundMethod = "INVALID"
 			}
 
-			stop := mon.TaskNamed("visit_task", monkit.NewSeriesTag("path", pathTpl), monkit.NewSeriesTag("method", boundMethod))(&ctx)
+			_, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, "visit_task")
+			span.AddEvent("visit_task", trace.WithAttributes(attribute.String("path", pathTpl)), trace.WithAttributes(attribute.String("method", boundMethod)))
+			defer span.End()
 			r = r.WithContext(ctx)
 
 			defer func() {
@@ -1081,18 +1101,16 @@ func newTraceRequestMiddleware(log *zap.Logger, root *mux.Router) mux.Middleware
 				if respWCode.code >= http.StatusBadRequest {
 					err = fmt.Errorf("%d", respWCode.code)
 				}
-
-				stop(&err)
+				span.RecordError(err)
 				// Count the status codes returned by each endpoint.
-				mon.Event("visit_event_by_code",
-					monkit.NewSeriesTag("path", pathTpl),
-					monkit.NewSeriesTag("method", boundMethod),
-					monkit.NewSeriesTag("code", strconv.Itoa(respWCode.code)),
-				)
+				span.AddEvent("visit_task",
+					trace.WithAttributes(attribute.String("path", pathTpl)),
+					trace.WithAttributes(attribute.String("method", boundMethod)),
+					trace.WithAttributes(attribute.String("code", strconv.Itoa(respWCode.code))))
 			}()
 
 			// Count the requests to each endpoint.
-			mon.Event("visit_event", monkit.NewSeriesTag("path", pathTpl), monkit.NewSeriesTag("method", boundMethod))
+			span.AddEvent("visit_task", trace.WithAttributes(attribute.String("path", pathTpl)), trace.WithAttributes(attribute.String("method", boundMethod)))
 
 			next.ServeHTTP(&respWCode, r)
 		})

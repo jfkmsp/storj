@@ -10,7 +10,7 @@ import (
 	"errors"
 	"sync"
 
-	termbox "github.com/nsf/termbox-go"
+	"github.com/nsf/termbox-go"
 )
 
 var initialized = false

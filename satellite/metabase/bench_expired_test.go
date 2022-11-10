@@ -74,7 +74,7 @@ func (g *expirationDateGenerator) getDeadline() time.Time {
 		g.expired--
 		return g.now.Add(-timeInterval)
 	}
-	expired := (testrand.Intn(2) == 0)
+	expired := testrand.Intn(2) == 0
 	if expired {
 		g.expired--
 		return g.now.Add(-timeInterval)

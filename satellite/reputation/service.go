@@ -5,6 +5,10 @@ package reputation
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
 	"go.uber.org/zap"
@@ -103,7 +107,9 @@ func NewService(log *zap.Logger, overlay *overlay.Service, db DB, config Config)
 
 // ApplyAudit receives an audit result and applies it to the relevant node in DB.
 func (service *Service) ApplyAudit(ctx context.Context, nodeID storj.NodeID, reputation overlay.ReputationStatus, result AuditType) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	now := time.Now()
 	statusUpdate, err := service.db.Update(ctx, UpdateRequest{
@@ -142,7 +148,9 @@ func (service *Service) ApplyAudit(ctx context.Context, nodeID storj.NodeID, rep
 // Get returns a node's reputation info from DB.
 // If a node is not found in the DB, default reputation information is returned.
 func (service *Service) Get(ctx context.Context, nodeID storj.NodeID) (info *Info, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	info, err = service.db.Get(ctx, nodeID)
 	if err != nil {

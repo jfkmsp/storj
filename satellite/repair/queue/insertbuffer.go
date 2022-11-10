@@ -5,11 +5,11 @@ package queue
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
 
-	"github.com/spacemonkeygo/monkit/v3"
+	"runtime"
 )
-
-var mon = monkit.Package()
 
 // InsertBuffer exposes a synchronous API to buffer a batch of segments
 // and insert them at once. Not threadsafe. Call Flush() before discarding.
@@ -60,7 +60,9 @@ func (r *InsertBuffer) Insert(
 
 // Flush inserts the remaining segments into the database.
 func (r *InsertBuffer) Flush(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	newlyInsertedSegments, err := r.queue.InsertBatch(ctx, r.batch)
 	if err != nil {

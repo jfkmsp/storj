@@ -5,6 +5,12 @@ package stripecoinpayments
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+	"os"
+
+	"runtime"
 
 	"github.com/stripe/stripe-go/v72"
 	"github.com/zeebo/errs"
@@ -22,7 +28,9 @@ type creditCards struct {
 
 // List returns a list of credit cards for a given payment account.
 func (creditCards *creditCards) List(ctx context.Context, userID uuid.UUID) (cards []payments.CreditCard, err error) {
-	defer mon.Task()(&ctx, userID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("userID", userID.String())))
+	defer span.End()
 
 	customerID, err := creditCards.service.db.Customers().GetCustomerID(ctx, userID)
 	if err != nil {
@@ -67,7 +75,9 @@ func (creditCards *creditCards) List(ctx context.Context, userID uuid.UUID) (car
 
 // Add is used to save new credit card, attach it to payment account and make it default.
 func (creditCards *creditCards) Add(ctx context.Context, userID uuid.UUID, cardToken string) (err error) {
-	defer mon.Task()(&ctx, userID, cardToken)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("userID", userID.String())), trace.WithAttributes(attribute.String("cardToken", cardToken)))
+	defer span.End()
 
 	customerID, err := creditCards.service.db.Customers().GetCustomerID(ctx, userID)
 	if err != nil {
@@ -108,7 +118,9 @@ func (creditCards *creditCards) Add(ctx context.Context, userID uuid.UUID, cardT
 // MakeDefault makes a credit card default payment method.
 // this credit card should be attached to account before make it default.
 func (creditCards *creditCards) MakeDefault(ctx context.Context, userID uuid.UUID, cardID string) (err error) {
-	defer mon.Task()(&ctx, userID, cardID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("userID", userID.String())), trace.WithAttributes(attribute.String("cardID", cardID)))
+	defer span.End()
 
 	customerID, err := creditCards.service.db.Customers().GetCustomerID(ctx, userID)
 	if err != nil {
@@ -128,7 +140,9 @@ func (creditCards *creditCards) MakeDefault(ctx context.Context, userID uuid.UUI
 
 // Remove is used to remove credit card from payment account.
 func (creditCards *creditCards) Remove(ctx context.Context, userID uuid.UUID, cardID string) (err error) {
-	defer mon.Task()(&ctx, cardID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("cardID", cardID)))
+	defer span.End()
 
 	customerID, err := creditCards.service.db.Customers().GetCustomerID(ctx, userID)
 	if err != nil {
@@ -153,7 +167,9 @@ func (creditCards *creditCards) Remove(ctx context.Context, userID uuid.UUID, ca
 // RemoveAll is used to detach all credit cards from payment account.
 // It should only be used in case of a user deletion. In case of an error, some cards could have been deleted already.
 func (creditCards *creditCards) RemoveAll(ctx context.Context, userID uuid.UUID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	ccList, err := creditCards.List(ctx, userID)
 	if err != nil {

@@ -5,8 +5,12 @@ package consoleapi
 
 import (
 	"encoding/json"
+	"go.opentelemetry.io/otel"
 	"io"
 	"net/http"
+	"os"
+
+	"runtime"
 
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
@@ -47,7 +51,9 @@ type pageVisitBody struct {
 func (a *Analytics) EventTriggered(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -76,7 +82,9 @@ func (a *Analytics) EventTriggered(w http.ResponseWriter, r *http.Request) {
 func (a *Analytics) PageEventTriggered(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {

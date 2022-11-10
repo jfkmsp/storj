@@ -5,6 +5,12 @@ package stripecoinpayments
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/stripe/stripe-go/v72"
@@ -37,7 +43,9 @@ func (accounts *accounts) Invoices() payments.Invoices {
 // Setup creates a payment account for the user.
 // If account is already set up it will return nil.
 func (accounts *accounts) Setup(ctx context.Context, userID uuid.UUID, email string, signupPromoCode string) (couponType payments.CouponType, err error) {
-	defer mon.Task()(&ctx, userID, email)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("userID", userID.String())), trace.WithAttributes(attribute.String("email", email)))
+	defer span.End()
 
 	couponType = payments.FreeTierCoupon
 
@@ -95,7 +103,9 @@ func (accounts *accounts) Setup(ctx context.Context, userID uuid.UUID, email str
 
 // Balance returns an integer amount in cents that represents the current balance of payment account.
 func (accounts *accounts) Balance(ctx context.Context, userID uuid.UUID) (_ payments.Balance, err error) {
-	defer mon.Task()(&ctx, userID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("userID", userID.String())))
+	defer span.End()
 
 	customerID, err := accounts.service.db.Customers().GetCustomerID(ctx, userID)
 	if err != nil {
@@ -116,7 +126,12 @@ func (accounts *accounts) Balance(ctx context.Context, userID uuid.UUID) (_ paym
 
 // ProjectCharges returns how much money current user will be charged for each project.
 func (accounts *accounts) ProjectCharges(ctx context.Context, userID uuid.UUID, since, before time.Time) (charges []payments.ProjectCharge, err error) {
-	defer mon.Task()(&ctx, userID, since, before)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(),
+		trace.WithAttributes(attribute.String("userID", userID.String())),
+		trace.WithAttributes(attribute.String("since", since.String())),
+		trace.WithAttributes(attribute.String("before", before.String())))
+	defer span.End()
 
 	// to return empty slice instead of nil if there are no projects
 	charges = make([]payments.ProjectCharge, 0)
@@ -150,7 +165,9 @@ func (accounts *accounts) ProjectCharges(ctx context.Context, userID uuid.UUID, 
 // CheckProjectInvoicingStatus returns error if for the given project there are outstanding project records and/or usage
 // which have not been applied/invoiced yet (meaning sent over to stripe).
 func (accounts *accounts) CheckProjectInvoicingStatus(ctx context.Context, projectID uuid.UUID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	year, month, _ := accounts.service.nowFn().UTC().Date()
 	firstOfMonth := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
@@ -179,7 +196,9 @@ func (accounts *accounts) CheckProjectInvoicingStatus(ctx context.Context, proje
 // CheckProjectUsageStatus returns error if for the given project there is some usage for current or previous month.
 func (accounts *accounts) CheckProjectUsageStatus(ctx context.Context, projectID uuid.UUID) error {
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	year, month, _ := accounts.service.nowFn().UTC().Date()
 	firstOfMonth := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
@@ -210,7 +229,9 @@ func (accounts *accounts) CheckProjectUsageStatus(ctx context.Context, projectID
 
 // Charges returns list of all credit card charges related to account.
 func (accounts *accounts) Charges(ctx context.Context, userID uuid.UUID) (_ []payments.Charge, err error) {
-	defer mon.Task()(&ctx, userID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("userID", userID.String())))
+	defer span.End()
 
 	customerID, err := accounts.service.db.Customers().GetCustomerID(ctx, userID)
 	if err != nil {

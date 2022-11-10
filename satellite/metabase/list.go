@@ -5,6 +5,10 @@ package metabase
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
 	"storj.io/common/storj"
@@ -76,7 +80,9 @@ type IterateObjectsWithStatus struct {
 
 // IterateObjectsAllVersionsWithStatus iterates through all versions of all objects with specified status.
 func (db *DB) IterateObjectsAllVersionsWithStatus(ctx context.Context, opts IterateObjectsWithStatus, fn func(context.Context, ObjectsIterator) error) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if err = opts.Verify(); err != nil {
 		return err
 	}
@@ -100,7 +106,9 @@ func (opts *IterateObjectsWithStatus) Verify() error {
 
 // IteratePendingObjectsByKey iterates through all streams of pending objects with the same ObjectKey.
 func (db *DB) IteratePendingObjectsByKey(ctx context.Context, opts IteratePendingObjectsByKey, fn func(context.Context, ObjectsIterator) error) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err := opts.Verify(); err != nil {
 		return err

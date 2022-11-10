@@ -5,7 +5,11 @@ package consoleapi
 
 import (
 	"encoding/json"
+	"go.opentelemetry.io/otel"
 	"net/http"
+	"os"
+
+	"runtime"
 
 	"github.com/gorilla/mux"
 	"github.com/zeebo/errs"
@@ -37,7 +41,9 @@ func NewPayout(log *zap.Logger, service *payouts.Service) *Payout {
 func (payout *Payout) PayStubMonthly(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set(contentType, applicationJSON)
 
@@ -91,7 +97,9 @@ func (payout *Payout) PayStubMonthly(w http.ResponseWriter, r *http.Request) {
 func (payout *Payout) PayStubPeriod(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set(contentType, applicationJSON)
 
@@ -156,7 +164,9 @@ func (payout *Payout) PayStubPeriod(w http.ResponseWriter, r *http.Request) {
 func (payout *Payout) HeldHistory(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set(contentType, applicationJSON)
 
@@ -176,7 +186,9 @@ func (payout *Payout) HeldHistory(w http.ResponseWriter, r *http.Request) {
 func (payout *Payout) PayoutHistory(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set(contentType, applicationJSON)
 
@@ -205,8 +217,9 @@ func (payout *Payout) PayoutHistory(w http.ResponseWriter, r *http.Request) {
 // If satelliteID specified - will retrieve periods only for concrete satellite.
 func (payout *Payout) HeldAmountPeriods(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set(contentType, applicationJSON)
 

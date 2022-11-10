@@ -14,11 +14,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	_ "github.com/mattn/go-sqlite3" // used indirectly.
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
-	"storj.io/private/dbutil"
 	"storj.io/private/dbutil/dbschema"
 	"storj.io/private/dbutil/sqliteutil"
 	"storj.io/private/tagsql"
@@ -41,7 +39,6 @@ import (
 const VersionTable = "versions"
 
 var (
-	mon = monkit.Package()
 
 	// ErrDatabase represents errors from the databases.
 	ErrDatabase = errs.Class("database")
@@ -327,7 +324,6 @@ func (db *DB) openDatabase(ctx context.Context, dbName string) error {
 	mDB := db.SQLDBs[dbName]
 	mDB.Configure(sqlDB)
 
-	dbutil.Configure(ctx, sqlDB, dbName, mon)
 
 	return nil
 }

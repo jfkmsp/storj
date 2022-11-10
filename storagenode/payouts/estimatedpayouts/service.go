@@ -5,9 +5,12 @@ package estimatedpayouts
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 
 	"storj.io/common/storj"
@@ -24,8 +27,6 @@ import (
 var (
 	// EstimationServiceErr defines sno service error.
 	EstimationServiceErr = errs.Class("estimationservice")
-
-	mon = monkit.Package()
 )
 
 // Service is handling storage node estimation payouts logic.
@@ -54,7 +55,9 @@ func NewService(bandwidthDB bandwidth.DB, reputationDB reputation.DB, storageUsa
 
 // GetSatelliteEstimatedPayout returns estimated payouts for current and previous months from specific satellite with current level of load.
 func (s *Service) GetSatelliteEstimatedPayout(ctx context.Context, satelliteID storj.NodeID, now time.Time) (payout EstimatedPayout, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	stats, err := s.reputationDB.Get(ctx, satelliteID)
 	if err != nil {
@@ -76,7 +79,9 @@ func (s *Service) GetSatelliteEstimatedPayout(ctx context.Context, satelliteID s
 
 // GetAllSatellitesEstimatedPayout returns estimated payouts for current and previous months from all satellites with current level of load.
 func (s *Service) GetAllSatellitesEstimatedPayout(ctx context.Context, now time.Time) (payout EstimatedPayout, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	satelliteIDs := s.trust.GetSatellites(ctx)
 	for i := 0; i < len(satelliteIDs); i++ {
@@ -104,7 +109,9 @@ func (s *Service) GetAllSatellitesEstimatedPayout(ctx context.Context, now time.
 
 // estimatedPayout returns estimated payouts data for current and previous months from specific satellite.
 func (s *Service) estimatedPayout(ctx context.Context, satelliteID storj.NodeID, now time.Time) (currentMonthPayout PayoutMonthly, previousMonthPayout PayoutMonthly, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	priceModel, err := s.pricingDB.Get(ctx, satelliteID)
 	if err != nil {

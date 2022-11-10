@@ -6,8 +6,11 @@ package testplanet
 import (
 	"context"
 	"fmt"
+	"go.opentelemetry.io/otel"
 	"os"
 	"path/filepath"
+
+	"runtime"
 	"runtime/pprof"
 	"strconv"
 
@@ -51,7 +54,9 @@ func (system *Multinode) ConsoleURL() string {
 
 // newMultinodes initializes multinode dashboards.
 func (planet *Planet) newMultinodes(ctx context.Context, prefix string, count int) (_ []*Multinode, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var xs []*Multinode
 	for i := 0; i < count; i++ {
@@ -76,7 +81,9 @@ func (planet *Planet) newMultinodes(ctx context.Context, prefix string, count in
 }
 
 func (planet *Planet) newMultinode(ctx context.Context, prefix string, index int, log *zap.Logger) (_ *Multinode, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	storageDir := filepath.Join(planet.directory, prefix)
 	if err := os.MkdirAll(storageDir, 0700); err != nil {

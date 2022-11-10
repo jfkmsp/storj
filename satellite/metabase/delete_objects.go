@@ -6,6 +6,11 @@ package metabase
 import (
 	"context"
 	"encoding/hex"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/jackc/pgx/v4"
@@ -29,7 +34,9 @@ type DeleteExpiredObjects struct {
 
 // DeleteExpiredObjects deletes all objects that expired before expiredBefore.
 func (db *DB) DeleteExpiredObjects(ctx context.Context, opts DeleteExpiredObjects) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return db.deleteObjectsAndSegmentsBatch(ctx, opts.BatchSize, func(startAfter ObjectStream, batchsize int) (last ObjectStream, err error) {
 		query := `
@@ -103,7 +110,9 @@ type DeleteZombieObjects struct {
 
 // DeleteZombieObjects deletes all objects that zombie deletion deadline passed.
 func (db *DB) DeleteZombieObjects(ctx context.Context, opts DeleteZombieObjects) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return db.deleteObjectsAndSegmentsBatch(ctx, opts.BatchSize, func(startAfter ObjectStream, batchsize int) (last ObjectStream, err error) {
 		// pending objects migrated to metabase didn't have zombie_deletion_deadline column set, because
@@ -166,7 +175,9 @@ func (db *DB) DeleteZombieObjects(ctx context.Context, opts DeleteZombieObjects)
 }
 
 func (db *DB) deleteObjectsAndSegmentsBatch(ctx context.Context, batchsize int, deleteBatch func(startAfter ObjectStream, batchsize int) (last ObjectStream, err error)) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	deleteBatchsizeLimit.Ensure(&batchsize)
 
@@ -184,7 +195,10 @@ func (db *DB) deleteObjectsAndSegmentsBatch(ctx context.Context, batchsize int, 
 }
 
 func (db *DB) deleteObjectsAndSegments(ctx context.Context, objects []ObjectStream) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	if len(objects) == 0 {
 		return nil
@@ -226,8 +240,10 @@ func (db *DB) deleteObjectsAndSegments(ctx context.Context, objects []ObjectStre
 			}
 		}
 
-		mon.Meter("object_delete").Mark64(objectsDeletedGuess)
-		mon.Meter("segment_delete").Mark64(segmentsDeleted)
+		histCounter, _ := meter.SyncInt64().Histogram("object_delete")
+		histCounter.Record(ctx, objectsDeletedGuess)
+		histCounter, _ = meter.SyncInt64().Histogram("segment_delete")
+		histCounter.Record(ctx, segmentsDeleted)
 
 		return errlist.Err()
 	})
@@ -238,7 +254,10 @@ func (db *DB) deleteObjectsAndSegments(ctx context.Context, objects []ObjectStre
 }
 
 func (db *DB) deleteInactiveObjectsAndSegments(ctx context.Context, objects []ObjectStream, inactiveDeadline time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	if len(objects) == 0 {
 		return nil
@@ -283,8 +302,10 @@ func (db *DB) deleteInactiveObjectsAndSegments(ctx context.Context, objects []Ob
 		}
 
 		// TODO calculate deleted objects
-		mon.Meter("zombie_segment_delete").Mark64(segmentsDeleted)
-		mon.Meter("segment_delete").Mark64(segmentsDeleted)
+		histCounter, _ := meter.SyncInt64().Histogram("zombie_segment_delete")
+		histCounter.Record(ctx, segmentsDeleted)
+		histCounter, _ = meter.SyncInt64().Histogram("segment_delete")
+		histCounter.Record(ctx, segmentsDeleted)
 
 		return errlist.Err()
 	})

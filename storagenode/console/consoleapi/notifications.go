@@ -5,7 +5,11 @@ package consoleapi
 
 import (
 	"encoding/json"
+	"go.opentelemetry.io/otel"
 	"net/http"
+	"os"
+
+	"runtime"
 	"strconv"
 
 	"github.com/gorilla/mux"
@@ -48,7 +52,9 @@ func NewNotifications(log *zap.Logger, service *notifications.Service) *Notifica
 func (notification *Notifications) ReadNotification(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set(contentType, applicationJSON)
 
@@ -76,7 +82,9 @@ func (notification *Notifications) ReadNotification(w http.ResponseWriter, r *ht
 func (notification *Notifications) ReadAllNotifications(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set(contentType, applicationJSON)
 
@@ -91,7 +99,9 @@ func (notification *Notifications) ReadAllNotifications(w http.ResponseWriter, r
 func (notification *Notifications) ListNotifications(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set(contentType, applicationJSON)
 

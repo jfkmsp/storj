@@ -5,6 +5,9 @@ package checker
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+	"runtime"
 	"time"
 
 	"storj.io/common/sync2"
@@ -27,7 +30,6 @@ func NewChore(service *Service, checkInterval time.Duration) *Chore {
 
 // Run logs the current version information.
 func (chore *Chore) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
 	if !chore.service.Checked() {
 		_, err := chore.service.CheckVersion(ctx)
 		if err != nil {
@@ -35,6 +37,9 @@ func (chore *Chore) Run(ctx context.Context) (err error) {
 		}
 	}
 	return chore.Loop.Run(ctx, func(ctx context.Context) error {
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		defer span.End()
 		chore.service.checkVersion(ctx)
 		return nil
 	})

@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 
@@ -27,10 +26,6 @@ import (
 	"storj.io/storj/multinode/storage"
 	"storj.io/storj/private/lifecycle"
 	multinodeweb "storj.io/storj/web/multinode"
-)
-
-var (
-	mon = monkit.Package()
 )
 
 // DB is the master database for Multinode Dashboard.
@@ -217,8 +212,6 @@ func New(log *zap.Logger, full *identity.FullIdentity, config Config, db DB) (_ 
 
 // Run runs Multinode Dashboard services and servers until it's either closed or it errors.
 func (peer *Peer) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
-
 	group, ctx := errgroup.WithContext(ctx)
 
 	peer.Servers.Run(ctx, group)

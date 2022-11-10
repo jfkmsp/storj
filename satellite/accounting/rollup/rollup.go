@@ -5,6 +5,10 @@ package rollup
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
 	"go.uber.org/zap"
@@ -48,8 +52,10 @@ func New(logger *zap.Logger, sdb accounting.StoragenodeAccounting, config Config
 
 // Run the Rollup loop.
 func (r *Service) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
 	return r.Loop.Run(ctx, func(ctx context.Context) error {
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		defer span.End()
 		err := r.Rollup(ctx)
 		if err != nil {
 			r.logger.Error("rollup failed", zap.Error(err))
@@ -66,7 +72,9 @@ func (r *Service) Close() error {
 
 // Rollup aggregates storage and bandwidth amounts for the time interval.
 func (r *Service) Rollup(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	// only Rollup new things - get LastRollup
 	lastRollup, err := r.sdb.LastTimestamp(ctx, accounting.LastRollup)
 	if err != nil {
@@ -115,7 +123,9 @@ func (r *Service) Rollup(ctx context.Context) (err error) {
 
 // RollupStorage rolls up storage tally, modifies rollupStats map.
 func (r *Service) RollupStorage(ctx context.Context, lastRollup time.Time, rollupStats accounting.RollupStats) (latestTally time.Time, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	tallies, err := r.sdb.GetTalliesSince(ctx, lastRollup)
 	if err != nil {
 		return lastRollup, Error.Wrap(err)
@@ -154,7 +164,9 @@ func (r *Service) RollupStorage(ctx context.Context, lastRollup time.Time, rollu
 
 // RollupBW aggregates the bandwidth rollups, modifies rollupStats map.
 func (r *Service) RollupBW(ctx context.Context, lastRollup time.Time, rollupStats accounting.RollupStats) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	err = r.sdb.GetBandwidthSince(ctx, lastRollup.UTC(), func(ctx context.Context, row *accounting.StoragenodeBandwidthRollup) error {
 		nodeID := row.NodeID
 		// interval is the time the bw order was saved

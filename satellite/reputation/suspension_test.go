@@ -158,14 +158,14 @@ func TestAuditSuspendExceedGracePeriod(t *testing.T) {
 
 		// suspend each node two hours ago (more than grace period)
 		repService := planet.Satellites[0].Reputation.Service
-		for _, node := range (storj.NodeIDList{successNodeID, failNodeID, offlineNodeID, unknownNodeID}) {
+		for _, node := range storj.NodeIDList{successNodeID, failNodeID, offlineNodeID, unknownNodeID} {
 			err := repService.TestSuspendNodeUnknownAudit(ctx, node, time.Now().Add(-2*time.Hour))
 			require.NoError(t, err)
 		}
 
 		nodesStatus := make(map[storj.NodeID]overlay.ReputationStatus)
 		// no nodes should be disqualified
-		for _, node := range (storj.NodeIDList{successNodeID, failNodeID, offlineNodeID, unknownNodeID}) {
+		for _, node := range storj.NodeIDList{successNodeID, failNodeID, offlineNodeID, unknownNodeID} {
 			n, err := repService.Get(ctx, node)
 			require.NoError(t, err)
 			require.Nil(t, n.Disqualified)
@@ -191,12 +191,12 @@ func TestAuditSuspendExceedGracePeriod(t *testing.T) {
 
 		// success and offline nodes should not be disqualified
 		// fail and unknown nodes should be disqualified
-		for _, node := range (storj.NodeIDList{successNodeID, offlineNodeID}) {
+		for _, node := range storj.NodeIDList{successNodeID, offlineNodeID} {
 			n, err := repService.Get(ctx, node)
 			require.NoError(t, err)
 			require.Nil(t, n.Disqualified)
 		}
-		for _, node := range (storj.NodeIDList{failNodeID, unknownNodeID}) {
+		for _, node := range storj.NodeIDList{failNodeID, unknownNodeID} {
 			n, err := repService.Get(ctx, node)
 			require.NoError(t, err)
 			require.NotNil(t, n.Disqualified)
@@ -224,14 +224,14 @@ func TestAuditSuspendDQDisabled(t *testing.T) {
 		// suspend each node two hours ago (more than grace period)
 		oc := planet.Satellites[0].DB.OverlayCache()
 		repService := planet.Satellites[0].Reputation.Service
-		for _, node := range (storj.NodeIDList{successNodeID, failNodeID, offlineNodeID, unknownNodeID}) {
+		for _, node := range storj.NodeIDList{successNodeID, failNodeID, offlineNodeID, unknownNodeID} {
 			err := repService.TestSuspendNodeUnknownAudit(ctx, node, time.Now().Add(-2*time.Hour))
 			require.NoError(t, err)
 		}
 		nodesStatus := make(map[storj.NodeID]overlay.ReputationStatus)
 
 		// no nodes should be disqualified
-		for _, node := range (storj.NodeIDList{successNodeID, failNodeID, offlineNodeID, unknownNodeID}) {
+		for _, node := range storj.NodeIDList{successNodeID, failNodeID, offlineNodeID, unknownNodeID} {
 			n, err := oc.Get(ctx, node)
 			require.NoError(t, err)
 			require.Nil(t, n.Disqualified)

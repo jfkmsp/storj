@@ -6,6 +6,12 @@ package stripecoinpayments
 import (
 	"context"
 	"encoding/json"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+	"os"
+
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -40,7 +46,10 @@ type storjTokens struct {
 
 // ListTransactionInfos fetches all transactions from the database for specified user, reconstructing checkout link.
 func (tokens *storjTokens) ListTransactionInfos(ctx context.Context, userID uuid.UUID) (_ []payments.TransactionInfo, err error) {
-	defer mon.Task()(&ctx, userID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(),
+		trace.WithAttributes(attribute.String("userID", userID.String())))
+	defer span.End()
 
 	txs, err := tokens.service.db.Transactions().ListAccount(ctx, userID)
 	if err != nil {
@@ -90,7 +99,10 @@ func (tokens *storjTokens) ListTransactionInfos(ctx context.Context, userID uuid
 
 // ListDepositBonuses returns all deposit bonuses from Stripe associated with user.
 func (tokens *storjTokens) ListDepositBonuses(ctx context.Context, userID uuid.UUID) (_ []payments.DepositBonus, err error) {
-	defer mon.Task()(&ctx, userID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(),
+		trace.WithAttributes(attribute.String("userID", userID.String())))
+	defer span.End()
 
 	cusID, err := tokens.service.db.Customers().GetCustomerID(ctx, userID)
 	if err != nil {

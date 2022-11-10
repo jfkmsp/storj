@@ -7,6 +7,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 
 	"github.com/zeebo/errs"
 
@@ -89,7 +93,9 @@ func (db *pieceSpaceUsedDB) createInitTotalTrash(ctx context.Context) (err error
 
 // GetPieceTotal returns the total space used (total and contentSize) for all pieces stored.
 func (db *pieceSpaceUsedDB) GetPieceTotals(ctx context.Context) (total int64, contentSize int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	row := db.QueryRowContext(ctx, `
 		SELECT total, content_size
@@ -109,7 +115,9 @@ func (db *pieceSpaceUsedDB) GetPieceTotals(ctx context.Context) (total int64, co
 
 // GetTrashTotal returns the total space used by all trash.
 func (db *pieceSpaceUsedDB) GetTrashTotal(ctx context.Context) (total int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	row := db.QueryRowContext(ctx, `
 		SELECT total
@@ -129,7 +137,9 @@ func (db *pieceSpaceUsedDB) GetTrashTotal(ctx context.Context) (total int64, err
 
 // GetPieceTotalsForAllSatellites returns how much space used by pieces stored for each satelliteID.
 func (db *pieceSpaceUsedDB) GetPieceTotalsForAllSatellites(ctx context.Context) (_ map[storj.NodeID]pieces.SatelliteUsage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	rows, err := db.QueryContext(ctx, `
 		SELECT total, content_size, satellite_id
@@ -164,7 +174,9 @@ func (db *pieceSpaceUsedDB) GetPieceTotalsForAllSatellites(ctx context.Context) 
 
 // UpdatePieceTotals updates the record for total spaced used with new total and contentSize values.
 func (db *pieceSpaceUsedDB) UpdatePieceTotals(ctx context.Context, newTotal, newContentSize int64) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = db.ExecContext(ctx, `
 		UPDATE piece_space_used
@@ -177,7 +189,9 @@ func (db *pieceSpaceUsedDB) UpdatePieceTotals(ctx context.Context, newTotal, new
 
 // UpdateTrashTotal updates the record for total spaced used with a new value.
 func (db *pieceSpaceUsedDB) UpdateTrashTotal(ctx context.Context, newTotal int64) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = db.ExecContext(ctx, `
 		UPDATE piece_space_used
@@ -190,7 +204,9 @@ func (db *pieceSpaceUsedDB) UpdateTrashTotal(ctx context.Context, newTotal int64
 
 // UpdatePieceTotalsForAllSatellites updates each record with new values for each satelliteID.
 func (db *pieceSpaceUsedDB) UpdatePieceTotalsForAllSatellites(ctx context.Context, newTotalsBySatellites map[storj.NodeID]pieces.SatelliteUsage) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	for satelliteID, vals := range newTotalsBySatellites {
 		if vals.ContentSize == 0 && vals.Total == 0 {
@@ -219,7 +235,9 @@ func (db *pieceSpaceUsedDB) UpdatePieceTotalsForAllSatellites(ctx context.Contex
 }
 
 func (db *pieceSpaceUsedDB) deleteTotalBySatellite(ctx context.Context, satelliteID storj.NodeID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = db.ExecContext(ctx, `
 		DELETE FROM piece_space_used

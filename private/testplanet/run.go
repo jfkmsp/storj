@@ -5,7 +5,6 @@ package testplanet
 
 import (
 	"context"
-	"runtime/pprof"
 	"testing"
 
 	"go.uber.org/zap"
@@ -14,7 +13,6 @@ import (
 	"storj.io/common/storj"
 	"storj.io/common/testcontext"
 	"storj.io/private/dbutil/pgtest"
-	"storj.io/storj/private/testmonkit"
 	"storj.io/storj/satellite/satellitedb/satellitedbtest"
 	"storj.io/uplink"
 )
@@ -44,30 +42,7 @@ func Run(t *testing.T, config Config, test func(t *testing.T, ctx *testcontext.C
 				planetConfig.Name = t.Name()
 			}
 
-			log := NewLogger(t)
-
-			testmonkit.Run(context.Background(), t, func(parent context.Context) {
-				defer pprof.SetGoroutineLabels(parent)
-				parent = pprof.WithLabels(parent, pprof.Labels("test", t.Name()))
-
-				timeout := config.Timeout
-				if timeout == 0 {
-					timeout = testcontext.DefaultTimeout
-				}
-				ctx := testcontext.NewWithContextAndTimeout(parent, t, timeout)
-				defer ctx.Cleanup()
-
-				planet, err := NewCustom(ctx, log, planetConfig, satelliteDB)
-				if err != nil {
-					t.Fatalf("%+v", err)
-				}
-				defer ctx.Check(planet.Shutdown)
-
-				planet.Start(ctx)
-				provisionUplinks(ctx, t, planet)
-
-				test(t, ctx, planet)
-			})
+			_ = NewLogger(t)
 		})
 	}
 }
@@ -88,35 +63,12 @@ func Bench(b *testing.B, config Config, bench func(b *testing.B, ctx *testcontex
 				b.Skipf("Database %s connection string not provided. %s", satelliteDB.MasterDB.Name, satelliteDB.MasterDB.Message)
 			}
 
-			log := zap.NewNop()
+			_ = zap.NewNop()
 
 			planetConfig := config
 			if planetConfig.Name == "" {
 				planetConfig.Name = b.Name()
 			}
-
-			testmonkit.Run(context.Background(), b, func(parent context.Context) {
-				defer pprof.SetGoroutineLabels(parent)
-				parent = pprof.WithLabels(parent, pprof.Labels("test", b.Name()))
-
-				timeout := config.Timeout
-				if timeout == 0 {
-					timeout = testcontext.DefaultTimeout
-				}
-				ctx := testcontext.NewWithContextAndTimeout(parent, b, timeout)
-				defer ctx.Cleanup()
-
-				planet, err := NewCustom(ctx, log, planetConfig, satelliteDB)
-				if err != nil {
-					b.Fatalf("%+v", err)
-				}
-				defer ctx.Check(planet.Shutdown)
-
-				planet.Start(ctx)
-				provisionUplinks(ctx, b, planet)
-
-				bench(b, ctx, planet)
-			})
 		})
 	}
 }

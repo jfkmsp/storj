@@ -7,14 +7,14 @@ import (
 	"context"
 	"crypto/subtle"
 	"encoding/base64"
-	"time"
+	"go.opentelemetry.io/otel"
+	"os"
 
-	"github.com/spacemonkeygo/monkit/v3"
+	"runtime"
+	"time"
 
 	"storj.io/common/uuid"
 )
-
-var mon = monkit.Package()
 
 // Config contains configuration parameters for console auth.
 type Config struct {
@@ -42,7 +42,9 @@ type Signer interface {
 
 // CreateToken creates a new auth token.
 func (s *Service) CreateToken(ctx context.Context, id uuid.UUID, email string) (_ string, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	claims := &Claims{
 		ID:         id,
 		Expiration: time.Now().Add(s.config.TokenExpirationTime),
@@ -56,7 +58,9 @@ func (s *Service) CreateToken(ctx context.Context, id uuid.UUID, email string) (
 
 // createToken creates string representation.
 func (s *Service) createToken(ctx context.Context, claims *Claims) (_ string, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	json, err := claims.JSON()
 	if err != nil {

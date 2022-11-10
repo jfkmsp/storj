@@ -13,9 +13,11 @@ import (
 	"encoding/binary"
 	"encoding/pem"
 	"fmt"
+	"go.opentelemetry.io/otel"
 	"math/big"
 	"net"
 	"os"
+	"runtime"
 	"strconv"
 	"testing"
 	"time"
@@ -220,7 +222,9 @@ func randomUint64() uint64 {
 
 // waitForAddress will monitor starting when we are able to start the process.
 func waitForAddress(ctx context.Context, address string, maxStartupWait time.Duration) error {
-	defer mon.Task()(&ctx)(nil)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	start := time.Now()
 	for time.Since(start) < maxStartupWait {
@@ -238,7 +242,9 @@ func waitForAddress(ctx context.Context, address string, maxStartupWait time.Dur
 
 // tryConnect will try to connect to the process public address.
 func tryConnect(ctx context.Context, address string) bool {
-	defer mon.Task()(&ctx)(nil)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	dialer := net.Dialer{}
 

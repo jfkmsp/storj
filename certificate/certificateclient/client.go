@@ -5,9 +5,14 @@ package certificateclient
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 
 	"storj.io/common/identity"
@@ -15,8 +20,6 @@ import (
 	"storj.io/common/rpc"
 	"storj.io/storj/certificate/certificatepb"
 )
-
-var mon = monkit.Package()
 
 // Config is a config struct for use with a certificate signing service client.
 type Config struct {
@@ -32,7 +35,9 @@ type Client struct {
 
 // New creates a new certificate signing rpc client.
 func New(ctx context.Context, dialer rpc.Dialer, address string) (_ *Client, err error) {
-	defer mon.Task()(&ctx, address)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("address", address)))
+	defer span.End()
 
 	conn, err := dialer.DialAddressInsecure(ctx, address)
 	if err != nil {
@@ -55,7 +60,9 @@ func NewClientFrom(client certificatepb.DRPCCertificatesClient) *Client {
 
 // Sign submits a certificate signing request given the config.
 func (config Config) Sign(ctx context.Context, ident *identity.FullIdentity, authToken string) (_ [][]byte, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	tlsOptions, err := tlsopts.NewOptions(ident, config.TLS, nil)
 	if err != nil {
@@ -73,7 +80,9 @@ func (config Config) Sign(ctx context.Context, ident *identity.FullIdentity, aut
 // Sign claims an authorization using the token string and returns a signed
 // copy of the client's CA certificate.
 func (client *Client) Sign(ctx context.Context, tokenStr string) (_ [][]byte, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	res, err := client.client.Sign(ctx, &certificatepb.SigningRequest{
 		AuthToken: tokenStr,

@@ -8,6 +8,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"strings"
 
 	"github.com/go-oauth2/oauth2/v4"
@@ -23,7 +27,9 @@ type UUIDAuthorizeGenerate struct{}
 // Token returns a new authorization code.
 func (a *UUIDAuthorizeGenerate) Token(ctx context.Context, data *oauth2.GenerateBasic) (string, error) {
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	code, err := uuid.New()
 	if err != nil {
@@ -47,7 +53,9 @@ type GenerateService interface {
 
 func (a *MacaroonAccessGenerate) apiKeyForProject(ctx context.Context, data *oauth2.GenerateBasic, project string) (*macaroon.APIKey, error) {
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	userID, err := uuid.FromString(data.UserID)
 	if err != nil {
@@ -98,7 +106,9 @@ func (a *MacaroonAccessGenerate) apiKeyForProject(ctx context.Context, data *oau
 // In OAuth2.0, access_tokens are short-lived tokens that authorize operations to be performed on behalf of an end user.
 // refresh_tokens are longer lived tokens that allow you to obtain new authorization tokens.
 func (a *MacaroonAccessGenerate) Token(ctx context.Context, data *oauth2.GenerateBasic, isGenRefresh bool) (access, refresh string, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var apiKey *macaroon.APIKey
 

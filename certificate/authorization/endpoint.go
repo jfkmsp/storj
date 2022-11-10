@@ -7,9 +7,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"go.opentelemetry.io/otel"
 	"net"
 	"net/http"
+	"os"
 	"path"
+
+	"runtime"
 
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
@@ -50,15 +54,19 @@ func NewEndpoint(log *zap.Logger, service *Service, listener net.Listener) *Endp
 // Run starts the endpoint HTTP server and waits for the context to be
 // cancelled or for `Close` to be called.
 func (endpoint *Endpoint) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
-
 	ctx, cancel := context.WithCancel(ctx)
 	var group errgroup.Group
 	group.Go(func() error {
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		defer span.End()
 		<-ctx.Done()
 		return endpoint.server.Shutdown(context.Background())
 	})
 	group.Go(func() error {
+		pc, _, _, _ := runtime.Caller(0)
+		_, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		defer span.End()
 		defer cancel()
 		err := endpoint.server.Serve(endpoint.listener)
 		if errs2.IsCanceled(err) || errors.Is(err, http.ErrServerClosed) {
@@ -78,7 +86,9 @@ func (endpoint *Endpoint) Close() error {
 func (endpoint *Endpoint) handleAuthorization(writer http.ResponseWriter, httpReq *http.Request) {
 	var err error
 	ctx := httpReq.Context()
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if httpReq.Method != http.MethodPut {
 		msg := fmt.Sprintf("unsupported HTTP method: %s", httpReq.Method)

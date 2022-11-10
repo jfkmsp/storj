@@ -5,7 +5,10 @@ package trust
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
 	"os"
+
+	"runtime"
 
 	"github.com/zeebo/errs"
 )
@@ -56,7 +59,9 @@ func (source *FileSource) FetchEntries(ctx context.Context) (_ []Entry, err erro
 
 // LoadSatelliteURLList loads a list of Satellite URLs from a path on disk.
 func LoadSatelliteURLList(ctx context.Context, path string) (_ []SatelliteURL, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	f, err := os.Open(path)
 	if err != nil {

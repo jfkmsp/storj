@@ -6,6 +6,10 @@ package satellitedb
 import (
 	"context"
 	"encoding/json"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"strings"
 	"time"
 
@@ -47,7 +51,9 @@ func (users *users) UpdateFailedLoginCountAndExpiration(ctx context.Context, fai
 
 // Get is a method for querying user from the database by id.
 func (users *users) Get(ctx context.Context, id uuid.UUID) (_ *console.User, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	user, err := users.db.Get_User_By_Id(ctx, dbx.User_Id(id[:]))
 
 	if err != nil {
@@ -59,7 +65,9 @@ func (users *users) Get(ctx context.Context, id uuid.UUID) (_ *console.User, err
 
 // GetByEmailWithUnverified is a method for querying users by email from the database.
 func (users *users) GetByEmailWithUnverified(ctx context.Context, email string) (verified *console.User, unverified []console.User, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	usersDbx, err := users.db.All_User_By_NormalizedEmail(ctx, dbx.User_NormalizedEmail(normalizeEmail(email)))
 
 	if err != nil {
@@ -86,7 +94,9 @@ func (users *users) GetByEmailWithUnverified(ctx context.Context, email string) 
 
 // GetByEmail is a method for querying user by verified email from the database.
 func (users *users) GetByEmail(ctx context.Context, email string) (_ *console.User, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	user, err := users.db.Get_User_By_NormalizedEmail_And_Status_Not_Number(ctx, dbx.User_NormalizedEmail(normalizeEmail(email)))
 
 	if err != nil {
@@ -98,7 +108,9 @@ func (users *users) GetByEmail(ctx context.Context, email string) (_ *console.Us
 
 // GetUnverifiedNeedingReminder returns users in need of a reminder to verify their email.
 func (users *users) GetUnverifiedNeedingReminder(ctx context.Context, firstReminder, secondReminder, cutoff time.Time) (usersNeedingReminder []*console.User, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	rows, err := users.db.Query(ctx, `
 		SELECT id, email, full_name, short_name
@@ -139,7 +151,9 @@ func (users *users) UpdateVerificationReminders(ctx context.Context, id uuid.UUI
 
 // Insert is a method for inserting user into the database.
 func (users *users) Insert(ctx context.Context, user *console.User) (_ *console.User, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if user.ID.IsZero() {
 		return nil, errs.New("user id is not set")
@@ -197,7 +211,9 @@ func (users *users) Insert(ctx context.Context, user *console.User) (_ *console.
 
 // Delete is a method for deleting user by Id from the database.
 func (users *users) Delete(ctx context.Context, id uuid.UUID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	_, err = users.db.Delete_User_By_Id(ctx, dbx.User_Id(id[:]))
 
 	return err
@@ -205,7 +221,9 @@ func (users *users) Delete(ctx context.Context, id uuid.UUID) (err error) {
 
 // Update is a method for updating user entity.
 func (users *users) Update(ctx context.Context, userID uuid.UUID, updateRequest console.UpdateUserRequest) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	updateFields, err := toUpdateUser(updateRequest)
 	if err != nil {
@@ -223,7 +241,9 @@ func (users *users) Update(ctx context.Context, userID uuid.UUID, updateRequest 
 
 // UpdatePaidTier sets whether the user is in the paid tier.
 func (users *users) UpdatePaidTier(ctx context.Context, id uuid.UUID, paidTier bool, projectBandwidthLimit, projectStorageLimit memory.Size, projectSegmentLimit int64, projectLimit int) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = users.db.Update_User_By_Id(
 		ctx,
@@ -242,7 +262,9 @@ func (users *users) UpdatePaidTier(ctx context.Context, id uuid.UUID, paidTier b
 
 // GetProjectLimit is a method to get the users project limit.
 func (users *users) GetProjectLimit(ctx context.Context, id uuid.UUID) (limit int, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	row, err := users.db.Get_User_ProjectLimit_By_Id(ctx, dbx.User_Id(id[:]))
 	if err != nil {
@@ -253,7 +275,9 @@ func (users *users) GetProjectLimit(ctx context.Context, id uuid.UUID) (limit in
 
 // GetUserProjectLimits is a method to get the users storage and bandwidth limits for new projects.
 func (users *users) GetUserProjectLimits(ctx context.Context, id uuid.UUID) (limits *console.ProjectLimits, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	row, err := users.db.Get_User_ProjectStorageLimit_User_ProjectBandwidthLimit_User_ProjectSegmentLimit_By_Id(ctx, dbx.User_Id(id[:]))
 	if err != nil {
@@ -264,7 +288,9 @@ func (users *users) GetUserProjectLimits(ctx context.Context, id uuid.UUID) (lim
 }
 
 func (users *users) GetUserPaidTier(ctx context.Context, id uuid.UUID) (isPaid bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	row, err := users.db.Get_User_PaidTier_By_Id(ctx, dbx.User_Id(id[:]))
 	if err != nil {
@@ -357,7 +383,9 @@ func toUpdateUser(request console.UpdateUserRequest) (*dbx.User_Update_Fields, e
 
 // userFromDBX is used for creating User entity from autogenerated dbx.User struct.
 func userFromDBX(ctx context.Context, user *dbx.User) (_ *console.User, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if user == nil {
 		return nil, errs.New("user parameter is nil")
 	}
@@ -454,7 +482,9 @@ func userFromDBX(ctx context.Context, user *dbx.User) (_ *console.User, err erro
 
 // limitsFromDBX is used for creating user project limits entity from autogenerated dbx.User struct.
 func limitsFromDBX(ctx context.Context, limits *dbx.ProjectStorageLimit_ProjectBandwidthLimit_ProjectSegmentLimit_Row) (_ *console.ProjectLimits, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if limits == nil {
 		return nil, errs.New("user parameter is nil")
 	}

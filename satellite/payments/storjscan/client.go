@@ -6,7 +6,12 @@ package storjscan
 import (
 	"context"
 	"encoding/json"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
 	"net/http"
+	"os"
+
+	"runtime"
 	"strconv"
 	"time"
 
@@ -63,13 +68,15 @@ func NewClient(endpoint, identifier, secret string) *Client {
 		endpoint:   endpoint,
 		identifier: identifier,
 		secret:     secret,
-		http:       http.Client{},
+		http:       http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)},
 	}
 }
 
 // Payments retrieves all payments after specified block for wallets associated with particular API key.
 func (client *Client) Payments(ctx context.Context, from int64) (_ LatestPayments, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	p := client.endpoint + "/api/v0/tokens/payments"
 
@@ -118,7 +125,9 @@ func (client *Client) Payments(ctx context.Context, from int64) (_ LatestPayment
 
 // ClaimNewEthAddress claims a new ethereum wallet address for the given user.
 func (client *Client) ClaimNewEthAddress(ctx context.Context) (_ blockchain.Address, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	p := client.endpoint + "/api/v0/wallets/claim"
 

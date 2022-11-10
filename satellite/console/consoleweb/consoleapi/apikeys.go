@@ -4,7 +4,11 @@
 package consoleapi
 
 import (
+	"go.opentelemetry.io/otel"
 	"net/http"
+	"os"
+
+	"runtime"
 
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
@@ -36,7 +40,9 @@ func NewAPIKeys(log *zap.Logger, service *console.Service) *APIKeys {
 func (keys *APIKeys) DeleteByNameAndProjectID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	name := r.URL.Query().Get("name")
 	projectIDString := r.URL.Query().Get("projectID")

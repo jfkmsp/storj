@@ -5,11 +5,14 @@ package orders
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
 	"math/rand"
+	"os"
+
+	"runtime"
 	"sync"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -27,8 +30,6 @@ var (
 	OrderError = errs.Class("order")
 	// OrderNotFoundError is the error returned when an order is not found.
 	OrderNotFoundError = errs.Class("order not found")
-
-	mon = monkit.Package()
 )
 
 // ArchivedInfo contains full information about an archived order.
@@ -120,8 +121,6 @@ func NewService(log *zap.Logger, dialer rpc.Dialer, ordersStore *FileStore, orde
 
 // Run sends orders on every interval to the appropriate satellites.
 func (service *Service) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
-
 	var group errgroup.Group
 
 	service.Sender.Start(ctx, &group, func(ctx context.Context) error {
@@ -151,7 +150,9 @@ func (service *Service) Run(ctx context.Context) (err error) {
 
 // CleanArchive removes all archived orders that were archived before the deleteBefore time.
 func (service *Service) CleanArchive(ctx context.Context, deleteBefore time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	service.log.Debug("cleaning")
 
 	deleted, err := service.orders.CleanArchive(ctx, deleteBefore)
@@ -172,7 +173,6 @@ func (service *Service) CleanArchive(ctx context.Context, deleteBefore time.Time
 
 // SendOrders sends the orders using now as the current time.
 func (service *Service) SendOrders(ctx context.Context, now time.Time) {
-	defer mon.Task()(&ctx)(nil)
 	service.log.Debug("sending")
 
 	errorSatellites := make(map[storj.NodeID]struct{})
@@ -201,6 +201,9 @@ func (service *Service) SendOrders(ctx context.Context, now time.Time) {
 			attemptedSatellites++
 
 			group.Go(func() error {
+				pc, _, _, _ := runtime.Caller(0)
+				ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+				defer span.End()
 				log := service.log.Named(satelliteID.String())
 				status, err := service.settleWindow(ctx, log, satelliteID, unsentInfo.InfoList)
 				if err != nil {
@@ -233,7 +236,9 @@ func (service *Service) SendOrders(ctx context.Context, now time.Time) {
 }
 
 func (service *Service) settleWindow(ctx context.Context, log *zap.Logger, satelliteID storj.NodeID, orders []*ordersfile.Info) (status pb.SettlementWithWindowResponse_Status, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	log.Info("sending", zap.Int("count", len(orders)))
 	defer log.Info("finished")

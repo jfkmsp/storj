@@ -8,10 +8,13 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
+	"go.opentelemetry.io/otel"
 	"math"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 	"github.com/zeebo/errs"
@@ -23,8 +26,6 @@ import (
 	"storj.io/storj/satellite/satellitedb"
 	"storj.io/storj/satellite/satellitedb/dbx"
 )
-
-var mon = monkit.Package()
 
 var (
 	rootCmd = &cobra.Command{
@@ -89,7 +90,9 @@ func main() {
 
 // Delete opens the database and starts the database.
 func Delete(ctx context.Context, log *zap.Logger, config Config) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	db, err := satellitedb.Open(ctx, log.Named("db"), config.SatelliteDB, satellitedb.Options{
 		ApplicationName: "node-cleanup",

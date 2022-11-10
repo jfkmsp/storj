@@ -5,6 +5,10 @@ package stripecoinpayments
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -41,7 +45,9 @@ func NewChore(log *zap.Logger, service *Service, txInterval, accBalanceInterval 
 
 // Run runs all clearing related cycles.
 func (chore *Chore) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	//pc, _, _, _ := runtime.Caller(0)
+	//ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	//defer span.End()
 
 	var group errgroup.Group
 
@@ -73,7 +79,9 @@ func (chore *Chore) Run(ctx context.Context) (err error) {
 
 // Close closes all underlying resources.
 func (chore *Chore) Close() (err error) {
-	defer mon.Task()(nil)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	_, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(context.Background(), runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	chore.TransactionCycle.Close()
 	chore.AccountBalanceCycle.Close()

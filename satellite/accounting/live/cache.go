@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -18,7 +17,6 @@ import (
 var (
 	// Error is the default error class for live-accounting.
 	Error = errs.Class("live-accounting")
-	mon   = monkit.Package()
 )
 
 // Config contains configurable values for the live accounting service.

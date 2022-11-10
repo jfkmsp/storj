@@ -5,6 +5,10 @@ package trust
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 
 	"go.uber.org/zap"
 
@@ -81,7 +85,9 @@ func (list *List) FetchURLs(ctx context.Context) ([]storj.NodeURL, error) {
 }
 
 func (list *List) fetchEntries(ctx context.Context) (_ []Entry, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var allEntries []Entry
 	for _, source := range list.sources {

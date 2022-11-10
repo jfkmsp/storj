@@ -6,19 +6,20 @@ package post
 import (
 	"context"
 	"crypto/tls"
+	"go.opentelemetry.io/otel"
 	"io"
 	"net"
 	"net/mail"
 	"net/smtp"
+	"os"
 
-	"github.com/spacemonkeygo/monkit/v3"
+	"runtime"
+
 	"github.com/zeebo/errs"
 )
 
 // Address is alias of net/mail.Address.
 type Address = mail.Address
-
-var mon = monkit.Package()
 
 // SMTPSender is smtp sender.
 type SMTPSender struct {
@@ -35,7 +36,9 @@ func (sender *SMTPSender) FromAddress() Address {
 
 // SendEmail sends email message to the given recipient.
 func (sender *SMTPSender) SendEmail(ctx context.Context, msg *Message) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	client, err := smtp.Dial(sender.ServerAddress)
 	if err != nil {

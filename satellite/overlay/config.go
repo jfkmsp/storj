@@ -6,14 +6,13 @@ package overlay
 import (
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 
 	"storj.io/common/memory"
 )
 
 var (
-	mon = monkit.Package()
+
 	// Error represents an overlay error.
 	Error = errs.Class("overlay")
 )

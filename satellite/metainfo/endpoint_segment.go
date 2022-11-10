@@ -6,6 +6,11 @@ package metainfo
 import (
 	"context"
 	"fmt"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
+	"os"
+
+	"runtime"
 	"time"
 
 	"go.uber.org/zap"
@@ -30,9 +35,12 @@ func calculateSpaceUsed(segmentSize int64, numberOfPieces int, rs storj.Redundan
 
 // BeginSegment begins segment uploading.
 func (endpoint *Endpoint) BeginSegment(ctx context.Context, req *pb.SegmentBeginRequest) (resp *pb.SegmentBeginResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
-	endpoint.versionCollector.collect(req.Header.UserAgent, mon.Func().ShortName())
+	endpoint.versionCollector.collect(req.Header.UserAgent, "BeginSegment")
 
 	streamID, err := endpoint.unmarshalSatStreamID(ctx, req.StreamId)
 	if err != nil {
@@ -125,7 +133,8 @@ func (endpoint *Endpoint) BeginSegment(ctx context.Context, req *pb.SegmentBegin
 	})
 
 	endpoint.log.Info("Segment Upload", zap.Stringer("Project ID", keyInfo.ProjectID), zap.String("operation", "put"), zap.String("type", "remote"))
-	mon.Meter("req_put_remote").Mark(1)
+	counter, _ := meter.SyncInt64().Counter("req_put_remote")
+	counter.Add(ctx, 1)
 
 	return &pb.SegmentBeginResponse{
 		SegmentId:        segmentID,
@@ -137,9 +146,11 @@ func (endpoint *Endpoint) BeginSegment(ctx context.Context, req *pb.SegmentBegin
 
 // CommitSegment commits segment after uploading.
 func (endpoint *Endpoint) CommitSegment(ctx context.Context, req *pb.SegmentCommitRequest) (resp *pb.SegmentCommitResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
-	endpoint.versionCollector.collect(req.Header.UserAgent, mon.Func().ShortName())
+	endpoint.versionCollector.collect(req.Header.UserAgent, "CommitSegment")
 
 	segmentID, err := endpoint.unmarshalSatSegmentID(ctx, req.SegmentId)
 	if err != nil {
@@ -315,9 +326,12 @@ func (endpoint *Endpoint) CommitSegment(ctx context.Context, req *pb.SegmentComm
 
 // MakeInlineSegment makes inline segment on satellite.
 func (endpoint *Endpoint) MakeInlineSegment(ctx context.Context, req *pb.SegmentMakeInlineRequest) (resp *pb.SegmentMakeInlineResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
-	endpoint.versionCollector.collect(req.Header.UserAgent, mon.Func().ShortName())
+	endpoint.versionCollector.collect(req.Header.UserAgent, "MakeInlineSegment")
 
 	streamID, err := endpoint.unmarshalSatStreamID(ctx, req.StreamId)
 	if err != nil {
@@ -398,16 +412,19 @@ func (endpoint *Endpoint) MakeInlineSegment(ctx context.Context, req *pb.Segment
 	endpoint.versionCollector.collectTransferStats(req.Header.UserAgent, upload, int(req.PlainSize))
 
 	endpoint.log.Info("Inline Segment Upload", zap.Stringer("Project ID", keyInfo.ProjectID), zap.String("operation", "put"), zap.String("type", "inline"))
-	mon.Meter("req_put_inline").Mark(1)
+	counter, _ := meter.SyncInt64().Counter("req_put_inline")
+	counter.Add(ctx, 1)
 
 	return &pb.SegmentMakeInlineResponse{}, nil
 }
 
 // ListSegments list object segments.
 func (endpoint *Endpoint) ListSegments(ctx context.Context, req *pb.SegmentListRequest) (resp *pb.SegmentListResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
-	endpoint.versionCollector.collect(req.Header.UserAgent, mon.Func().ShortName())
+	endpoint.versionCollector.collect(req.Header.UserAgent, "ListSegments")
 
 	streamID, err := endpoint.unmarshalSatStreamID(ctx, req.StreamId)
 	if err != nil {
@@ -486,13 +503,16 @@ func convertStreamListResults(result metabase.ListStreamPositionsResult) (*pb.Se
 
 // DownloadSegment returns data necessary to download segment.
 func (endpoint *Endpoint) DownloadSegment(ctx context.Context, req *pb.SegmentDownloadRequest) (resp *pb.SegmentDownloadResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	if ctx.Err() != nil {
 		return nil, rpcstatus.Error(rpcstatus.Canceled, "client has closed the connection")
 	}
 
-	endpoint.versionCollector.collect(req.Header.UserAgent, mon.Func().ShortName())
+	endpoint.versionCollector.collect(req.Header.UserAgent, "DownloadSegment")
 
 	streamID, err := endpoint.unmarshalSatStreamID(ctx, req.StreamId)
 	if err != nil {
@@ -593,7 +613,8 @@ func (endpoint *Endpoint) DownloadSegment(ctx context.Context, req *pb.SegmentDo
 		endpoint.versionCollector.collectTransferStats(req.Header.UserAgent, download, len(segment.InlineData))
 
 		endpoint.log.Info("Inline Segment Download", zap.Stringer("Project ID", keyInfo.ProjectID), zap.String("operation", "get"), zap.String("type", "inline"))
-		mon.Meter("req_get_inline").Mark(1)
+		counter, _ := meter.SyncInt64().Counter("req_get_inline")
+		counter.Add(ctx, 1)
 
 		return &pb.SegmentDownloadResponse{
 			PlainOffset:         segment.PlainOffset,
@@ -627,7 +648,8 @@ func (endpoint *Endpoint) DownloadSegment(ctx context.Context, req *pb.SegmentDo
 	endpoint.versionCollector.collectTransferStats(req.Header.UserAgent, download, int(segment.EncryptedSize))
 
 	endpoint.log.Info("Segment Download", zap.Stringer("Project ID", keyInfo.ProjectID), zap.String("operation", "get"), zap.String("type", "remote"))
-	mon.Meter("req_get_remote").Mark(1)
+	counter, _ := meter.SyncInt64().Counter("req_get_remote")
+	counter.Add(ctx, 1)
 
 	return &pb.SegmentDownloadResponse{
 		AddressedLimits: limits,
@@ -661,7 +683,9 @@ func (endpoint *Endpoint) DownloadSegment(ctx context.Context, req *pb.SegmentDo
 // segments for pending objects. It's returning no error to avoid failures with
 // uplinks that still are using this method.
 func (endpoint *Endpoint) DeletePart(ctx context.Context, req *pb.PartDeleteRequest) (resp *pb.PartDeleteResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return &pb.PartDeleteResponse{}, nil
 }

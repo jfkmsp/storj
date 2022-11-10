@@ -8,6 +8,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 
 	"go.uber.org/zap"
 
@@ -25,7 +29,9 @@ type containment struct {
 
 // Get gets the pending audit by node id.
 func (containment *containment) Get(ctx context.Context, id pb.NodeID) (_ *audit.PendingAudit, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if id.IsZero() {
 		return nil, audit.ContainError.New("node ID empty")
 	}
@@ -43,7 +49,9 @@ func (containment *containment) Get(ctx context.Context, id pb.NodeID) (_ *audit
 
 // IncrementPending creates a new pending audit entry, or increases its reverify count if it already exists.
 func (containment *containment) IncrementPending(ctx context.Context, pendingAudit *audit.PendingAudit) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	err = containment.db.WithTx(ctx, func(ctx context.Context, tx *dbx.Tx) error {
 		existingAudit, err := tx.Get_SegmentPendingAudits_By_NodeId(ctx, dbx.SegmentPendingAudits_NodeId(pendingAudit.NodeID.Bytes()))
@@ -89,7 +97,9 @@ func (containment *containment) IncrementPending(ctx context.Context, pendingAud
 
 // Delete deletes the pending audit.
 func (containment *containment) Delete(ctx context.Context, id pb.NodeID) (isDeleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if id.IsZero() {
 		return false, audit.ContainError.New("node ID empty")
 	}
@@ -102,7 +112,9 @@ func (containment *containment) Delete(ctx context.Context, id pb.NodeID) (isDel
 }
 
 func convertDBPending(ctx context.Context, info *dbx.SegmentPendingAudits) (_ *audit.PendingAudit, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if info == nil {
 		return nil, Error.New("missing info")
 	}

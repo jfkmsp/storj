@@ -7,21 +7,22 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"go.opentelemetry.io/otel"
 	"net/http"
 	"net/url"
+	"os"
+
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
 	"storj.io/common/sync2"
 )
-
-var mon = monkit.Package()
 
 const (
 	eventPrefix      = "pe20293085"
@@ -241,7 +242,9 @@ func (q *HubSpotEvents) handleSingleEvent(ctx context.Context, ev HubSpotEvent) 
 
 // Handle for handle the HubSpot API requests.
 func (q *HubSpotEvents) Handle(ctx context.Context, events []HubSpotEvent) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	for _, ev := range events {
 		err := q.handleSingleEvent(ctx, ev)
 		if err != nil {
@@ -255,7 +258,9 @@ func (q *HubSpotEvents) Handle(ctx context.Context, events []HubSpotEvent) (err 
 // It fetches a new token if there isn't one already or the old one is about to expire in expiryBufferTime.
 // It locks q.mutex to ensure only one goroutine is able to request for a token.
 func (q *HubSpotEvents) getAccessToken(ctx context.Context) (token string, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
@@ -273,7 +278,9 @@ func (q *HubSpotEvents) getAccessToken(ctx context.Context) (token string, err e
 // getAccessTokenFromHubspot gets a new access token from hubspot.
 // Expects q.mutex to be locked.
 func (q *HubSpotEvents) getAccessTokenFromHubspot(ctx context.Context) (_ *TokenData, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	values := make(url.Values)
 	values.Set("grant_type", "refresh_token")

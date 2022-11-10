@@ -7,6 +7,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
+	"os"
+
+	"runtime"
 	"sort"
 	"time"
 
@@ -365,7 +370,10 @@ func (db *DB) DeleteObjectExactVersion(
 
 // implementation of DB.DeleteObjectExactVersion for re-use internally in metabase package.
 func (db *DB) deleteObjectExactVersion(ctx context.Context, opts DeleteObjectExactVersion, tx tagsql.Tx) (result DeleteObjectResult, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	if err := opts.Verify(); err != nil {
 		return DeleteObjectResult{}, err
@@ -406,14 +414,18 @@ func (db *DB) deleteObjectExactVersion(ctx context.Context, opts DeleteObjectExa
 		return DeleteObjectResult{}, err
 	}
 
-	mon.Meter("object_delete").Mark(len(result.Objects))
-	mon.Meter("segment_delete").Mark(len(result.Segments))
+	counter, _ := meter.SyncInt64().Counter("object_delete")
+	counter.Add(ctx, 1)
+	counter, _ = meter.SyncInt64().Counter("segment_delete")
+	counter.Add(ctx, 1)
 
 	return result, nil
 }
 
 func (db *DB) deleteObjectExactVersionServerSideCopy(ctx context.Context, opts DeleteObjectExactVersion, tx tagsql.Tx) (objects []deletedObjectInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	err = withRows(
 		tx.QueryContext(ctx, deleteObjectExactVersionWithCopyFeatureSQL, opts.ProjectID, []byte(opts.BucketName), opts.ObjectKey, opts.Version),
@@ -434,7 +446,9 @@ func (db *DB) deleteObjectExactVersionServerSideCopy(ctx context.Context, opts D
 }
 
 func (db *DB) promoteNewAncestors(ctx context.Context, tx tagsql.Tx, objects []deletedObjectInfo) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	for _, object := range objects {
 		if object.PromotedAncestor == nil {
@@ -509,7 +523,10 @@ func (opts *DeletePendingObject) Verify() error {
 
 // DeletePendingObject deletes a pending object with specified version and streamID.
 func (db *DB) DeletePendingObject(ctx context.Context, opts DeletePendingObject) (result DeleteObjectResult, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	if err := opts.Verify(); err != nil {
 		return DeleteObjectResult{}, err
@@ -560,15 +577,20 @@ func (db *DB) DeletePendingObject(ctx context.Context, opts DeletePendingObject)
 		return DeleteObjectResult{}, storj.ErrObjectNotFound.Wrap(Error.New("no rows deleted"))
 	}
 
-	mon.Meter("object_delete").Mark(len(result.Objects))
-	mon.Meter("segment_delete").Mark(len(result.Segments))
+	histCounter, _ := meter.SyncInt64().Histogram("object_delete")
+	histCounter.Record(ctx, int64(len(result.Objects)))
+	histCounter, _ = meter.SyncInt64().Histogram("segment_delete")
+	histCounter.Record(ctx, int64(len(result.Segments)))
 
 	return result, nil
 }
 
 // DeleteObjectAnyStatusAllVersions deletes all object versions.
 func (db *DB) DeleteObjectAnyStatusAllVersions(ctx context.Context, opts DeleteObjectAnyStatusAllVersions) (result DeleteObjectResult, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	if db.config.ServerSideCopy {
 		return DeleteObjectResult{}, errs.New("method cannot be used when server-side copy is enabled")
@@ -620,15 +642,20 @@ func (db *DB) DeleteObjectAnyStatusAllVersions(ctx context.Context, opts DeleteO
 		return DeleteObjectResult{}, storj.ErrObjectNotFound.Wrap(Error.New("no rows deleted"))
 	}
 
-	mon.Meter("object_delete").Mark(len(result.Objects))
-	mon.Meter("segment_delete").Mark(len(result.Segments))
+	histCounter, _ := meter.SyncInt64().Histogram("object_delete")
+	histCounter.Record(ctx, int64(len(result.Objects)))
+	histCounter, _ = meter.SyncInt64().Histogram("segment_delete")
+	histCounter.Record(ctx, int64(len(result.Segments)))
 
 	return result, nil
 }
 
 // DeleteObjectsAllVersions deletes all versions of multiple objects from the same bucket.
 func (db *DB) DeleteObjectsAllVersions(ctx context.Context, opts DeleteObjectsAllVersions) (result DeleteObjectResult, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	if db.config.ServerSideCopy {
 		return DeleteObjectResult{}, errs.New("method cannot be used when server-side copy is enabled")
@@ -698,14 +725,18 @@ func (db *DB) DeleteObjectsAllVersions(ctx context.Context, opts DeleteObjectsAl
 		return DeleteObjectResult{}, err
 	}
 
-	mon.Meter("object_delete").Mark(len(result.Objects))
-	mon.Meter("segment_delete").Mark(len(result.Segments))
+	histCounter, _ := meter.SyncInt64().Histogram("object_delete")
+	histCounter.Record(ctx, int64(len(result.Objects)))
+	histCounter, _ = meter.SyncInt64().Histogram("segment_delete")
+	histCounter.Record(ctx, int64(len(result.Segments)))
 
 	return result, nil
 }
 
 func (db *DB) scanObjectDeletionServerSideCopy(ctx context.Context, location ObjectLocation, rows tagsql.Rows) (result []deletedObjectInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	defer func() { err = errs.Combine(err, rows.Close()) }()
 
 	result = make([]deletedObjectInfo, 0, 10)
@@ -769,7 +800,9 @@ func (db *DB) scanObjectDeletionServerSideCopy(ctx context.Context, location Obj
 }
 
 func (db *DB) scanObjectDeletion(ctx context.Context, location ObjectLocation, rows tagsql.Rows) (objects []Object, segments []DeletedSegmentInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	defer func() { err = errs.Combine(err, rows.Close()) }()
 
 	objects = make([]Object, 0, 10)
@@ -822,7 +855,9 @@ func (db *DB) scanObjectDeletion(ctx context.Context, location ObjectLocation, r
 }
 
 func (db *DB) scanMultipleObjectsDeletion(ctx context.Context, rows tagsql.Rows) (objects []Object, segments []DeletedSegmentInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	defer func() { err = errs.Combine(err, rows.Close()) }()
 
 	objects = make([]Object, 0, 10)
@@ -904,7 +939,10 @@ func (db *DB) DeleteObjectLastCommitted(
 
 // implementation of DB.DeleteObjectLastCommitted for re-use internally in metabase package.
 func (db *DB) deleteObjectLastCommitted(ctx context.Context, opts DeleteObjectLastCommitted, tx tagsql.Tx) (result DeleteObjectResult, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	if err := opts.Verify(); err != nil {
 		return DeleteObjectResult{}, err
@@ -945,14 +983,18 @@ func (db *DB) deleteObjectLastCommitted(ctx context.Context, opts DeleteObjectLa
 		return DeleteObjectResult{}, err
 	}
 
-	mon.Meter("object_delete").Mark(len(result.Objects))
-	mon.Meter("segment_delete").Mark(len(result.Segments))
+	histCounter, _ := meter.SyncInt64().Histogram("object_delete")
+	histCounter.Record(ctx, int64(len(result.Objects)))
+	histCounter, _ = meter.SyncInt64().Histogram("segment_delete")
+	histCounter.Record(ctx, int64(len(result.Segments)))
 
 	return result, nil
 }
 
 func (db *DB) deleteObjectLastCommittedServerSideCopy(ctx context.Context, opts DeleteObjectLastCommitted, tx tagsql.Tx) (objects []deletedObjectInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	err = withRows(
 		tx.QueryContext(ctx, deleteObjectLastCommittedWithCopyFeatureSQL, opts.ProjectID, []byte(opts.BucketName), opts.ObjectKey),

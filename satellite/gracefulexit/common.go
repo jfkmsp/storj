@@ -6,7 +6,6 @@ package gracefulexit
 import (
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 )
 
@@ -19,8 +18,6 @@ var (
 
 	// ErrAboveOptimalThreshold is returned if a graceful exit entry for a node has more pieces than required.
 	ErrAboveOptimalThreshold = errs.Class("segment has more pieces than required")
-
-	mon = monkit.Package()
 )
 
 // Config for the chore.

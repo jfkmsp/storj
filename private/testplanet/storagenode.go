@@ -6,8 +6,11 @@ package testplanet
 import (
 	"context"
 	"fmt"
+	"go.opentelemetry.io/otel"
 	"os"
 	"path/filepath"
+
+	"runtime"
 	"runtime/pprof"
 	"strconv"
 	"strings"
@@ -70,7 +73,9 @@ func (system *StorageNode) APIKey() string {
 
 // newStorageNodes initializes storage nodes.
 func (planet *Planet) newStorageNodes(ctx context.Context, count int, whitelistedSatellites storj.NodeURLs) (_ []*StorageNode, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var sources []trust.Source
 	for _, u := range whitelistedSatellites {
@@ -104,7 +109,9 @@ func (planet *Planet) newStorageNodes(ctx context.Context, count int, whiteliste
 }
 
 func (planet *Planet) newStorageNode(ctx context.Context, prefix string, index, count int, log *zap.Logger, sources []trust.Source) (_ *StorageNode, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	storageDir := filepath.Join(planet.directory, prefix)
 	if err := os.MkdirAll(storageDir, 0700); err != nil {

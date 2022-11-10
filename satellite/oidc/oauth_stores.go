@@ -5,6 +5,10 @@ package oidc
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/go-oauth2/oauth2/v4"
@@ -21,7 +25,9 @@ var _ oauth2.ClientStore = (*ClientStore)(nil)
 
 // GetByID returns client information by id.
 func (c *ClientStore) GetByID(ctx context.Context, id string) (_ oauth2.ClientInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	uid, err := uuid.FromString(id)
 	if err != nil {
@@ -41,7 +47,9 @@ var _ oauth2.TokenStore = (*TokenStore)(nil)
 
 // Create creates a new token with the given info.
 func (t *TokenStore) Create(ctx context.Context, info oauth2.TokenInfo) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var code OAuthCode
 	var access, refresh OAuthToken
@@ -120,28 +128,36 @@ func (t *TokenStore) Create(ctx context.Context, info oauth2.TokenInfo) (err err
 
 // RemoveByCode deletes token by authorization code.
 func (t *TokenStore) RemoveByCode(ctx context.Context, code string) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return t.codes.Claim(ctx, code)
 }
 
 // RemoveByAccess deletes token by access token.
 func (t *TokenStore) RemoveByAccess(ctx context.Context, access string) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return nil // unsupported by current configuration
 }
 
 // RemoveByRefresh deletes token by refresh token.
 func (t *TokenStore) RemoveByRefresh(ctx context.Context, refresh string) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return nil // unsupported by current configuration
 }
 
 // GetByCode uses authorization code to find token information.
 func (t *TokenStore) GetByCode(ctx context.Context, code string) (_ oauth2.TokenInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	oauthCode, err := t.codes.Get(ctx, code)
 	if err != nil {
@@ -153,7 +169,9 @@ func (t *TokenStore) GetByCode(ctx context.Context, code string) (_ oauth2.Token
 
 // GetByAccess uses access token to find token information.
 func (t *TokenStore) GetByAccess(ctx context.Context, access string) (_ oauth2.TokenInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	oauthToken, err := t.tokens.Get(ctx, KindAccessToken, access)
 	if err != nil {
@@ -165,7 +183,9 @@ func (t *TokenStore) GetByAccess(ctx context.Context, access string) (_ oauth2.T
 
 // GetByRefresh uses refresh token to find token information.
 func (t *TokenStore) GetByRefresh(ctx context.Context, refresh string) (_ oauth2.TokenInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	oauthToken, err := t.tokens.Get(ctx, KindRefreshToken, refresh)
 	if err != nil {

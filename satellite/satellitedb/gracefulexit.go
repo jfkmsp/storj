@@ -8,6 +8,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"sort"
 	"time"
 
@@ -33,7 +37,9 @@ const (
 
 // IncrementProgress increments transfer stats for a node.
 func (db *gracefulexitDB) IncrementProgress(ctx context.Context, nodeID storj.NodeID, bytes int64, successfulTransfers int64, failedTransfers int64) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	statement := db.db.Rebind(
 		`INSERT INTO graceful_exit_progress (node_id, bytes_transferred, pieces_transferred, pieces_failed, updated_at) VALUES (?, ?, ?, ?, ?)
@@ -54,7 +60,9 @@ func (db *gracefulexitDB) IncrementProgress(ctx context.Context, nodeID storj.No
 
 // GetProgress gets a graceful exit progress entry.
 func (db *gracefulexitDB) GetProgress(ctx context.Context, nodeID storj.NodeID) (_ *gracefulexit.Progress, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	dbxProgress, err := db.db.Get_GracefulExitProgress_By_NodeId(ctx, dbx.GracefulExitProgress_NodeId(nodeID.Bytes()))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, gracefulexit.ErrNodeNotFound.Wrap(err)
@@ -79,7 +87,9 @@ func (db *gracefulexitDB) GetProgress(ctx context.Context, nodeID storj.NodeID) 
 
 // Enqueue batch inserts graceful exit transfer queue entries if it does not exist.
 func (db *gracefulexitDB) Enqueue(ctx context.Context, items []gracefulexit.TransferQueueItem, batchSize int) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	sort.Slice(items, func(i, k int) bool {
 		compare := bytes.Compare(items[i].NodeID.Bytes(), items[k].NodeID.Bytes())
@@ -140,7 +150,9 @@ func (db *gracefulexitDB) Enqueue(ctx context.Context, items []gracefulexit.Tran
 
 // UpdateTransferQueueItem creates a graceful exit transfer queue entry.
 func (db *gracefulexitDB) UpdateTransferQueueItem(ctx context.Context, item gracefulexit.TransferQueueItem) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	update := dbx.GracefulExitSegmentTransfer_Update_Fields{
 		DurabilityRatio: dbx.GracefulExitSegmentTransfer_DurabilityRatio(item.DurabilityRatio),
@@ -169,7 +181,9 @@ func (db *gracefulexitDB) UpdateTransferQueueItem(ctx context.Context, item grac
 
 // DeleteTransferQueueItem deletes a graceful exit transfer queue entry.
 func (db *gracefulexitDB) DeleteTransferQueueItem(ctx context.Context, nodeID storj.NodeID, streamID uuid.UUID, position metabase.SegmentPosition, pieceNum int32) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = db.db.Delete_GracefulExitSegmentTransfer_By_NodeId_And_StreamId_And_Position_And_PieceNum(ctx,
 		dbx.GracefulExitSegmentTransfer_NodeId(nodeID.Bytes()),
@@ -181,7 +195,9 @@ func (db *gracefulexitDB) DeleteTransferQueueItem(ctx context.Context, nodeID st
 
 // DeleteTransferQueueItem deletes a graceful exit transfer queue entries by nodeID.
 func (db *gracefulexitDB) DeleteTransferQueueItems(ctx context.Context, nodeID storj.NodeID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = db.db.Delete_GracefulExitSegmentTransfer_By_NodeId(ctx, dbx.GracefulExitSegmentTransfer_NodeId(nodeID.Bytes()))
 	return Error.Wrap(err)
@@ -190,7 +206,9 @@ func (db *gracefulexitDB) DeleteTransferQueueItems(ctx context.Context, nodeID s
 
 // DeleteFinishedTransferQueueItem deletes finished graceful exit transfer queue entries by nodeID.
 func (db *gracefulexitDB) DeleteFinishedTransferQueueItems(ctx context.Context, nodeID storj.NodeID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = db.db.Delete_GracefulExitSegmentTransfer_By_NodeId_And_FinishedAt_IsNot_Null(ctx, dbx.GracefulExitSegmentTransfer_NodeId(nodeID.Bytes()))
 	return Error.Wrap(err)
@@ -201,7 +219,9 @@ func (db *gracefulexitDB) DeleteFinishedTransferQueueItems(ctx context.Context, 
 // returning the total number of deleted items.
 func (db *gracefulexitDB) DeleteAllFinishedTransferQueueItems(
 	ctx context.Context, before time.Time, asOfSystemInterval time.Duration, batchSize int) (_ int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	switch db.db.impl {
 	case dbutil.Postgres:
@@ -308,7 +328,9 @@ func (db *gracefulexitDB) DeleteAllFinishedTransferQueueItems(
 // finished exiting before the indicated time, returns number of deleted entries.
 func (db *gracefulexitDB) DeleteFinishedExitProgress(
 	ctx context.Context, before time.Time, asOfSystemInterval time.Duration) (_ int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	finishedNodes, err := db.GetFinishedExitNodes(ctx, before, asOfSystemInterval)
 	if err != nil {
@@ -319,7 +341,9 @@ func (db *gracefulexitDB) DeleteFinishedExitProgress(
 
 // GetFinishedExitNodes gets nodes that are marked having finished graceful exit before a given time.
 func (db *gracefulexitDB) GetFinishedExitNodes(ctx context.Context, before time.Time, asOfSystemInterval time.Duration) (finishedNodes []storj.NodeID, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	stmt := `
 		SELECT id
 		FROM nodes
@@ -351,7 +375,9 @@ func (db *gracefulexitDB) GetFinishedExitNodes(ctx context.Context, before time.
 // separately because if nodes are deleted between the get and delete, it doesn't
 // affect correctness.
 func (db *gracefulexitDB) DeleteBatchExitProgress(ctx context.Context, nodeIDs []storj.NodeID) (deleted int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	stmt := `DELETE FROM graceful_exit_progress
 			WHERE node_id = ANY($1)`
 	for len(nodeIDs) > 0 {
@@ -376,7 +402,9 @@ func (db *gracefulexitDB) DeleteBatchExitProgress(ctx context.Context, nodeIDs [
 
 // GetTransferQueueItem gets a graceful exit transfer queue entry.
 func (db *gracefulexitDB) GetTransferQueueItem(ctx context.Context, nodeID storj.NodeID, streamID uuid.UUID, position metabase.SegmentPosition, pieceNum int32) (_ *gracefulexit.TransferQueueItem, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	dbxTransferQueue, err := db.db.Get_GracefulExitSegmentTransfer_By_NodeId_And_StreamId_And_Position_And_PieceNum(ctx,
 		dbx.GracefulExitSegmentTransfer_NodeId(nodeID.Bytes()),
@@ -398,7 +426,9 @@ func (db *gracefulexitDB) GetTransferQueueItem(ctx context.Context, nodeID storj
 
 // GetIncomplete gets incomplete graceful exit transfer queue entries ordered by durability ratio and queued date ascending.
 func (db *gracefulexitDB) GetIncomplete(ctx context.Context, nodeID storj.NodeID, limit int, offset int64) (_ []*gracefulexit.TransferQueueItem, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	sql := `
 			SELECT
@@ -427,7 +457,9 @@ func (db *gracefulexitDB) GetIncomplete(ctx context.Context, nodeID storj.NodeID
 
 // GetIncompleteNotFailed gets incomplete graceful exit transfer queue entries that haven't failed, ordered by durability ratio and queued date ascending.
 func (db *gracefulexitDB) GetIncompleteNotFailed(ctx context.Context, nodeID storj.NodeID, limit int, offset int64) (_ []*gracefulexit.TransferQueueItem, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	sql := `
 			SELECT
@@ -457,7 +489,9 @@ func (db *gracefulexitDB) GetIncompleteNotFailed(ctx context.Context, nodeID sto
 
 // GetIncompleteNotFailed gets incomplete graceful exit transfer queue entries that have failed <= maxFailures times, ordered by durability ratio and queued date ascending.
 func (db *gracefulexitDB) GetIncompleteFailed(ctx context.Context, nodeID storj.NodeID, maxFailures int, limit int, offset int64) (_ []*gracefulexit.TransferQueueItem, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	sql := `
 			SELECT
@@ -488,7 +522,9 @@ func (db *gracefulexitDB) GetIncompleteFailed(ctx context.Context, nodeID storj.
 
 // IncrementOrderLimitSendCount increments the number of times a node has been sent an order limit for transferring.
 func (db *gracefulexitDB) IncrementOrderLimitSendCount(ctx context.Context, nodeID storj.NodeID, streamID uuid.UUID, position metabase.SegmentPosition, pieceNum int32) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	sql := `UPDATE graceful_exit_segment_transfer_queue SET order_limit_send_count = graceful_exit_segment_transfer_queue.order_limit_send_count + 1
 			WHERE node_id = ?
@@ -504,7 +540,9 @@ func (db *gracefulexitDB) IncrementOrderLimitSendCount(ctx context.Context, node
 // finished the exit before the indicated time but there are at least one item
 // left in the transfer queue.
 func (db *gracefulexitDB) CountFinishedTransferQueueItemsByNode(ctx context.Context, before time.Time, asOfSystemInterval time.Duration) (_ map[storj.NodeID]int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query := `SELECT n.id, count(getq.node_id)
 		FROM nodes as n INNER JOIN graceful_exit_segment_transfer_queue as getq

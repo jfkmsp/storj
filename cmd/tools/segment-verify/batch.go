@@ -5,6 +5,10 @@ package main
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"sort"
 
 	"storj.io/storj/satellite/metabase"
@@ -12,7 +16,9 @@ import (
 
 // CreateBatches creates load-balanced queues of segments to verify.
 func (service *Service) CreateBatches(ctx context.Context, segments []*Segment) (_ []*Batch, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if len(segments) == 0 {
 		return nil, Error.New("no segments")

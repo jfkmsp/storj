@@ -8,11 +8,14 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -25,10 +28,6 @@ import (
 	"storj.io/private/version"
 	"storj.io/storj/satellite/overlay"
 	"storj.io/storj/satellite/satellitedb/dbx"
-)
-
-var (
-	mon = monkit.Package()
 )
 
 var _ overlay.DB = (*overlaycache)(nil)
@@ -54,7 +53,9 @@ func (cache *overlaycache) SelectAllStorageNodesUpload(ctx context.Context, sele
 }
 
 func (cache *overlaycache) selectAllStorageNodesUpload(ctx context.Context, selectionCfg overlay.NodeSelectionConfig) (reputable, new []*overlay.SelectedNode, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query := `
 		SELECT id, address, last_net, last_ip_port, vetted_at, country_code
@@ -136,7 +137,9 @@ func (cache *overlaycache) SelectAllStorageNodesDownload(ctx context.Context, on
 }
 
 func (cache *overlaycache) selectAllStorageNodesDownload(ctx context.Context, onlineWindow time.Duration, asOfConfig overlay.AsOfSystemTimeConfig) (_ []*overlay.SelectedNode, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query := `
 		SELECT id, address, last_net, last_ip_port
@@ -191,7 +194,9 @@ func (cache *overlaycache) GetNodesNetwork(ctx context.Context, nodeIDs []storj.
 }
 
 func (cache *overlaycache) getNodesNetwork(ctx context.Context, nodeIDs []storj.NodeID) (nodeNets []string, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var rows tagsql.Rows
 	rows, err = cache.db.Query(ctx, cache.db.Rebind(`
@@ -217,7 +222,9 @@ func (cache *overlaycache) getNodesNetwork(ctx context.Context, nodeIDs []storj.
 
 // Get looks up the node by nodeID.
 func (cache *overlaycache) Get(ctx context.Context, id storj.NodeID) (dossier *overlay.NodeDossier, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if id.IsZero() {
 		return nil, overlay.ErrEmptyNode
@@ -251,7 +258,9 @@ func (cache *overlaycache) GetOnlineNodesForGetDelete(ctx context.Context, nodeI
 }
 
 func (cache *overlaycache) getOnlineNodesForGetDelete(ctx context.Context, nodeIDs []storj.NodeID, onlineWindow time.Duration, asOf overlay.AsOfSystemTimeConfig) (_ map[storj.NodeID]*overlay.SelectedNode, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var rows tagsql.Rows
 	rows, err = cache.db.Query(ctx, cache.db.Rebind(`
@@ -305,7 +314,9 @@ func (cache *overlaycache) GetOnlineNodesForAuditRepair(ctx context.Context, nod
 }
 
 func (cache *overlaycache) getOnlineNodesForAuditRepair(ctx context.Context, nodeIDs []storj.NodeID, onlineWindow time.Duration) (_ map[storj.NodeID]*overlay.NodeReputation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var rows tagsql.Rows
 	rows, err = cache.db.Query(ctx, cache.db.Rebind(`
@@ -359,7 +370,9 @@ func (cache *overlaycache) KnownOffline(ctx context.Context, criteria *overlay.N
 }
 
 func (cache *overlaycache) knownOffline(ctx context.Context, criteria *overlay.NodeCriteria, nodeIds storj.NodeIDList) (offlineNodes storj.NodeIDList, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if len(nodeIds) == 0 {
 		return nil, Error.New("no ids provided")
@@ -410,7 +423,9 @@ func (cache *overlaycache) KnownUnreliableOrOffline(ctx context.Context, criteri
 // last_contact_success is between two points: the point where it is considered offline (offlineWindow), and the point where we don't want
 // to send more emails (cutoff). It also filters nodes where last_offline_email is too recent (cooldown).
 func (cache *overlaycache) GetOfflineNodesForEmail(ctx context.Context, offlineWindow, cutoff, cooldown time.Duration, limit int) (nodes map[storj.NodeID]string, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	now := time.Now()
 	nodes = make(map[storj.NodeID]string)
@@ -447,7 +462,9 @@ func (cache *overlaycache) GetOfflineNodesForEmail(ctx context.Context, offlineW
 
 // UpdateLastOfflineEmail updates last_offline_email for a list of nodes.
 func (cache *overlaycache) UpdateLastOfflineEmail(ctx context.Context, nodeIDs storj.NodeIDList, timestamp time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = cache.db.ExecContext(ctx, `
 		UPDATE nodes
@@ -474,7 +491,9 @@ func (cache *overlaycache) KnownReliableInExcludedCountries(ctx context.Context,
 }
 
 func (cache *overlaycache) knownReliableInExcludedCountries(ctx context.Context, criteria *overlay.NodeCriteria, nodeIDs storj.NodeIDList) (reliableInExcluded storj.NodeIDList, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if len(nodeIDs) == 0 {
 		return nil, Error.New("no ids provided")
@@ -532,7 +551,9 @@ func (cache *overlaycache) knownReliableInExcludedCountries(ctx context.Context,
 }
 
 func (cache *overlaycache) knownUnreliableOrOffline(ctx context.Context, criteria *overlay.NodeCriteria, nodeIDs storj.NodeIDList) (badNodes storj.NodeIDList, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if len(nodeIDs) == 0 {
 		return nil, Error.New("no ids provided")
@@ -591,7 +612,9 @@ func (cache *overlaycache) KnownReliable(ctx context.Context, onlineWindow time.
 }
 
 func (cache *overlaycache) knownReliable(ctx context.Context, onlineWindow time.Duration, nodeIDs storj.NodeIDList) (nodes []*pb.Node, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if len(nodeIDs) == 0 {
 		return nil, Error.New("no ids provided")
@@ -690,7 +713,9 @@ func (cache *overlaycache) reliable(ctx context.Context, criteria *overlay.NodeC
 
 // UpdateReputation updates the DB columns for any of the reputation fields in ReputationUpdate.
 func (cache *overlaycache) UpdateReputation(ctx context.Context, id storj.NodeID, request overlay.ReputationUpdate) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	updateFields := dbx.Node_Update_Fields{}
 	updateFields.UnknownAuditSuspended = dbx.Node_UnknownAuditSuspended_Raw(request.UnknownAuditSuspended)
@@ -709,7 +734,9 @@ func (cache *overlaycache) UpdateReputation(ctx context.Context, id storj.NodeID
 // UpdateNodeInfo updates the following fields for a given node ID:
 // wallet, email for node operator, free disk, and version.
 func (cache *overlaycache) UpdateNodeInfo(ctx context.Context, nodeID storj.NodeID, nodeInfo *overlay.InfoResponse) (stats *overlay.NodeDossier, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var updateFields dbx.Node_Update_Fields
 	if nodeInfo != nil {
@@ -753,7 +780,9 @@ func (cache *overlaycache) UpdateNodeInfo(ctx context.Context, nodeID storj.Node
 
 // DisqualifyNode disqualifies a storage node.
 func (cache *overlaycache) DisqualifyNode(ctx context.Context, nodeID storj.NodeID, disqualifiedAt time.Time, reason overlay.DisqualificationReason) (email string, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	updateFields := dbx.Node_Update_Fields{}
 	updateFields.Disqualified = dbx.Node_Disqualified(disqualifiedAt.UTC())
 	updateFields.DisqualificationReason = dbx.Node_DisqualificationReason(int(reason))
@@ -770,7 +799,9 @@ func (cache *overlaycache) DisqualifyNode(ctx context.Context, nodeID storj.Node
 
 // TestSuspendNodeUnknownAudit suspends a storage node for unknown audits.
 func (cache *overlaycache) TestSuspendNodeUnknownAudit(ctx context.Context, nodeID storj.NodeID, suspendedAt time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	updateFields := dbx.Node_Update_Fields{}
 	updateFields.UnknownAuditSuspended = dbx.Node_UnknownAuditSuspended(suspendedAt.UTC())
 
@@ -786,7 +817,9 @@ func (cache *overlaycache) TestSuspendNodeUnknownAudit(ctx context.Context, node
 
 // TestUnsuspendNodeUnknownAudit unsuspends a storage node for unknown audits.
 func (cache *overlaycache) TestUnsuspendNodeUnknownAudit(ctx context.Context, nodeID storj.NodeID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	updateFields := dbx.Node_Update_Fields{}
 	updateFields.UnknownAuditSuspended = dbx.Node_UnknownAuditSuspended_Null()
 
@@ -803,7 +836,9 @@ func (cache *overlaycache) TestUnsuspendNodeUnknownAudit(ctx context.Context, no
 // AllPieceCounts returns a map of node IDs to piece counts from the db.
 // NB: a valid, partial piece map can be returned even if node ID parsing error(s) are returned.
 func (cache *overlaycache) AllPieceCounts(ctx context.Context) (_ map[storj.NodeID]int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// NB: `All_Node_Id_Node_PieceCount_By_PieceCount_Not_Number` selects node
 	// ID and piece count from the nodes table where piece count is not zero.
@@ -827,7 +862,9 @@ func (cache *overlaycache) AllPieceCounts(ctx context.Context) (_ map[storj.Node
 }
 
 func (cache *overlaycache) UpdatePieceCounts(ctx context.Context, pieceCounts map[storj.NodeID]int64) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if len(pieceCounts) == 0 {
 		return nil
 	}
@@ -885,7 +922,9 @@ func (cache *overlaycache) GetExitingNodes(ctx context.Context) (exitingNodes []
 }
 
 func (cache *overlaycache) getExitingNodes(ctx context.Context) (exitingNodes []*overlay.ExitStatus, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	rows, err := cache.db.Query(ctx, cache.db.Rebind(`
 		SELECT id, exit_initiated_at, exit_loop_completed_at, exit_finished_at, exit_success FROM nodes
@@ -926,7 +965,9 @@ func (cache *overlaycache) GetExitStatus(ctx context.Context, nodeID storj.NodeI
 }
 
 func (cache *overlaycache) getExitStatus(ctx context.Context, nodeID storj.NodeID) (_ *overlay.ExitStatus, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	rows, err := cache.db.Query(ctx, cache.db.Rebind(`
 		SELECT id, exit_initiated_at, exit_loop_completed_at, exit_finished_at, exit_success
@@ -966,7 +1007,9 @@ func (cache *overlaycache) GetGracefulExitCompletedByTimeFrame(ctx context.Conte
 }
 
 func (cache *overlaycache) getGracefulExitCompletedByTimeFrame(ctx context.Context, begin, end time.Time) (exitedNodes storj.NodeIDList, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	rows, err := cache.db.Query(ctx, cache.db.Rebind(`
 		SELECT id FROM nodes
@@ -1010,7 +1053,9 @@ func (cache *overlaycache) GetGracefulExitIncompleteByTimeFrame(ctx context.Cont
 }
 
 func (cache *overlaycache) getGracefulExitIncompleteByTimeFrame(ctx context.Context, begin, end time.Time) (exitingNodes storj.NodeIDList, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	rows, err := cache.db.Query(ctx, cache.db.Rebind(`
 		SELECT id FROM nodes
@@ -1040,7 +1085,9 @@ func (cache *overlaycache) getGracefulExitIncompleteByTimeFrame(ctx context.Cont
 
 // UpdateExitStatus is used to update a node's graceful exit status.
 func (cache *overlaycache) UpdateExitStatus(ctx context.Context, request *overlay.ExitStatusRequest) (_ *overlay.NodeDossier, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	nodeID := request.NodeID
 
@@ -1185,7 +1232,9 @@ func getNodeStats(dbNode *dbx.Node) *overlay.NodeStats {
 // DQNodesLastSeenBefore disqualifies a limited number of nodes where last_contact_success < cutoff except those already disqualified
 // or gracefully exited or where last_contact_success = '0001-01-01 00:00:00+00'.
 func (cache *overlaycache) DQNodesLastSeenBefore(ctx context.Context, cutoff time.Time, limit int) (nodeEmails map[storj.NodeID]string, count int, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var nodeIDs []storj.NodeID
 	nodeEmails = make(map[storj.NodeID]string)
@@ -1239,7 +1288,9 @@ func (cache *overlaycache) DQNodesLastSeenBefore(ctx context.Context, cutoff tim
 }
 
 func (cache *overlaycache) getNodesForDQLastSeenBefore(ctx context.Context, cutoff time.Time, limit int) (nodes []storj.NodeID, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	rows, err := cache.db.Query(ctx, cache.db.Rebind(`
 		SELECT id
@@ -1269,7 +1320,9 @@ func (cache *overlaycache) getNodesForDQLastSeenBefore(ctx context.Context, cuto
 
 // UpdateCheckIn updates a single storagenode with info from when the the node last checked in.
 func (cache *overlaycache) UpdateCheckIn(ctx context.Context, node overlay.NodeCheckInInfo, timestamp time.Time, config overlay.NodeSelectionConfig) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if node.Address.GetAddress() == "" {
 		return Error.New("error UpdateCheckIn: missing the storage node address")
@@ -1455,7 +1508,9 @@ func (cache *overlaycache) TestUnvetNode(ctx context.Context, nodeID storj.NodeI
 
 // TestSuspendNodeOffline suspends a storage node for offline.
 func (cache *overlaycache) TestSuspendNodeOffline(ctx context.Context, nodeID storj.NodeID, suspendedAt time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	updateFields := dbx.Node_Update_Fields{}
 	updateFields.OfflineSuspended = dbx.Node_OfflineSuspended(suspendedAt.UTC())
 
@@ -1471,7 +1526,9 @@ func (cache *overlaycache) TestSuspendNodeOffline(ctx context.Context, nodeID st
 
 // TestNodeCountryCode sets node country code.
 func (cache *overlaycache) TestNodeCountryCode(ctx context.Context, nodeID storj.NodeID, countryCode string) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	updateFields := dbx.Node_Update_Fields{}
 	updateFields.CountryCode = dbx.Node_CountryCode(countryCode)
 
@@ -1487,7 +1544,9 @@ func (cache *overlaycache) TestNodeCountryCode(ctx context.Context, nodeID storj
 
 // IterateAllContactedNodes will call cb on all known nodes (used in restore trash contexts).
 func (cache *overlaycache) IterateAllContactedNodes(ctx context.Context, cb func(context.Context, *overlay.SelectedNode) error) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var rows tagsql.Rows
 	// 2018-04-06 is the date of the first storj v3 commit.
@@ -1525,7 +1584,9 @@ func (cache *overlaycache) IterateAllContactedNodes(ctx context.Context, cb func
 
 // IterateAllNodeDossiers will call cb on all known nodes (used for invoice generation).
 func (cache *overlaycache) IterateAllNodeDossiers(ctx context.Context, cb func(context.Context, *overlay.NodeDossier) error) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	const nodesPerPage = 1000
 	var cont *dbx.Paged_Node_Continuation

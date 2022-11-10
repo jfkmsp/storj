@@ -5,6 +5,11 @@ package metabase
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -96,7 +101,10 @@ func (finishCopy FinishCopyObject) Verify() error {
 // FinishCopyObject accepts new encryption keys for copied object and insert the corresponding new object ObjectKey and segments EncryptedKey.
 // It returns the object at the destination location.
 func (db *DB) FinishCopyObject(ctx context.Context, opts FinishCopyObject) (object Object, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	if err := opts.Verify(); err != nil {
 		return Object{}, err
@@ -331,7 +339,8 @@ func (db *DB) FinishCopyObject(ctx context.Context, opts FinishCopyObject) (obje
 		newObject.EncryptedMetadataNonce = opts.NewEncryptedMetadataKeyNonce[:]
 	}
 
-	mon.Meter("finish_copy_object").Mark(1)
+	counter, _ := meter.SyncInt64().Counter("finish_copy_object")
+	counter.Add(ctx, 1)
 
 	return newObject, nil
 }
@@ -344,7 +353,9 @@ func (db *DB) FinishCopyObject(ctx context.Context, opts FinishCopyObject) (obje
 func getObjectAtCopySourceAndDestination(
 	ctx context.Context, tx tagsql.Tx, opts FinishCopyObject,
 ) (sourceObject Object, ancestorStreamID uuid.UUID, destinationObject *Object, nextAvailableVersion Version, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var ancestorStreamIDBytes []byte
 	var highestVersion Version

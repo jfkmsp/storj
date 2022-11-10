@@ -5,6 +5,10 @@ package gracefulexit
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -53,7 +57,9 @@ type ExitingSatellite struct {
 // satellite's ID/address and information about the graceful exit status
 // and progress.
 func (c *Service) ListPendingExits(ctx context.Context) (_ []ExitingSatellite, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	exitProgress, err := c.satelliteDB.ListGracefulExits(ctx)
 	if err != nil {
@@ -77,7 +83,9 @@ func (c *Service) ListPendingExits(ctx context.Context) (_ []ExitingSatellite, e
 // DeletePiece deletes one piece stored for a satellite, and updates
 // the deleted byte count for the corresponding graceful exit operation.
 func (c *Service) DeletePiece(ctx context.Context, satelliteID storj.NodeID, pieceID storj.PieceID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	piece, err := c.store.Reader(ctx, satelliteID, pieceID)
 	if err != nil {
@@ -96,7 +104,9 @@ func (c *Service) DeletePiece(ctx context.Context, satelliteID storj.NodeID, pie
 //
 // Note: this should only ever be called after exit has finished.
 func (c *Service) DeleteSatelliteData(ctx context.Context, satelliteID storj.NodeID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// delete all remaining pieces
 	err = c.deleteSatellitePieces(ctx, satelliteID)
@@ -111,7 +121,9 @@ func (c *Service) DeleteSatelliteData(ctx context.Context, satelliteID storj.Nod
 // deleteSatellitePieces deletes all pieces stored for a satellite, and updates
 // the deleted byte count for the corresponding graceful exit operation.
 func (c *Service) deleteSatellitePieces(ctx context.Context, satelliteID storj.NodeID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var totalDeleted int64
 	logger := c.log.With(zap.Stringer("Satellite ID", satelliteID), zap.String("action", "delete all pieces"))
@@ -140,13 +152,17 @@ func (c *Service) deleteSatellitePieces(ctx context.Context, satelliteID storj.N
 
 // ExitFailed updates the database when a graceful exit has failed.
 func (c *Service) ExitFailed(ctx context.Context, satelliteID storj.NodeID, reason pb.ExitFailed_Reason, exitFailedBytes []byte) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return errs.Wrap(c.satelliteDB.CompleteGracefulExit(ctx, satelliteID, c.nowFunc(), satellites.ExitFailed, exitFailedBytes))
 }
 
 // ExitCompleted updates the database when a graceful exit is completed.
 func (c *Service) ExitCompleted(ctx context.Context, satelliteID storj.NodeID, completionReceipt []byte) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return errs.Wrap(c.satelliteDB.CompleteGracefulExit(ctx, satelliteID, c.nowFunc(), satellites.ExitSucceeded, completionReceipt))
 }
 
@@ -154,7 +170,9 @@ func (c *Service) ExitCompleted(ctx context.Context, satelliteID storj.NodeID, c
 // This is intended to be called when a graceful exit operation was initiated but
 // the satellite rejected it.
 func (c *Service) ExitNotPossible(ctx context.Context, satelliteID storj.NodeID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return c.satelliteDB.CancelGracefulExit(ctx, satelliteID)
 }

@@ -5,6 +5,10 @@ package storage
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 )
 
 // ListOptions are items that are optional for the LIST method.
@@ -54,7 +58,9 @@ func ListV2(ctx context.Context, store KeyValueStore, opts ListOptions) (result 
 // The callback item will be reused for next calls.
 // If the user needs the preserve the value, it must call storage.CloneValue or storage.CloneKey.
 func ListV2Iterate(ctx context.Context, store KeyValueStore, opts ListOptions, fn func(context.Context, *ListItem) error) (more bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	limit := opts.Limit
 	if limit <= 0 || limit > store.LookupLimit() {
@@ -84,10 +90,10 @@ func ListV2Iterate(ctx context.Context, store KeyValueStore, opts ListOptions, f
 				}
 			}
 
-			task := mon.TaskNamed("handling_item")(nil)
+			ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, "handling_item")
 			item.Key = relativeKey
 			err := fn(ctx, &item)
-			task(nil)
+			span.End()
 
 			if err != nil {
 				return err

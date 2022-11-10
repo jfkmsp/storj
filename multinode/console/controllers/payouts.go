@@ -5,7 +5,11 @@ package controllers
 
 import (
 	"encoding/json"
+	"go.opentelemetry.io/otel"
 	"net/http"
+	"os"
+
+	"runtime"
 
 	"github.com/gorilla/mux"
 	"github.com/zeebo/errs"
@@ -39,7 +43,9 @@ func NewPayouts(log *zap.Logger, service *payouts.Service) *Payouts {
 func (controller *Payouts) Earned(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	earned, err := controller.service.Earned(ctx)
 	if err != nil {
@@ -58,7 +64,9 @@ func (controller *Payouts) Earned(w http.ResponseWriter, r *http.Request) {
 func (controller *Payouts) NodeExpectations(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Add("Content-Type", "application/json")
 	segmentParams := mux.Vars(r)
@@ -91,7 +99,9 @@ func (controller *Payouts) NodeExpectations(w http.ResponseWriter, r *http.Reque
 func (controller *Payouts) Expectations(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Add("Content-Type", "application/json")
 
@@ -111,7 +121,9 @@ func (controller *Payouts) Expectations(w http.ResponseWriter, r *http.Request) 
 func (controller *Payouts) SummaryPeriod(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Add("Content-Type", "application/json")
 	segmentParams := mux.Vars(r)
@@ -138,7 +150,9 @@ func (controller *Payouts) SummaryPeriod(w http.ResponseWriter, r *http.Request)
 func (controller *Payouts) Summary(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Add("Content-Type", "application/json")
 
@@ -158,7 +172,9 @@ func (controller *Payouts) Summary(w http.ResponseWriter, r *http.Request) {
 func (controller *Payouts) SummarySatellitePeriod(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Add("Content-Type", "application/json")
 	segmentParams := mux.Vars(r)
@@ -197,7 +213,9 @@ func (controller *Payouts) SummarySatellitePeriod(w http.ResponseWriter, r *http
 func (controller *Payouts) SummarySatellite(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Add("Content-Type", "application/json")
 	segmentParams := mux.Vars(r)
@@ -230,7 +248,9 @@ func (controller *Payouts) SummarySatellite(w http.ResponseWriter, r *http.Reque
 func (controller *Payouts) Paystub(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Add("Content-Type", "application/json")
 	segmentParams := mux.Vars(r)
@@ -263,7 +283,9 @@ func (controller *Payouts) Paystub(w http.ResponseWriter, r *http.Request) {
 func (controller *Payouts) PaystubSatellite(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Add("Content-Type", "application/json")
 	segmentParams := mux.Vars(r)
@@ -308,7 +330,9 @@ func (controller *Payouts) PaystubSatellite(w http.ResponseWriter, r *http.Reque
 func (controller *Payouts) PaystubSatellitePeriod(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Add("Content-Type", "application/json")
 	segmentParams := mux.Vars(r)
@@ -359,7 +383,9 @@ func (controller *Payouts) PaystubSatellitePeriod(w http.ResponseWriter, r *http
 func (controller *Payouts) PaystubPeriod(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Add("Content-Type", "application/json")
 	segmentParams := mux.Vars(r)
@@ -398,7 +424,9 @@ func (controller *Payouts) PaystubPeriod(w http.ResponseWriter, r *http.Request)
 func (controller *Payouts) HeldAmountSummary(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	vars := mux.Vars(r)
 

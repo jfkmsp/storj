@@ -241,8 +241,8 @@ func TestFetchingInfoWhileEntryIsSyncing(t *testing.T) {
 					if err != nil {
 						return err
 					}
-					firstChangeSeen := (len(info.AuditHistory.Windows) > 0)
-					secondChangeSeen := (info.TotalAuditCount == positiveAudits)
+					firstChangeSeen := len(info.AuditHistory.Windows) > 0
+					secondChangeSeen := info.TotalAuditCount == positiveAudits
 					if firstChangeSeen != secondChangeSeen {
 						queriesFromBSeeingDirty++
 					}
@@ -268,8 +268,8 @@ func TestFetchingInfoWhileEntryIsSyncing(t *testing.T) {
 					if err != nil {
 						return err
 					}
-					firstChangeSeen := (len(info.AuditHistory.Windows) > 0)
-					secondChangeSeen := (info.TotalAuditCount == positiveAudits)
+					firstChangeSeen := len(info.AuditHistory.Windows) > 0
+					secondChangeSeen := info.TotalAuditCount == positiveAudits
 					if firstChangeSeen != secondChangeSeen {
 						queriesFromCSeeingDirty++
 					}

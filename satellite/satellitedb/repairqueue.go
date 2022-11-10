@@ -7,6 +7,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -29,7 +33,9 @@ type repairQueue struct {
 }
 
 func (r *repairQueue) Insert(ctx context.Context, seg *queue.InjuredSegment) (alreadyInserted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	// insert if not exists, or update healthy count if does exist
 	var query string
 
@@ -93,7 +99,9 @@ func (r *repairQueue) InsertBatch(
 	ctx context.Context,
 	segments []*queue.InjuredSegment,
 ) (newlyInsertedSegments []*queue.InjuredSegment, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if len(segments) == 0 {
 		return nil, nil
 	}
@@ -195,7 +203,9 @@ func (r *repairQueue) InsertBatch(
 }
 
 func (r *repairQueue) Select(ctx context.Context) (seg *queue.InjuredSegment, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	segment := queue.InjuredSegment{}
 	switch r.db.impl {
@@ -230,19 +240,25 @@ func (r *repairQueue) Select(ctx context.Context) (seg *queue.InjuredSegment, er
 }
 
 func (r *repairQueue) Delete(ctx context.Context, seg *queue.InjuredSegment) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	_, err = r.db.ExecContext(ctx, r.db.Rebind(`DELETE FROM repair_queue WHERE stream_id = ? AND position = ?`), seg.StreamID, seg.Position.Encode())
 	return Error.Wrap(err)
 }
 
 func (r *repairQueue) Clean(ctx context.Context, before time.Time) (deleted int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	n, err := r.db.Delete_RepairQueue_By_UpdatedAt_Less(ctx, dbx.RepairQueue_UpdatedAt(before))
 	return n, Error.Wrap(err)
 }
 
 func (r *repairQueue) SelectN(ctx context.Context, limit int) (segs []queue.InjuredSegment, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if limit <= 0 || limit > RepairQueueSelectLimit {
 		limit = RepairQueueSelectLimit
 	}
@@ -270,7 +286,9 @@ func (r *repairQueue) SelectN(ctx context.Context, limit int) (segs []queue.Inju
 }
 
 func (r *repairQueue) Count(ctx context.Context) (count int, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// Count every segment regardless of how recently repair was last attempted
 	err = r.db.QueryRowContext(ctx, r.db.Rebind(`SELECT COUNT(*) as count FROM repair_queue`)).Scan(&count)
@@ -282,7 +300,9 @@ func (r *repairQueue) Count(ctx context.Context) (count int, err error) {
 func (r *repairQueue) TestingSetAttemptedTime(ctx context.Context, streamID uuid.UUID,
 	position metabase.SegmentPosition, t time.Time) (rowsAffected int64, err error) {
 
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	res, err := r.db.ExecContext(ctx,
 		r.db.Rebind(`UPDATE repair_queue SET attempted_at = ? WHERE stream_id = ? AND position = ?`),
 		t, streamID, position.Encode(),

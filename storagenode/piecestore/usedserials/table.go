@@ -4,13 +4,16 @@
 package usedserials
 
 import (
+	"context"
 	"encoding/binary"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
 	"math/rand"
+	"os"
 	"sort"
 	"sync"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 
 	"storj.io/common/memory"
@@ -22,8 +25,6 @@ var (
 	ErrSerials = errs.Class("usedserials")
 	// ErrSerialAlreadyExists defines an error class for duplicate usedserials.
 	ErrSerialAlreadyExists = errs.Class("used serial already exists in store")
-
-	mon = monkit.Package()
 )
 
 const (
@@ -202,7 +203,11 @@ func (table *Table) Count() int {
 // deleteRandomSerial deletes a random item.
 // It expects the mutex to be locked before being called.
 func (table *Table) deleteRandomSerial() error {
-	mon.Meter("delete_random_serial").Mark(1) //mon:locked
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(context.Background(), "delete_random_serial")
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
+	counter, _ := meter.SyncInt64().Counter("delete_random_serial")
+	counter.Add(ctx, 1)
 	for _, satMap := range table.serials {
 		for expirationHour, serialList := range satMap {
 			if len(serialList.partialSerials) > 0 {

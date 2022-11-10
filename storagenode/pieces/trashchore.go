@@ -40,8 +40,6 @@ func NewTrashChore(log *zap.Logger, choreInterval, trashExpiryInterval time.Dura
 
 // Run starts the cycle.
 func (chore *TrashChore) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
-
 	chore.cycle = sync2.NewCycle(chore.interval)
 	chore.cycle.Start(ctx, &errgroup.Group{}, func(ctx context.Context) error {
 		chore.log.Debug("starting to empty trash")

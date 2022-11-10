@@ -6,6 +6,10 @@ package checker
 import (
 	"context"
 	"fmt"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"sync"
 	"time"
 
@@ -53,7 +57,9 @@ func NewService(log *zap.Logger, config Config, info version.Info, service strin
 // CheckProcessVersion is not meant to be used for peers but is meant to be
 // used for other utilities.
 func CheckProcessVersion(ctx context.Context, log *zap.Logger, config Config, info version.Info, service string) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	_, err = NewService(log, config, info, service).CheckVersion(ctx)
 
 	return err
@@ -71,7 +77,9 @@ func (service *Service) IsAllowed(ctx context.Context) (version.SemVer, bool) {
 
 // CheckVersion checks to make sure the version is still relevant and returns suggested version, returning an error if not.
 func (service *Service) CheckVersion(ctx context.Context) (latest version.SemVer, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	latest, allowed := service.checkVersion(ctx)
 	if !allowed {
 		return latest, fmt.Errorf("outdated software version (%s), please update", service.Info.Version.String())
@@ -82,7 +90,9 @@ func (service *Service) CheckVersion(ctx context.Context) (latest version.SemVer
 // checkVersion checks if the client is running latest/allowed version.
 func (service *Service) checkVersion(ctx context.Context) (_ version.SemVer, allowed bool) {
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var minimum version.SemVer
 

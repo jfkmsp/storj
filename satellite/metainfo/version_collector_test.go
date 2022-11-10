@@ -7,8 +7,6 @@ import (
 	"io"
 	"testing"
 
-	"github.com/spacemonkeygo/monkit/v3"
-	"github.com/spacemonkeygo/monkit/v3/environment"
 	"github.com/stretchr/testify/require"
 
 	"storj.io/common/memory"
@@ -22,9 +20,6 @@ func TestUserAgentTransferStats(t *testing.T) {
 	// bacause we are testing monkit there is no easy way to separate
 	// collected metrics from other tests run in parallel
 	t.Skipf("this test can be run only locally and without other tests in parallel")
-
-	monkitRegistry := monkit.NewRegistry()
-	environment.Register(monkitRegistry)
 
 	iteration := 0
 	testplanet.Run(t, testplanet.Config{
@@ -62,15 +57,5 @@ func TestUserAgentTransferStats(t *testing.T) {
 			require.NoError(t, err)
 			require.NoError(t, download.Close())
 		}
-
-		monkitRegistry.Stats(func(key monkit.SeriesKey, field string, val float64) {
-			if key.Measurement == "user_agents_transfer_stats" && key.Tags.Get("user_agent") == "uplink-cli" && field == "total" {
-				if key.Tags.Get("type") == "upload" {
-					require.Equal(t, iteration*(11*memory.KiB.Int()), int(val))
-				} else if key.Tags.Get("type") == "download" {
-					require.Equal(t, iteration*(11*memory.KiB.Int()), int(val))
-				}
-			}
-		})
 	})
 }

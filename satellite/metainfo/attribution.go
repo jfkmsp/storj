@@ -5,6 +5,10 @@ package metainfo
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"sync"
 
 	"go.uber.org/zap"
@@ -28,7 +32,9 @@ const MaxUserAgentLength = 500
 //
 // Assumes that the user has permissions sufficient for authenticating.
 func (endpoint *Endpoint) ensureAttribution(ctx context.Context, header *pb.RequestHeader, keyInfo *console.APIKeyInfo, bucketName, projectUserAgent []byte) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if header == nil {
 		return rpcstatus.Error(rpcstatus.InvalidArgument, "header is nil")
@@ -113,7 +119,9 @@ func TrimUserAgent(userAgent []byte) ([]byte, error) {
 }
 
 func (endpoint *Endpoint) tryUpdateBucketAttribution(ctx context.Context, header *pb.RequestHeader, projectID uuid.UUID, bucketName []byte, partnerID uuid.UUID, userAgent []byte) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if header == nil {
 		return rpcstatus.Error(rpcstatus.InvalidArgument, "header is nil")

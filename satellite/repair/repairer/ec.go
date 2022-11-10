@@ -7,8 +7,13 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
 	"hash"
 	"io"
+	"os"
+
+	"runtime"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -72,7 +77,10 @@ func (ec *ECRepairer) dialPiecestore(ctx context.Context, n storj.NodeURL) (*pie
 // If verification fails, another piece will be downloaded until we reach the minimum required or run out of order limits.
 // If piece hash verification fails, it will return all failed node IDs.
 func (ec *ECRepairer) Get(ctx context.Context, limits []*pb.AddressedOrderLimit, cachedNodesInfo map[storj.NodeID]overlay.NodeReputation, privateKey storj.PiecePrivateKey, es eestream.ErasureScheme, dataSize int64) (_ io.ReadCloser, _ FetchResultReport, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	if len(limits) != es.TotalCount() {
 		return nil, FetchResultReport{}, Error.New("number of limits slice (%d) does not match total count (%d) of erasure scheme", len(limits), es.TotalCount())
@@ -210,7 +218,8 @@ func (ec *ECRepairer) Get(ctx context.Context, limits []*pb.AddressedOrderLimit,
 	limiter.Wait()
 
 	if successfulPieces < es.RequiredCount() {
-		mon.Meter("download_failed_not_enough_pieces_repair").Mark(1) //mon:locked
+		counter, _ := meter.SyncInt64().Counter("download_failed_not_enough_pieces_repair")
+		counter.Add(context.Background(), 1)
 		return nil, pieces, &irreparableError{
 			piecesAvailable: int32(successfulPieces),
 			piecesRequired:  int32(es.RequiredCount()),
@@ -260,7 +269,10 @@ var _ io.Writer = &lazyHashWriter{}
 // expects the original order limit to have the correct piece public key,
 // and expects the hash of the data to match the signed hash provided by the storagenode.
 func (ec *ECRepairer) downloadAndVerifyPiece(ctx context.Context, limit *pb.AddressedOrderLimit, address string, privateKey storj.PiecePrivateKey, tmpDir string, pieceSize int64) (pieceReadCloser io.ReadCloser, hash *pb.PieceHash, originalLimit *pb.OrderLimit, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	// contact node
 	downloadCtx, cancel := context.WithTimeout(ctx, ec.downloadTimeout)
@@ -316,7 +328,8 @@ func (ec *ECRepairer) downloadAndVerifyPiece(ctx context.Context, limit *pb.Addr
 		pieceReadCloser = tempfile
 	}
 
-	mon.Meter("repair_bytes_downloaded").Mark64(downloadedPieceSize) //mon:locked
+	counter, _ := meter.SyncInt64().Counter("repair_bytes_downloaded")
+	counter.Add(context.Background(), downloadedPieceSize)
 
 	if downloadedPieceSize != pieceSize {
 		return pieceReadCloser, nil, nil, Error.New("didn't download the correct amount of data, want %d, got %d", pieceSize, downloadedPieceSize)
@@ -347,7 +360,9 @@ func (ec *ECRepairer) downloadAndVerifyPiece(ctx context.Context, limit *pb.Addr
 }
 
 func verifyPieceHash(ctx context.Context, limit *pb.OrderLimit, hash *pb.PieceHash, expectedHash []byte) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if limit == nil || hash == nil || len(expectedHash) == 0 {
 		return Error.New("invalid arguments")
@@ -377,7 +392,10 @@ func verifyOrderLimitSignature(ctx context.Context, satellite signing.Signee, li
 // Repair takes a provided segment, encodes it with the provided redundancy strategy,
 // and uploads the pieces in need of repair to new nodes provided by order limits.
 func (ec *ECRepairer) Repair(ctx context.Context, limits []*pb.AddressedOrderLimit, privateKey storj.PiecePrivateKey, rs eestream.RedundancyStrategy, data io.Reader, timeout time.Duration, successfulNeeded int) (successfulNodes []*pb.Node, successfulHashes []*pb.PieceHash, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	pieceCount := len(limits)
 	if pieceCount != rs.TotalCount() {
@@ -489,22 +507,29 @@ func (ec *ECRepairer) Repair(ctx context.Context, limits []*pb.AddressedOrderLim
 		zap.Int32("Success Count", atomic.LoadInt32(&successfulCount)),
 	)
 
-	mon.IntVal("repair_segment_pieces_total").Observe(int64(pieceCount))           //mon:locked
-	mon.IntVal("repair_segment_pieces_successful").Observe(int64(successfulCount)) //mon:locked
-	mon.IntVal("repair_segment_pieces_failed").Observe(int64(failureCount))        //mon:locked
-	mon.IntVal("repair_segment_pieces_canceled").Observe(int64(cancellationCount)) //mon:locked
+	histCounter, _ := meter.SyncInt64().Histogram("repair_segment_pieces_total")
+	histCounter.Record(ctx, int64(pieceCount))
+	histCounter, _ = meter.SyncInt64().Histogram("repair_segment_pieces_successful")
+	histCounter.Record(ctx, int64(successfulCount))
+	histCounter, _ = meter.SyncInt64().Histogram("repair_segment_pieces_failed")
+	histCounter.Record(ctx, int64(failureCount))
+	histCounter, _ = meter.SyncInt64().Histogram("repair_segment_pieces_canceled")
+	histCounter.Record(ctx, int64(cancellationCount))
 
 	return successfulNodes, successfulHashes, nil
 }
 
 func (ec *ECRepairer) putPiece(ctx, parent context.Context, limit *pb.AddressedOrderLimit, privateKey storj.PiecePrivateKey, data io.ReadCloser) (hash *pb.PieceHash, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	nodeName := "nil"
 	if limit != nil {
 		nodeName = limit.GetLimit().StorageNodeId.String()[0:8]
 	}
-	defer mon.Task()(&ctx, "node: "+nodeName)(&err)
+	ctx, span = otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, "node: "+nodeName)
+	defer span.End()
 	defer func() { err = errs.Combine(err, data.Close()) }()
 
 	if limit == nil {

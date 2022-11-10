@@ -5,9 +5,12 @@ package apikeys
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 
 	"storj.io/storj/private/multinodeauth"
@@ -16,8 +19,6 @@ import (
 var (
 	// ErrService defines secret service error.
 	ErrService = errs.Class("secret service")
-
-	mon = monkit.Package()
 )
 
 // Service responsible for operations with storagenode's uniq secret.
@@ -34,7 +35,9 @@ func NewService(db DB) *Service {
 
 // Issue generates new api key and stores it into db.
 func (service *Service) Issue(ctx context.Context) (apiKey APIKey, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	secret, err := multinodeauth.NewSecret()
 	if err != nil {
 		return APIKey{}, ErrService.Wrap(err)
@@ -53,14 +56,18 @@ func (service *Service) Issue(ctx context.Context) (apiKey APIKey, err error) {
 
 // Check returns error if api key does not exists.
 func (service *Service) Check(ctx context.Context, secret multinodeauth.Secret) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return service.store.Check(ctx, secret)
 }
 
 // Remove revokes apikey, deletes it from db.
 func (service *Service) Remove(ctx context.Context, secret multinodeauth.Secret) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return ErrService.Wrap(service.store.Revoke(ctx, secret))
 }

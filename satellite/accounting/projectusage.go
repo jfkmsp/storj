@@ -5,9 +5,14 @@ package accounting
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"golang.org/x/sync/errgroup"
 
@@ -15,8 +20,6 @@ import (
 	"storj.io/common/uuid"
 	"storj.io/storj/satellite/metabase"
 )
-
-var mon = monkit.Package()
 
 // ErrProjectUsage general error for project usage.
 var ErrProjectUsage = errs.Class("project usage")
@@ -58,7 +61,9 @@ func NewService(projectAccountingDB ProjectAccounting, liveAccounting Cache, lim
 // storj.io/storj/satellite/accounting.Cache except the ErrKeyNotFound, wrapped
 // by ErrProjectUsage.
 func (usage *Service) ExceedsBandwidthUsage(ctx context.Context, projectID uuid.UUID) (_ bool, limit memory.Size, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var (
 		group          errgroup.Group
@@ -121,7 +126,9 @@ type UploadLimit struct {
 // Supply nonzero headroom parameters to check if there is room for a new object.
 func (usage *Service) ExceedsUploadLimits(
 	ctx context.Context, projectID uuid.UUID, storageSizeHeadroom int64, segmentCountHeadroom int64) (limit UploadLimit, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var group errgroup.Group
 	var segmentUsage, storageUsage int64
@@ -167,7 +174,9 @@ func (usage *Service) ExceedsUploadLimits(
 // AddProjectUsageUpToLimit increases segment and storage usage up to the projects limit.
 // If the limit is exceeded, neither usage is increased and accounting.ErrProjectLimitExceeded is returned.
 func (usage *Service) AddProjectUsageUpToLimit(ctx context.Context, projectID uuid.UUID, storage int64, segments int64) (err error) {
-	defer mon.Task()(&ctx, projectID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("projectID", projectID.String())))
+	defer span.End()
 
 	limits, err := usage.projectLimitCache.GetProjectLimits(ctx, projectID)
 	if err != nil {
@@ -197,7 +206,9 @@ func (usage *Service) AddProjectUsageUpToLimit(ctx context.Context, projectID uu
 // storj.io/storj/satellite/accounting.Cache.GetProjectStorageUsage except the
 // ErrKeyNotFound, wrapped by ErrProjectUsage.
 func (usage *Service) GetProjectStorageTotals(ctx context.Context, projectID uuid.UUID) (total int64, err error) {
-	defer mon.Task()(&ctx, projectID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("projectID", projectID.String())))
+	defer span.End()
 
 	total, err = usage.liveAccounting.GetProjectStorageUsage(ctx, projectID)
 	if ErrKeyNotFound.Has(err) {
@@ -209,7 +220,9 @@ func (usage *Service) GetProjectStorageTotals(ctx context.Context, projectID uui
 
 // GetProjectBandwidthTotals returns total amount of allocated bandwidth used for past 30 days.
 func (usage *Service) GetProjectBandwidthTotals(ctx context.Context, projectID uuid.UUID) (_ int64, err error) {
-	defer mon.Task()(&ctx, projectID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("projectID", projectID.String())))
+	defer span.End()
 
 	// from the beginning of the current month
 	year, month, _ := usage.nowFn().Date()
@@ -220,7 +233,9 @@ func (usage *Service) GetProjectBandwidthTotals(ctx context.Context, projectID u
 
 // GetProjectBandwidth returns project allocated bandwidth for the specified year, month and day.
 func (usage *Service) GetProjectBandwidth(ctx context.Context, projectID uuid.UUID, year int, month time.Month, day int) (_ int64, err error) {
-	defer mon.Task()(&ctx, projectID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("projectID", projectID.String())))
+	defer span.End()
 
 	total, err := usage.projectAccountingDB.GetProjectBandwidth(ctx, projectID, year, month, day, usage.asOfSystemInterval)
 	return total, ErrProjectUsage.Wrap(err)
@@ -228,7 +243,9 @@ func (usage *Service) GetProjectBandwidth(ctx context.Context, projectID uuid.UU
 
 // GetProjectStorageLimit returns current project storage limit.
 func (usage *Service) GetProjectStorageLimit(ctx context.Context, projectID uuid.UUID) (_ memory.Size, err error) {
-	defer mon.Task()(&ctx, projectID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("projectID", projectID.String())))
+	defer span.End()
 	limits, err := usage.projectLimitCache.GetProjectLimits(ctx, projectID)
 	if err != nil {
 		return 0, ErrProjectUsage.Wrap(err)
@@ -239,14 +256,18 @@ func (usage *Service) GetProjectStorageLimit(ctx context.Context, projectID uuid
 
 // GetProjectBandwidthLimit returns current project bandwidth limit.
 func (usage *Service) GetProjectBandwidthLimit(ctx context.Context, projectID uuid.UUID) (_ memory.Size, err error) {
-	defer mon.Task()(&ctx, projectID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("projectID", projectID.String())))
+	defer span.End()
 	return usage.projectLimitCache.GetProjectBandwidthLimit(ctx, projectID)
 }
 
 // UpdateProjectLimits sets new value for project's bandwidth and storage limit.
 // TODO remove because it's not used.
 func (usage *Service) UpdateProjectLimits(ctx context.Context, projectID uuid.UUID, limit memory.Size) (err error) {
-	defer mon.Task()(&ctx, projectID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("projectID", projectID.String())))
+	defer span.End()
 
 	return ErrProjectUsage.Wrap(usage.projectAccountingDB.UpdateProjectUsageLimit(ctx, projectID, limit))
 }
@@ -293,7 +314,9 @@ func (usage *Service) UpdateProjectSegmentUsage(ctx context.Context, projectID u
 // storj.io/storj/satellite/accounting.Cache.AddProjectStorageUsage, wrapped by
 // ErrProjectUsage.
 func (usage *Service) AddProjectStorageUsage(ctx context.Context, projectID uuid.UUID, spaceUsed int64) (err error) {
-	defer mon.Task()(&ctx, projectID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("projectID", projectID.String())))
+	defer span.End()
 	return usage.liveAccounting.AddProjectStorageUsage(ctx, projectID, spaceUsed)
 }
 

@@ -6,6 +6,10 @@ package satellitedb
 import (
 	"context"
 	"database/sql"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
 	"storj.io/storj/satellite/audit"
@@ -28,7 +32,9 @@ var _ audit.ReverifyQueue = (*reverifyQueue)(nil)
 
 // Insert adds a reverification job to the queue.
 func (rq *reverifyQueue) Insert(ctx context.Context, piece audit.PieceLocator) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = rq.db.Create_ReverificationAudits(
 		ctx,
@@ -47,7 +53,9 @@ func (rq *reverifyQueue) Insert(ctx context.Context, piece audit.PieceLocator) (
 // ReverifyRetryInterval. If there are no such jobs, sql.ErrNoRows
 // will be returned.
 func (rq *reverifyQueue) GetNextJob(ctx context.Context) (job audit.ReverificationJob, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	err = rq.db.QueryRowContext(ctx, `
 		WITH next_entry AS (
@@ -81,7 +89,9 @@ func (rq *reverifyQueue) GetNextJob(ctx context.Context) (job audit.Reverificati
 // return value indicates whether the indicated job was actually deleted (if
 // not, there was no such job in the queue).
 func (rq *reverifyQueue) Remove(ctx context.Context, piece audit.PieceLocator) (wasDeleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return rq.db.Delete_ReverificationAudits_By_NodeId_And_StreamId_And_Position(
 		ctx,

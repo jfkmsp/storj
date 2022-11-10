@@ -6,9 +6,12 @@ package pointerverification
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 
 	"storj.io/common/pb"
@@ -19,7 +22,7 @@ import (
 )
 
 var (
-	mon = monkit.Package()
+
 	// Error general pointer verification error.
 	Error = errs.Class("pointer verification")
 )
@@ -40,7 +43,9 @@ func NewService(db overlay.PeerIdentities) *Service {
 
 // VerifySizes verifies that the remote piece sizes in commitSegment match each other.
 func (service *Service) VerifySizes(ctx context.Context, redundancy storj.RedundancyScheme, encryptedSize int64, uploadResponses []*pb.SegmentPieceUploadResult) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	commonSize := int64(-1)
 	for _, piece := range uploadResponses {
@@ -84,7 +89,9 @@ type InvalidPiece struct {
 
 // SelectValidPieces selects pieces that are have correct hashes and match the original limits.
 func (service *Service) SelectValidPieces(ctx context.Context, uploadResponses []*pb.SegmentPieceUploadResult, originalLimits []*pb.OrderLimit) (valid []*pb.SegmentPieceUploadResult, invalid []InvalidPiece, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	nodeIDs := make([]storj.NodeID, 0, len(originalLimits))
 	for _, limit := range originalLimits {
@@ -158,7 +165,9 @@ func (service *Service) SelectValidPieces(ctx context.Context, uploadResponses [
 
 // VerifyPieceAndLimit verifies that the piece and limit match.
 func VerifyPieceAndLimit(ctx context.Context, piece *pb.SegmentPieceUploadResult, limit *pb.OrderLimit) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// ensure that we have a hash
 	if piece.Hash == nil {

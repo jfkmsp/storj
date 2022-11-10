@@ -5,6 +5,10 @@ package metainfo
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 
 	"storj.io/common/pb"
 	"storj.io/common/signing"
@@ -14,7 +18,9 @@ import (
 // SignStreamID signs the stream ID using the specified signer.
 // Signer is a satellite.
 func SignStreamID(ctx context.Context, signer signing.Signer, unsigned *internalpb.StreamID) (_ *internalpb.StreamID, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	bytes, err := EncodeStreamID(ctx, unsigned)
 	if err != nil {
 		return nil, Error.Wrap(err)
@@ -32,7 +38,9 @@ func SignStreamID(ctx context.Context, signer signing.Signer, unsigned *internal
 // SignSegmentID signs the segment ID using the specified signer.
 // Signer is a satellite.
 func SignSegmentID(ctx context.Context, signer signing.Signer, unsigned *internalpb.SegmentID) (_ *internalpb.SegmentID, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	bytes, err := EncodeSegmentID(ctx, unsigned)
 	if err != nil {
 		return nil, Error.Wrap(err)
@@ -49,7 +57,9 @@ func SignSegmentID(ctx context.Context, signer signing.Signer, unsigned *interna
 
 // EncodeStreamID encodes stream ID into bytes for signing.
 func EncodeStreamID(ctx context.Context, streamID *internalpb.StreamID) (_ []byte, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	signature := streamID.SatelliteSignature
 	streamID.SatelliteSignature = nil
 	out, err := pb.Marshal(streamID)
@@ -59,7 +69,9 @@ func EncodeStreamID(ctx context.Context, streamID *internalpb.StreamID) (_ []byt
 
 // EncodeSegmentID encodes segment ID into bytes for signing.
 func EncodeSegmentID(ctx context.Context, segmentID *internalpb.SegmentID) (_ []byte, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	signature := segmentID.SatelliteSignature
 	segmentID.SatelliteSignature = nil
 	out, err := pb.Marshal(segmentID)
@@ -69,7 +81,9 @@ func EncodeSegmentID(ctx context.Context, segmentID *internalpb.SegmentID) (_ []
 
 // VerifyStreamID verifies that the signature inside stream ID belongs to the satellite.
 func VerifyStreamID(ctx context.Context, satellite signing.Signer, signed *internalpb.StreamID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	bytes, err := EncodeStreamID(ctx, signed)
 	if err != nil {
 		return Error.Wrap(err)
@@ -80,7 +94,9 @@ func VerifyStreamID(ctx context.Context, satellite signing.Signer, signed *inter
 
 // VerifySegmentID verifies that the signature inside segment ID belongs to the satellite.
 func VerifySegmentID(ctx context.Context, satellite signing.Signee, signed *internalpb.SegmentID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	bytes, err := EncodeSegmentID(ctx, signed)
 	if err != nil {
 		return Error.Wrap(err)

@@ -7,6 +7,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"os"
+	"runtime"
 	"time"
 
 	"storj.io/private/dbutil"
@@ -29,7 +32,9 @@ type verifyQueue struct {
 var _ audit.VerifyQueue = (*verifyQueue)(nil)
 
 func (vq *verifyQueue) Push(ctx context.Context, segments []audit.Segment) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	streamIDSlice := make([][]byte, len(segments))
 	positionSlice := make([]int64, len(segments))
@@ -55,7 +60,9 @@ func (vq *verifyQueue) Push(ctx context.Context, segments []audit.Segment) (err 
 }
 
 func (vq *verifyQueue) Next(ctx context.Context) (seg audit.Segment, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var getQuery string
 	switch vq.db.impl {

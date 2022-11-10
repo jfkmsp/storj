@@ -7,11 +7,14 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"go.opentelemetry.io/otel"
 	"io"
+	"os"
+
+	"runtime"
 	"sort"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -78,8 +81,6 @@ var (
 	Error = errs.Class("orders")
 	// ErrUsingSerialNumber error class for serial number.
 	ErrUsingSerialNumber = errs.Class("serial number")
-
-	mon = monkit.Package()
 )
 
 // BucketBandwidthRollup contains all the info needed for a bucket bandwidth rollup.
@@ -192,13 +193,16 @@ func (endpoint *Endpoint) SettlementWithWindow(stream pb.DRPCOrders_SettlementWi
 }
 
 func trackFinalStatus(status pb.SettlementWithWindowResponse_Status) {
+	pc, _, _, _ := runtime.Caller(0)
+	_, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(context.Background(), runtime.FuncForPC(pc).Name())
+	defer span.End()
 	switch status {
 	case pb.SettlementWithWindowResponse_ACCEPTED:
-		mon.Event("settlement_response_accepted")
+		span.AddEvent("settlement_response_accepted")
 	case pb.SettlementWithWindowResponse_REJECTED:
-		mon.Event("settlement_response_rejected")
+		span.AddEvent("settlement_response_rejected")
 	default:
-		mon.Event("settlement_response_unknown")
+		span.AddEvent("settlement_response_unknown")
 	}
 }
 
@@ -207,7 +211,9 @@ func trackFinalStatus(status pb.SettlementWithWindowResponse_Status) {
 // Batches are atomic, all orders are settled successfully or they all fail.
 func (endpoint *Endpoint) SettlementWithWindowFinal(stream pb.DRPCOrders_SettlementWithWindowStream) (err error) {
 	ctx := stream.Context()
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var alreadyProcessed bool
 	var status pb.SettlementWithWindowResponse_Status
@@ -290,7 +296,7 @@ func (endpoint *Endpoint) SettlementWithWindowFinal(stream pb.DRPCOrders_Settlem
 		metadata, err := endpoint.ordersService.DecryptOrderMetadata(ctx, orderLimit)
 		if err != nil {
 			log.Debug("decrypt order metadata err:", zap.Error(err))
-			mon.Event("bucketinfo_from_orders_metadata_error_1")
+			span.AddEvent("bucketinfo_from_orders_metadata_error_1")
 			continue
 		}
 
@@ -300,19 +306,19 @@ func (endpoint *Endpoint) SettlementWithWindowFinal(stream pb.DRPCOrders_Settlem
 			bucketInfo, err = metabase.ParseCompactBucketPrefix(metadata.GetCompactProjectBucketPrefix())
 			if err != nil {
 				log.Debug("decrypt order: ParseCompactBucketPrefix", zap.Error(err))
-				mon.Event("bucketinfo_from_orders_metadata_error_compact")
+				span.AddEvent("bucketinfo_from_orders_metadata_error_compact")
 				continue
 			}
 		case len(metadata.ProjectBucketPrefix) > 0:
 			bucketInfo, err = metabase.ParseBucketPrefix(metabase.BucketPrefix(metadata.GetProjectBucketPrefix()))
 			if err != nil {
 				log.Debug("decrypt order: ParseBucketPrefix", zap.Error(err))
-				mon.Event("bucketinfo_from_orders_metadata_error_uncompact")
+				span.AddEvent("bucketinfo_from_orders_metadata_error_uncompact")
 				continue
 			}
 		default:
 			log.Debug("decrypt order: project bucket prefix missing", zap.Error(err))
-			mon.Event("bucketinfo_from_orders_metadata_error_default")
+			span.AddEvent("bucketinfo_from_orders_metadata_error_default")
 			continue
 		}
 
@@ -327,7 +333,7 @@ func (endpoint *Endpoint) SettlementWithWindowFinal(stream pb.DRPCOrders_Settlem
 				zap.String("bucketName", bucketInfo.BucketName),
 				zap.String("projectID", bucketInfo.ProjectID.String()),
 			)
-			mon.Event("bucketinfo_from_orders_metadata_error_3")
+			span.AddEvent("bucketinfo_from_orders_metadata_error_3")
 			continue
 		}
 
@@ -374,7 +380,7 @@ func (endpoint *Endpoint) SettlementWithWindowFinal(stream pb.DRPCOrders_Settlem
 			}
 		}
 	} else {
-		mon.Event("orders_already_processed")
+		span.AddEvent("orders_already_processed")
 	}
 
 	if status == pb.SettlementWithWindowResponse_REJECTED {
@@ -388,44 +394,47 @@ func (endpoint *Endpoint) SettlementWithWindowFinal(stream pb.DRPCOrders_Settlem
 
 func (endpoint *Endpoint) isValid(ctx context.Context, log *zap.Logger, order *pb.Order,
 	orderLimit *pb.OrderLimit, peerID storj.NodeID, window int64) bool {
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if orderLimit.StorageNodeId != peerID {
 		log.Debug("storage node id mismatch")
-		mon.Event("order_not_valid_storagenodeid")
+		span.AddEvent("order_not_valid_storagenodeid")
 		return false
 	}
 	// check expiration first before the signatures so that we can throw out the large amount
 	// of expired orders being sent to us before doing expensive signature verification.
 	if orderLimit.OrderExpiration.Before(time.Now().UTC()) {
 		log.Debug("invalid settlement: order limit expired")
-		mon.Event("order_not_valid_expired")
+		span.AddEvent("order_not_valid_expired")
 		return false
 	}
 	// satellite verifies that it signed the order limit
 	if err := signing.VerifyOrderLimitSignature(ctx, endpoint.satelliteSignee, orderLimit); err != nil {
 		log.Debug("invalid settlement: unable to verify order limit")
-		mon.Event("order_not_valid_satellite_signature")
+		span.AddEvent("order_not_valid_satellite_signature")
 		return false
 	}
 	// satellite verifies that the order signature matches pub key in order limit
 	if err := signing.VerifyUplinkOrderSignature(ctx, orderLimit.UplinkPublicKey, order); err != nil {
 		log.Debug("invalid settlement: unable to verify order")
-		mon.Event("order_not_valid_uplink_signature")
+		span.AddEvent("order_not_valid_uplink_signature")
 		return false
 	}
 	if orderLimit.SerialNumber != order.SerialNumber {
 		log.Debug("invalid settlement: invalid serial number")
-		mon.Event("order_not_valid_serialnum_mismatch")
+		span.AddEvent("order_not_valid_serialnum_mismatch")
 		return false
 	}
 	// verify the 1 hr windows match
 	if window != date.TruncateToHourInNano(orderLimit.OrderCreation) {
 		log.Debug("invalid settlement: window mismatch")
-		mon.Event("order_not_valid_window_mismatch")
+		span.AddEvent("order_not_valid_window_mismatch")
 		return false
 	}
 	if orderLimit.Limit < order.Amount {
 		log.Debug("invalid settlement: amounts mismatch")
-		mon.Event("order_not_valid_amounts_mismatch")
+		span.AddEvent("order_not_valid_amounts_mismatch")
 		return false
 	}
 	return true

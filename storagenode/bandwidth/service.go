@@ -6,15 +6,16 @@ package bandwidth
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"go.uber.org/zap"
 
 	"storj.io/common/sync2"
 )
-
-var mon = monkit.Package()
 
 // Config defines parameters for storage node Collector.
 type Config struct {
@@ -41,13 +42,14 @@ func NewService(log *zap.Logger, db DB, config Config) *Service {
 
 // Run starts the background process for rollups of bandwidth usage.
 func (service *Service) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
 	return service.Loop.Run(ctx, service.Rollup)
 }
 
 // Rollup calls bandwidth DB Rollup method and logs any errors.
 func (service *Service) Rollup(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	service.log.Info("Performing bandwidth usage rollups")
 	err = service.db.Rollup(ctx)

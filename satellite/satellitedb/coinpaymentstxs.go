@@ -5,6 +5,11 @@ package satellitedb
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/shopspring/decimal"
@@ -44,7 +49,9 @@ type coinPaymentsTransactions struct {
 
 // Insert inserts new coinpayments transaction into DB.
 func (db *coinPaymentsTransactions) Insert(ctx context.Context, tx stripecoinpayments.Transaction) (createTime time.Time, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	dbxCPTX, err := db.db.Create_CoinpaymentsTransaction(ctx,
 		dbx.CoinpaymentsTransaction_Id(tx.ID.String()),
@@ -64,7 +71,9 @@ func (db *coinPaymentsTransactions) Insert(ctx context.Context, tx stripecoinpay
 
 // Update updates status and received for set of transactions.
 func (db *coinPaymentsTransactions) Update(ctx context.Context, updates []stripecoinpayments.TransactionUpdate, applies coinpayments.TransactionIDList) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if len(updates) == 0 {
 		return nil
@@ -101,7 +110,9 @@ func (db *coinPaymentsTransactions) Update(ctx context.Context, updates []stripe
 
 // Consume marks transaction as consumed, so it won't participate in apply account balance loop.
 func (db *coinPaymentsTransactions) Consume(ctx context.Context, id coinpayments.TransactionID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query := db.db.Rebind(`
 		WITH intent AS (
@@ -136,7 +147,10 @@ func (db *coinPaymentsTransactions) Consume(ctx context.Context, id coinpayments
 
 // LockRate locks conversion rate for transaction.
 func (db *coinPaymentsTransactions) LockRate(ctx context.Context, id coinpayments.TransactionID, rate decimal.Decimal) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	rateFloat, exact := rate.Float64()
 	if !exact {
@@ -164,7 +178,8 @@ func (db *coinPaymentsTransactions) LockRate(ctx context.Context, id coinpayment
 		// types like NUMERIC to dbx. None of those are very ideal
 		// either.
 		delta, _ := rate.Sub(decimal.NewFromFloat(rateFloat)).Float64()
-		mon.FloatVal("inexact-float64-exchange-rate-delta").Observe(delta)
+		histCounter, _ := meter.SyncFloat64().Histogram("inexact-float64-exchange-rate-delta")
+		histCounter.Record(ctx, delta)
 	}
 
 	_, err = db.db.Create_StripecoinpaymentsTxConversionRate(ctx,
@@ -176,7 +191,9 @@ func (db *coinPaymentsTransactions) LockRate(ctx context.Context, id coinpayment
 
 // GetLockedRate returns locked conversion rate for transaction or error if non exists.
 func (db *coinPaymentsTransactions) GetLockedRate(ctx context.Context, id coinpayments.TransactionID) (rate decimal.Decimal, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	dbxRate, err := db.db.Get_StripecoinpaymentsTxConversionRate_By_TxId(ctx,
 		dbx.StripecoinpaymentsTxConversionRate_TxId(id.String()),
@@ -191,7 +208,9 @@ func (db *coinPaymentsTransactions) GetLockedRate(ctx context.Context, id coinpa
 
 // ListAccount returns all transaction for specific user.
 func (db *coinPaymentsTransactions) ListAccount(ctx context.Context, userID uuid.UUID) (_ []stripecoinpayments.Transaction, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	dbxTXs, err := db.db.All_CoinpaymentsTransaction_By_UserId_OrderBy_Desc_CreatedAt(ctx,
 		dbx.CoinpaymentsTransaction_UserId(userID[:]),
@@ -215,7 +234,9 @@ func (db *coinPaymentsTransactions) ListAccount(ctx context.Context, userID uuid
 
 // ListPending returns paginated list of pending transactions.
 func (db *coinPaymentsTransactions) ListPending(ctx context.Context, offset int64, limit int, before time.Time) (_ stripecoinpayments.TransactionsPage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query := db.db.Rebind(`SELECT
 				id,
@@ -288,7 +309,9 @@ func (db *coinPaymentsTransactions) ListPending(ctx context.Context, offset int6
 
 // ListUnapplied returns TransactionsPage with a pending or completed status, that should be applied to account balance.
 func (db *coinPaymentsTransactions) ListUnapplied(ctx context.Context, offset int64, limit int, before time.Time) (_ stripecoinpayments.TransactionsPage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query := db.db.Rebind(`SELECT
 				txs.id,

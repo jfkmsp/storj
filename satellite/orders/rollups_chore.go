@@ -5,8 +5,10 @@ package orders
 
 import (
 	"context"
-
+	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
+	"os"
+	"runtime"
 
 	"storj.io/common/sync2"
 )
@@ -31,8 +33,10 @@ func NewChore(log *zap.Logger, rollupsWriteCache *RollupsWriteCache, config Conf
 
 // Run starts the orders write cache chore.
 func (chore *Chore) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
 	return chore.Loop.Run(ctx, func(ctx context.Context) error {
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		defer span.End()
 		chore.rollupsWriteCache.Flush(ctx)
 		return nil
 	})

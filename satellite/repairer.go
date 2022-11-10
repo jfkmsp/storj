@@ -9,7 +9,6 @@ import (
 	"net"
 	"runtime/pprof"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -108,7 +107,7 @@ func NewRepairer(log *zap.Logger, full *identity.FullIdentity,
 		}
 		debugConfig := config.Debug
 		debugConfig.ControlTitle = "Repair"
-		peer.Debug.Server = debug.NewServerWithAtomicLevel(log.Named("debug"), peer.Debug.Listener, monkit.Default, debugConfig, atomicLogLevel)
+		peer.Debug.Server = debug.NewServerWithAtomicLevel(log.Named("debug"), peer.Debug.Listener, nil, debugConfig, atomicLogLevel)
 		peer.Servers.Add(lifecycle.Item{
 			Name:  "debug",
 			Run:   peer.Debug.Server.Run,
@@ -258,8 +257,6 @@ func NewRepairer(log *zap.Logger, full *identity.FullIdentity,
 
 // Run runs the repair process until it's either closed or it errors.
 func (peer *Repairer) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
-
 	group, ctx := errgroup.WithContext(ctx)
 
 	pprof.Do(ctx, pprof.Labels("subsystem", "repairer"), func(ctx context.Context) {

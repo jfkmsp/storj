@@ -5,6 +5,10 @@ package satellitedb
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 
 	"github.com/zeebo/errs"
 
@@ -20,7 +24,9 @@ type nodeAPIVersionDB struct {
 // UpdateVersionAtLeast sets the node version to be at least the passed in version.
 // Any existing entry for the node will never have the version decreased.
 func (db *nodeAPIVersionDB) UpdateVersionAtLeast(ctx context.Context, id storj.NodeID, version nodeapiversion.Version) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	// try to create a row at the version
 	err = db.db.ReplaceNoReturn_NodeApiVersion(ctx,
 		dbx.NodeApiVersion_Id(id.Bytes()),

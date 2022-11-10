@@ -6,10 +6,14 @@ package trust
 import (
 	"bufio"
 	"context"
+	"go.opentelemetry.io/otel"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
+
+	"runtime"
 	"strings"
 
 	"github.com/zeebo/errs"
@@ -56,7 +60,9 @@ func (source *HTTPSource) Static() bool { return false }
 // the list retrieved over HTTP(S). The entries returned are only authoritative
 // if the entry URL has a host that matches or is a subdomain of the source URL.
 func (source *HTTPSource) FetchEntries(ctx context.Context) (_ []Entry, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	req, err := http.NewRequestWithContext(ctx, "GET", source.url.String(), nil)
 	if err != nil {

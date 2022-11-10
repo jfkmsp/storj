@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
@@ -90,7 +89,7 @@ func TestAPIServer(t *testing.T) {
 	defer ctx.Cleanup()
 
 	router := mux.NewRouter()
-	example.NewTestAPI(zaptest.NewLogger(t), monkit.Package(), service{}, router, auth{})
+	example.NewTestAPI(zaptest.NewLogger(t), service{}, router, auth{})
 
 	server := httptest.NewServer(router)
 	defer server.Close()

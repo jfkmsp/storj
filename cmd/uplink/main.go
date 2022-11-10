@@ -10,7 +10,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/clingy"
 
 	"storj.io/common/pb"
@@ -18,8 +17,6 @@ import (
 	"storj.io/storj/cmd/uplink/ulext"
 	"storj.io/uplink/private/piecestore"
 )
-
-var mon = monkit.Package()
 
 func main() {
 	ex := newExternal()

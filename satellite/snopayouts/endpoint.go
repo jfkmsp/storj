@@ -5,8 +5,11 @@ package snopayouts
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
 
-	"github.com/spacemonkeygo/monkit/v3"
+	"runtime"
+
 	"go.uber.org/zap"
 
 	"storj.io/common/identity"
@@ -15,10 +18,6 @@ import (
 	"storj.io/storj/private/date"
 	"storj.io/storj/satellite/accounting"
 	"storj.io/storj/satellite/overlay"
-)
-
-var (
-	mon = monkit.Package()
 )
 
 // Endpoint for querying node stats for the SNO.
@@ -45,7 +44,9 @@ func NewEndpoint(log *zap.Logger, accounting accounting.StoragenodeAccounting, o
 
 // GetPayStub sends node paystub for client node.
 func (e *Endpoint) GetPayStub(ctx context.Context, req *pb.GetHeldAmountRequest) (_ *pb.GetHeldAmountResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	peer, err := identity.PeerIdentityFromContext(ctx)
 	if err != nil {
@@ -70,7 +71,9 @@ func (e *Endpoint) GetPayStub(ctx context.Context, req *pb.GetHeldAmountRequest)
 
 // GetAllPaystubs sends all paystubs for client node.
 func (e *Endpoint) GetAllPaystubs(ctx context.Context, req *pb.GetAllPaystubsRequest) (_ *pb.GetAllPaystubsResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	peer, err := identity.PeerIdentityFromContext(ctx)
 	if err != nil {
@@ -138,7 +141,9 @@ func convertPaystub(paystub Paystub) (*pb.GetHeldAmountResponse, error) {
 
 // GetPayment sends node payment data for client node.
 func (e *Endpoint) GetPayment(ctx context.Context, req *pb.GetPaymentRequest) (_ *pb.GetPaymentResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	peer, err := identity.PeerIdentityFromContext(ctx)
 	if err != nil {
@@ -163,7 +168,9 @@ func (e *Endpoint) GetPayment(ctx context.Context, req *pb.GetPaymentRequest) (_
 
 // GetAllPayments sends all payments to node.
 func (e *Endpoint) GetAllPayments(ctx context.Context, req *pb.GetAllPaymentsRequest) (_ *pb.GetAllPaymentsResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	peer, err := identity.PeerIdentityFromContext(ctx)
 	if err != nil {

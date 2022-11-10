@@ -6,6 +6,10 @@ package metainfo
 import (
 	"context"
 	"fmt"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -23,9 +27,11 @@ import (
 
 // GetBucket returns a bucket.
 func (endpoint *Endpoint) GetBucket(ctx context.Context, req *pb.BucketGetRequest) (resp *pb.BucketGetResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
-	endpoint.versionCollector.collect(req.Header.UserAgent, mon.Func().ShortName())
+	endpoint.versionCollector.collect(req.Header.UserAgent, "GetBucket")
 
 	keyInfo, err := endpoint.validateAuth(ctx, req.Header, macaroon.Action{
 		Op:     macaroon.ActionRead,
@@ -58,9 +64,11 @@ func (endpoint *Endpoint) GetBucket(ctx context.Context, req *pb.BucketGetReques
 
 // CreateBucket creates a new bucket.
 func (endpoint *Endpoint) CreateBucket(ctx context.Context, req *pb.BucketCreateRequest) (resp *pb.BucketCreateResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
-	endpoint.versionCollector.collect(req.Header.UserAgent, mon.Func().ShortName())
+	endpoint.versionCollector.collect(req.Header.UserAgent, "CreateBucket")
 
 	keyInfo, err := endpoint.validateAuth(ctx, req.Header, macaroon.Action{
 		Op:     macaroon.ActionWrite,
@@ -139,9 +147,11 @@ func (endpoint *Endpoint) CreateBucket(ctx context.Context, req *pb.BucketCreate
 
 // DeleteBucket deletes a bucket.
 func (endpoint *Endpoint) DeleteBucket(ctx context.Context, req *pb.BucketDeleteRequest) (resp *pb.BucketDeleteResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
-	endpoint.versionCollector.collect(req.Header.UserAgent, mon.Func().ShortName())
+	endpoint.versionCollector.collect(req.Header.UserAgent, "DeleteBucket")
 
 	now := time.Now()
 
@@ -234,7 +244,9 @@ func (endpoint *Endpoint) DeleteBucket(ctx context.Context, req *pb.BucketDelete
 
 // deleteBucket deletes a bucket from the bucekts db.
 func (endpoint *Endpoint) deleteBucket(ctx context.Context, bucketName []byte, projectID uuid.UUID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	empty, err := endpoint.isBucketEmpty(ctx, projectID, bucketName)
 	if err != nil {
@@ -282,7 +294,9 @@ func (endpoint *Endpoint) deleteBucketNotEmpty(ctx context.Context, projectID uu
 
 // deleteBucketObjects deletes all objects in a bucket.
 func (endpoint *Endpoint) deleteBucketObjects(ctx context.Context, projectID uuid.UUID, bucketName []byte) (_ int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	bucketLocation := metabase.BucketLocation{ProjectID: projectID, BucketName: string(bucketName)}
 	deletedObjects, err := endpoint.metabase.DeleteBucketObjects(ctx, metabase.DeleteBucketObjects{
@@ -298,9 +312,11 @@ func (endpoint *Endpoint) deleteBucketObjects(ctx context.Context, projectID uui
 
 // ListBuckets returns buckets in a project where the bucket name matches the request cursor.
 func (endpoint *Endpoint) ListBuckets(ctx context.Context, req *pb.BucketListRequest) (resp *pb.BucketListResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
-	endpoint.versionCollector.collect(req.Header.UserAgent, mon.Func().ShortName())
+	endpoint.versionCollector.collect(req.Header.UserAgent, "ListBuckets")
 
 	action := macaroon.Action{
 		// TODO: This has to be ActionList, but it seems to be set to

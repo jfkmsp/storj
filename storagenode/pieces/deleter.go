@@ -5,6 +5,8 @@ package pieces
 
 import (
 	"context"
+	"go.opentelemetry.io/otel/metric/global"
+	"os"
 	"sync"
 	"time"
 
@@ -84,6 +86,7 @@ func (d *Deleter) Enqueue(ctx context.Context, satelliteID storj.NodeID, pieceID
 	if len(pieceIDs) == 0 {
 		return 0
 	}
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
 
 	// If we are in testMode add the number of pieceIDs waiting to be processed.
 	if d.testMode {
@@ -95,7 +98,8 @@ func (d *Deleter) Enqueue(ctx context.Context, satelliteID storj.NodeID, pieceID
 		case d.ch <- DeleteRequest{satelliteID, pieceID, time.Now()}:
 		default:
 			unhandled := len(pieceIDs) - i
-			mon.Counter("piecedeleter-queue-full").Inc(1)
+			counter, _ := meter.SyncInt64().Counter("queue")
+			counter.Add(ctx, 1)
 			if d.testMode {
 				d.checkDone(-unhandled)
 			}
@@ -125,13 +129,16 @@ func (d *Deleter) checkDone(delta int) {
 }
 
 func (d *Deleter) work(ctx context.Context) error {
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 		case r := <-d.ch:
-			mon.IntVal("piecedeleter-queue-time").Observe(int64(time.Since(r.QueueTime)))
-			mon.IntVal("piecedeleter-queue-size").Observe(int64(len(d.ch)))
+			histCounter, _ := meter.SyncInt64().Histogram("piecedeleter-queue-time")
+			histCounter.Record(ctx, int64(time.Since(r.QueueTime)))
+			histCounter, _ = meter.SyncInt64().Histogram("piecedeleter-queue-size")
+			histCounter.Record(ctx, int64(len(d.ch)))
 			d.deleteOrTrash(ctx, r.SatelliteID, r.PieceID)
 			// If we are in test mode, check if we are done processing deletes
 			if d.testMode {

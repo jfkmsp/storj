@@ -5,6 +5,12 @@ package accounting
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -64,7 +70,9 @@ func NewProjectLimitCache(db ProjectLimitDB, defaultMaxUsage, defaultMaxBandwidt
 
 // GetProjectLimits returns current project limit for both storage and bandwidth.
 func (c *ProjectLimitCache) GetProjectLimits(ctx context.Context, projectID uuid.UUID) (_ ProjectLimits, err error) {
-	defer mon.Task()(&ctx, projectID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("projectID", projectID.String())))
+	defer span.End()
 
 	projectLimits, err := c.projectLimitDB.GetProjectLimits(ctx, projectID)
 	if err != nil {
@@ -100,7 +108,9 @@ func (c *ProjectLimitCache) Get(ctx context.Context, projectID uuid.UUID) (Proje
 
 // GetProjectBandwidthLimit return the bandwidth usage limit for a project ID.
 func (c *ProjectLimitCache) GetProjectBandwidthLimit(ctx context.Context, projectID uuid.UUID) (_ memory.Size, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	projectLimits, err := c.Get(ctx, projectID)
 	if err != nil {
 		return 0, err

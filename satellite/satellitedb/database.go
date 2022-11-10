@@ -136,7 +136,6 @@ func open(ctx context.Context, log *zap.Logger, databaseURL string, opts Options
 	if override != "" {
 		name += ":" + override
 	}
-	dbutil.Configure(ctx, dbxDB.DB, name, mon)
 
 	core := &satelliteDB{
 		DB: dbxDB,

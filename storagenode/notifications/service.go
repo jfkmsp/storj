@@ -5,15 +5,14 @@ package notifications
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
 
-	"github.com/spacemonkeygo/monkit/v3"
+	"runtime"
+
 	"go.uber.org/zap"
 
 	"storj.io/common/uuid"
-)
-
-var (
-	mon = monkit.Package()
 )
 
 // TimesNotified is a numeric value of amount of notifications being sent to user.
@@ -57,7 +56,9 @@ func (service *Service) Receive(ctx context.Context, newNotification NewNotifica
 
 // Read - change notification status to Read by ID.
 func (service *Service) Read(ctx context.Context, notificationID uuid.UUID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	err = service.db.Read(ctx, notificationID)
 	if err != nil {
@@ -69,7 +70,9 @@ func (service *Service) Read(ctx context.Context, notificationID uuid.UUID) (err
 
 // ReadAll - change status of all user's notifications to Read.
 func (service *Service) ReadAll(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	err = service.db.ReadAll(ctx)
 	if err != nil {
@@ -81,7 +84,9 @@ func (service *Service) ReadAll(ctx context.Context) (err error) {
 
 // List - shows the list of paginated notifications.
 func (service *Service) List(ctx context.Context, cursor Cursor) (_ Page, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	notificationPage, err := service.db.List(ctx, cursor)
 	if err != nil {
@@ -97,7 +102,9 @@ func (service *Service) List(ctx context.Context, cursor Cursor) (_ Page, err er
 
 // UnreadAmount - returns amount on notifications with value is_read = nil.
 func (service *Service) UnreadAmount(ctx context.Context) (_ int, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	amount, err := service.db.UnreadAmount(ctx)
 	if err != nil {

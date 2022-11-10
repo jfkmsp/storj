@@ -7,6 +7,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -30,7 +34,9 @@ type ordersDB struct {
 
 // Enqueue inserts order to the unsent list.
 func (db *ordersDB) Enqueue(ctx context.Context, info *ordersfile.Info) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	limitSerialized, err := pb.Marshal(info.Limit)
 	if err != nil {
@@ -63,7 +69,9 @@ func (db *ordersDB) Enqueue(ctx context.Context, info *ordersfile.Info) (err err
 // stop without any further processing and will return an error without any
 // order.
 func (db *ordersDB) ListUnsent(ctx context.Context, limit int) (_ []*ordersfile.Info, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	rows, err := db.QueryContext(ctx, `
 		SELECT order_limit_serialized, order_serialized
@@ -122,7 +130,9 @@ func (db *ordersDB) ListUnsent(ctx context.Context, limit int) (_ []*ordersfile.
 // stop without any further processing and will return an error without any
 // order.
 func (db *ordersDB) ListUnsentBySatellite(ctx context.Context) (_ map[storj.NodeID][]*ordersfile.Info, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	// TODO: add some limiting
 
 	rows, err := db.QueryContext(ctx, `
@@ -179,7 +189,9 @@ func (db *ordersDB) ListUnsentBySatellite(ctx context.Context) (_ map[storj.Node
 // return an error of the class orders.OrderNotFoundError. Any other error, will
 // abort the operation, rolling back the transaction.
 func (db *ordersDB) Archive(ctx context.Context, archivedAt time.Time, requests ...orders.ArchiveRequest) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// change input parameter to UTC timezone before we send it to the database
 	archivedAt = archivedAt.UTC()
@@ -221,7 +233,9 @@ func (db *ordersDB) Archive(ctx context.Context, archivedAt time.Time, requests 
 
 // archiveOne marks order as being handled.
 func (db *ordersDB) archiveOne(ctx context.Context, tx tagsql.Tx, archivedAt time.Time, req orders.ArchiveRequest) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	result, err := tx.ExecContext(ctx, `
 		INSERT INTO order_archive_ (
@@ -259,7 +273,9 @@ func (db *ordersDB) archiveOne(ctx context.Context, tx tagsql.Tx, archivedAt tim
 
 // ListArchived returns orders that have been sent.
 func (db *ordersDB) ListArchived(ctx context.Context, limit int) (_ []*orders.ArchivedInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	rows, err := db.QueryContext(ctx, `
 		SELECT order_limit_serialized, order_serialized, status, archived_at
@@ -312,7 +328,9 @@ func (db *ordersDB) ListArchived(ctx context.Context, limit int) (_ []*orders.Ar
 
 // CleanArchive deletes all entries older than ttl.
 func (db *ordersDB) CleanArchive(ctx context.Context, deleteBefore time.Time) (_ int, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	result, err := db.ExecContext(ctx, `
 		DELETE FROM order_archive_

@@ -6,10 +6,13 @@ package inspector
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
 	"net"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -22,7 +25,6 @@ import (
 )
 
 var (
-	mon = monkit.Package()
 
 	// Error is the default error class for piecestore monitor errors.
 	Error = errs.Class("piecestore inspector")
@@ -72,12 +74,16 @@ func NewEndpoint(
 
 // Stats returns current statistics about the storage node.
 func (inspector *Endpoint) Stats(ctx context.Context, in *internalpb.StatsRequest) (out *internalpb.StatSummaryResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return inspector.retrieveStats(ctx)
 }
 
 func (inspector *Endpoint) retrieveStats(ctx context.Context) (_ *internalpb.StatSummaryResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// Space Usage
 	piecesContentSize, err := inspector.pieceStore.SpaceUsedForPiecesAndTrash(ctx)
@@ -105,12 +111,16 @@ func (inspector *Endpoint) retrieveStats(ctx context.Context) (_ *internalpb.Sta
 
 // Dashboard returns dashboard information.
 func (inspector *Endpoint) Dashboard(ctx context.Context, in *internalpb.DashboardRequest) (out *internalpb.DashboardResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return inspector.getDashboardData(ctx)
 }
 
 func (inspector *Endpoint) getDashboardData(ctx context.Context) (_ *internalpb.DashboardResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	statsSummary, err := inspector.retrieveStats(ctx)
 	if err != nil {

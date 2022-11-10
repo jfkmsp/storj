@@ -5,7 +5,11 @@ package consoleapi
 
 import (
 	"encoding/json"
+	"go.opentelemetry.io/otel"
 	"net/http"
+	"os"
+
+	"runtime"
 
 	"github.com/gorilla/mux"
 	"github.com/zeebo/errs"
@@ -36,7 +40,9 @@ func NewABTesting(log *zap.Logger, service abtesting.ABService) *ABTesting {
 func (a *ABTesting) GetABValues(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := console.GetUser(ctx)
 	if err != nil {
@@ -61,7 +67,9 @@ func (a *ABTesting) GetABValues(w http.ResponseWriter, r *http.Request) {
 func (a *ABTesting) SendHit(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	action := mux.Vars(r)["action"]
 	if action == "" {

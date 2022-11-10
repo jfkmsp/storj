@@ -8,6 +8,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -30,7 +34,9 @@ type billingDB struct {
 }
 
 func (db billingDB) Insert(ctx context.Context, billingTX billing.Transaction) (txID int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var dbxTX *dbx.BillingTransaction
 	var retryCount int
 	for {
@@ -99,7 +105,9 @@ func (db billingDB) Insert(ctx context.Context, billingTX billing.Transaction) (
 }
 
 func (db billingDB) UpdateStatus(ctx context.Context, txID int64, status billing.TransactionStatus) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return db.db.UpdateNoReturn_BillingTransaction_By_Id(ctx, dbx.BillingTransaction_Id(txID), dbx.BillingTransaction_Update_Fields{
 		Status: dbx.BillingTransaction_Status(string(status)),
 	})
@@ -123,7 +131,9 @@ func (db billingDB) UpdateMetadata(ctx context.Context, txID int64, newMetadata 
 }
 
 func (db billingDB) LastTransaction(ctx context.Context, txSource string, txType billing.TransactionType) (_ time.Time, metadata []byte, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	lastTransaction, err := db.db.First_BillingTransaction_By_Source_And_Type_OrderBy_Desc_CreatedAt(
 		ctx,
@@ -142,7 +152,9 @@ func (db billingDB) LastTransaction(ctx context.Context, txSource string, txType
 }
 
 func (db billingDB) List(ctx context.Context, userID uuid.UUID) (txs []billing.Transaction, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	dbxTXs, err := db.db.All_BillingTransaction_By_UserId_OrderBy_Desc_Timestamp(ctx,
 		dbx.BillingTransaction_UserId(userID[:]))
 	if err != nil {
@@ -161,7 +173,9 @@ func (db billingDB) List(ctx context.Context, userID uuid.UUID) (txs []billing.T
 }
 
 func (db billingDB) GetBalance(ctx context.Context, userID uuid.UUID) (_ currency.Amount, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	dbxBilling, err := db.db.Get_BillingBalance_Balance_By_UserId(ctx,
 		dbx.BillingBalance_UserId(userID[:]))
 	if err != nil {

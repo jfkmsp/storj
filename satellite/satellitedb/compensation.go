@@ -5,6 +5,10 @@ package satellitedb
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 
 	"storj.io/common/storj"
 	"storj.io/storj/private/currency"
@@ -18,7 +22,9 @@ type compensationDB struct {
 
 // QueryTotalAmounts returns withheld data for the given node.
 func (comp *compensationDB) QueryTotalAmounts(ctx context.Context, nodeID storj.NodeID) (_ compensation.TotalAmounts, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	stmt := comp.db.Rebind(`
 		SELECT
@@ -46,7 +52,9 @@ func (comp *compensationDB) QueryTotalAmounts(ctx context.Context, nodeID storj.
 }
 
 func (comp *compensationDB) RecordPeriod(ctx context.Context, paystubs []compensation.Paystub, payments []compensation.Payment) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if err := comp.RecordPaystubs(ctx, paystubs); err != nil {
 		return err
 	}
@@ -64,7 +72,9 @@ func stringPointersEqual(a, b *string) bool {
 }
 
 func (comp *compensationDB) RecordPayments(ctx context.Context, payments []compensation.Payment) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	for _, payment := range payments {
 		payment := payment // to satisfy linting

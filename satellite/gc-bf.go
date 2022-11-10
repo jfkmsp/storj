@@ -9,7 +9,6 @@ import (
 	"net"
 	"runtime/pprof"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -86,7 +85,7 @@ func NewGarbageCollectionBF(log *zap.Logger, full *identity.FullIdentity, db DB,
 		}
 		debugConfig := config.Debug
 		debugConfig.ControlTitle = "GC-BloomFilter"
-		peer.Debug.Server = debug.NewServerWithAtomicLevel(log.Named("debug"), peer.Debug.Listener, monkit.Default, debugConfig, atomicLogLevel)
+		peer.Debug.Server = debug.NewServerWithAtomicLevel(log.Named("debug"), peer.Debug.Listener, nil, debugConfig, atomicLogLevel)
 		peer.Servers.Add(lifecycle.Item{
 			Name:  "debug",
 			Run:   peer.Debug.Server.Run,
@@ -151,8 +150,6 @@ func NewGarbageCollectionBF(log *zap.Logger, full *identity.FullIdentity, db DB,
 
 // Run runs satellite garbage collection until it's either closed or it errors.
 func (peer *GarbageCollectionBF) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
-
 	group, ctx := errgroup.WithContext(ctx)
 
 	pprof.Do(ctx, pprof.Labels("subsystem", "gc-bloomfilter"), func(ctx context.Context) {

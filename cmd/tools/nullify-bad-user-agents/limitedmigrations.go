@@ -5,9 +5,13 @@ package main
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 
 	"github.com/jackc/pgtype"
-	pgx "github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -42,7 +46,9 @@ func MigrateTablesLimited(ctx context.Context, log *zap.Logger, conn *pgx.Conn, 
 // MigrateUsersLimited updates the user_agent column to corresponding Partners.Names or partner_id if applicable for a limited number
 // of rows.
 func MigrateUsersLimited(ctx context.Context, log *zap.Logger, conn *pgx.Conn, config Config) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	log.Info("beginning users migration", zap.Int("max updates", config.MaxUpdates))
 
@@ -95,7 +101,9 @@ func MigrateUsersLimited(ctx context.Context, log *zap.Logger, conn *pgx.Conn, c
 // MigrateProjectsLimited updates the user_agent column to corresponding Partners.Names or partner_id if applicable for a limited number
 // of rows.
 func MigrateProjectsLimited(ctx context.Context, log *zap.Logger, conn *pgx.Conn, config Config) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	log.Info("beginning projects migration", zap.Int("max updates", config.MaxUpdates))
 
@@ -148,7 +156,9 @@ func MigrateProjectsLimited(ctx context.Context, log *zap.Logger, conn *pgx.Conn
 // MigrateAPIKeysLimited updates the user_agent column to corresponding Partners.Names or partner_id if applicable for a limited number
 // of rows.
 func MigrateAPIKeysLimited(ctx context.Context, log *zap.Logger, conn *pgx.Conn, config Config) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	log.Info("beginning api_keys migration", zap.Int("max updates", config.MaxUpdates))
 
@@ -201,7 +211,9 @@ func MigrateAPIKeysLimited(ctx context.Context, log *zap.Logger, conn *pgx.Conn,
 // MigrateBucketMetainfosLimited updates the user_agent column to corresponding Partners.Names or partner_id if applicable for a limited number
 // of rows.
 func MigrateBucketMetainfosLimited(ctx context.Context, log *zap.Logger, conn *pgx.Conn, config Config) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	log.Info("beginning bucket_metainfos migration", zap.Int("max updates", config.MaxUpdates))
 
@@ -254,7 +266,9 @@ func MigrateBucketMetainfosLimited(ctx context.Context, log *zap.Logger, conn *p
 // MigrateValueAttributionsLimited updates the user_agent column to corresponding Partners.Names or partner_id if applicable for a limited number
 // of rows.
 func MigrateValueAttributionsLimited(ctx context.Context, log *zap.Logger, conn *pgx.Conn, config Config) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	log.Info("beginning value_attributions migration", zap.Int("max updates", config.MaxUpdates))
 

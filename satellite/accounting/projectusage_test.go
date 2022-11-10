@@ -541,7 +541,7 @@ func TestUsageRollups(t *testing.T) {
 
 		getValue := func(i, j int, base uint64) int64 {
 			a := uint64((i+1)*(j+1)) ^ base
-			a &^= (1 << 63)
+			a &^= 1 << 63
 			return int64(a)
 		}
 

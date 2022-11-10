@@ -5,11 +5,7 @@ package billing
 
 import (
 	"time"
-
-	"github.com/spacemonkeygo/monkit/v3"
 )
-
-var mon = monkit.Package()
 
 // Config stores needed information for billing service initialization.
 type Config struct {

@@ -5,6 +5,12 @@ package piecedeletion
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -151,7 +157,12 @@ func (service *Service) Close() error {
 // DeleteWithCustomThreshold deletes the pieces specified in the requests,
 // returning when they have been deleted from the specified fraction of storage nodes.
 func (service *Service) DeleteWithCustomThreshold(ctx context.Context, requests []Request, successThreshold float64) (err error) {
-	defer mon.Task()(&ctx, len(requests), requestsPieceCount(requests), successThreshold)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(),
+		trace.WithAttributes(attribute.Int64("requests length", int64(len(requests)))),
+		trace.WithAttributes(attribute.Int64("requests Piece Count", int64(requestsPieceCount(requests)))),
+		trace.WithAttributes(attribute.Float64("success Threshold", successThreshold)))
+	defer span.End()
 
 	if len(requests) == 0 {
 		return nil

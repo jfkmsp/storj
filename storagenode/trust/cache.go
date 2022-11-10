@@ -6,8 +6,11 @@ package trust
 import (
 	"context"
 	"encoding/json"
+	"go.opentelemetry.io/otel"
 	"os"
 	"path/filepath"
+
+	"runtime"
 
 	"github.com/zeebo/errs"
 
@@ -67,7 +70,9 @@ func (cache *Cache) Set(key string, entries []Entry) {
 
 // Save persists the cache to disk.
 func (cache *Cache) Save(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return SaveCacheData(cache.path, cache.data)
 }
 

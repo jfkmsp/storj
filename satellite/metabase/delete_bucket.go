@@ -8,6 +8,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
+	"os"
+
+	"runtime"
 
 	"github.com/zeebo/errs"
 
@@ -74,7 +79,9 @@ func getDeleteBucketObjectsSQLWithCopyFeature(impl dbutil.Implementation) (strin
 // this method will return the number of objects deleted to the moment
 // when an error occurs.
 func (db *DB) DeleteBucketObjects(ctx context.Context, opts DeleteBucketObjects) (deletedObjectCount int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err := opts.Bucket.Verify(); err != nil {
 		return 0, err
@@ -90,7 +97,9 @@ func (db *DB) DeleteBucketObjects(ctx context.Context, opts DeleteBucketObjects)
 }
 
 func (db *DB) deleteBucketObjectsWithCopyFeatureEnabled(ctx context.Context, opts DeleteBucketObjects) (deletedObjectCount int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	for {
 		if err := ctx.Err(); err != nil {
@@ -109,7 +118,9 @@ func (db *DB) deleteBucketObjectsWithCopyFeatureEnabled(ctx context.Context, opt
 // deleteBucketObjectBatchWithCopyFeatureEnabled deletes a single batch from metabase.
 // This function has been factored out for metric purposes.
 func (db *DB) deleteBucketObjectBatchWithCopyFeatureEnabled(ctx context.Context, opts DeleteBucketObjects) (deletedObjectCount int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query, err := getDeleteBucketObjectsSQLWithCopyFeature(db.impl)
 	if err != nil {
@@ -161,7 +172,9 @@ func (db *DB) deleteBucketObjectBatchWithCopyFeatureEnabled(ctx context.Context,
 }
 
 func (db *DB) scanBucketObjectsDeletionServerSideCopy(ctx context.Context, location BucketLocation, rows tagsql.Rows) (result []deletedObjectInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	defer func() { err = errs.Combine(err, rows.Close()) }()
 
 	result = make([]deletedObjectInfo, 0, 10)
@@ -208,7 +221,10 @@ func (db *DB) scanBucketObjectsDeletionServerSideCopy(ctx context.Context, locat
 }
 
 func (db *DB) deleteBucketObjectsWithCopyFeatureDisabled(ctx context.Context, opts DeleteBucketObjects) (deletedObjectCount int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	var query string
 
@@ -276,8 +292,10 @@ func (db *DB) deleteBucketObjectsWithCopyFeatureDisabled(ctx context.Context, op
 			return nil
 		})
 
-		mon.Meter("object_delete").Mark(deletedObjects)
-		mon.Meter("segment_delete").Mark(len(deletedSegments))
+		histCounter, _ := meter.SyncInt64().Histogram("object_delete")
+		histCounter.Record(ctx, int64(deletedObjects))
+		histCounter, _ = meter.SyncInt64().Histogram("segment_delete")
+		histCounter.Record(ctx, int64(len(deletedSegments)))
 
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {

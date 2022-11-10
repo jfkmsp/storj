@@ -5,9 +5,13 @@ package nodetally
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -20,7 +24,6 @@ import (
 // Error is a standard error class for this package.
 var (
 	Error = errs.Class("node tally")
-	mon   = monkit.Package()
 )
 
 // Service is the tally service for data stored on each storage node.
@@ -49,9 +52,10 @@ func New(log *zap.Logger, sdb accounting.StoragenodeAccounting, loop *segmentloo
 
 // Run the node tally service loop.
 func (service *Service) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
-
 	return service.Loop.Run(ctx, func(ctx context.Context) error {
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		defer span.End()
 		err := service.Tally(ctx)
 		if err != nil {
 			service.log.Error("node tally failed", zap.Error(err))
@@ -72,12 +76,12 @@ func (service *Service) SetNow(now func() time.Time) {
 	service.nowFn = now
 }
 
-// for backwards compatibility.
-var monTally = monkit.ScopeNamed("storj.io/storj/satellite/accounting/tally")
-
 // Tally calculates data-at-rest usage once.
 func (service *Service) Tally(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	// Fetch when the last node tally happened so we can roughly calculate the byte-hours.
 	lastTime, err := service.storagenodeAccountingDB.LastTimestamp(ctx, accounting.LastAtRestTally)
@@ -103,7 +107,8 @@ func (service *Service) Tally(ctx context.Context) (err error) {
 		totalSum += pieceSize
 		observer.Node[id] = pieceSize * hours
 	}
-	monTally.IntVal("nodetallies.totalsum").Observe(int64(totalSum)) //mon:locked
+	counter, _ := meter.SyncInt64().Histogram("nodetallies.totalsum")
+	counter.Record(ctx, int64(totalSum))
 
 	if len(observer.Node) > 0 {
 		err = service.storagenodeAccountingDB.SaveTallies(ctx, finishTime, observer.Node)

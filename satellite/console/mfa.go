@@ -6,7 +6,11 @@ package console
 import (
 	"context"
 	"crypto/rand"
+	"go.opentelemetry.io/otel"
 	"math/big"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/pquerna/otp"
@@ -84,7 +88,9 @@ func NewMFASecretKey() (string, error) {
 
 // EnableUserMFA enables multi-factor authentication for the user if the given secret key and password are valid.
 func (s *Service) EnableUserMFA(ctx context.Context, passcode string, t time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "enable MFA")
 	if err != nil {
@@ -112,7 +118,9 @@ func (s *Service) EnableUserMFA(ctx context.Context, passcode string, t time.Tim
 
 // DisableUserMFA disables multi-factor authentication for the user if the given secret key and password are valid.
 func (s *Service) DisableUserMFA(ctx context.Context, passcode string, t time.Time, recoveryCode string) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "disable MFA")
 	if err != nil {
@@ -190,7 +198,9 @@ func NewMFARecoveryCode() (string, error) {
 
 // ResetMFASecretKey creates a new TOTP secret key for the user.
 func (s *Service) ResetMFASecretKey(ctx context.Context) (key string, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "reset MFA secret key")
 	if err != nil {
@@ -217,7 +227,9 @@ func (s *Service) ResetMFASecretKey(ctx context.Context) (key string, err error)
 
 // ResetMFARecoveryCodes creates a new set of MFA recovery codes for the user.
 func (s *Service) ResetMFARecoveryCodes(ctx context.Context) (codes []string, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "reset MFA recovery codes")
 	if err != nil {

@@ -5,10 +5,14 @@ package contact
 
 import (
 	"context"
+	"fmt"
+	"go.opentelemetry.io/otel"
 	"net"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/jtolio/eventkit"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -49,7 +53,9 @@ func NewEndpoint(log *zap.Logger, service *Service) *Endpoint {
 // When a node checks-in with the satellite, the satellite pings the node back to confirm they can
 // successfully connect.
 func (endpoint *Endpoint) CheckIn(ctx context.Context, req *pb.CheckInRequest) (_ *pb.CheckInResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	peerID, err := identity.PeerIdentityFromContext(ctx)
 	if err != nil {
@@ -143,24 +149,26 @@ func (endpoint *Endpoint) emitEvenkitEvent(ctx context.Context, req *pb.CheckInR
 			}
 		}
 	}
-
-	ek.Event("checkin",
-		eventkit.String("id", nodeInfo.NodeID.String()),
-		eventkit.String("addr", req.Address),
-		eventkit.String("resolved-addr", nodeInfo.LastIPPort),
-		eventkit.String("source-addr", sourceAddr),
-		eventkit.Timestamp("build-time", nodeInfo.Version.Timestamp),
-		eventkit.String("version", nodeInfo.Version.Version),
-		eventkit.String("country", nodeInfo.CountryCode.String()),
-		eventkit.Int64("free-disk", nodeInfo.Capacity.FreeDisk),
-		eventkit.Bool("ping-tpc-success", pingNodeTCPSuccess),
-		eventkit.Bool("ping-quic-success", pingNodeQUICSuccess),
-	)
+	fmt.Println(sourceAddr)
+	//ek.Event("checkin",
+	//	eventkit.String("id", nodeInfo.NodeID.String()),
+	//	eventkit.String("addr", req.Address),
+	//	eventkit.String("resolved-addr", nodeInfo.LastIPPort),
+	//	eventkit.String("source-addr", sourceAddr),
+	//	eventkit.Timestamp("build-time", nodeInfo.Version.Timestamp),
+	//	eventkit.String("version", nodeInfo.Version.Version),
+	//	eventkit.String("country", nodeInfo.CountryCode.String()),
+	//	eventkit.Int64("free-disk", nodeInfo.Capacity.FreeDisk),
+	//	eventkit.Bool("ping-tpc-success", pingNodeTCPSuccess),
+	//	eventkit.Bool("ping-quic-success", pingNodeQUICSuccess),
+	//)
 }
 
 // GetTime returns current timestamp.
 func (endpoint *Endpoint) GetTime(ctx context.Context, req *pb.GetTimeRequest) (_ *pb.GetTimeResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	peerID, err := identity.PeerIdentityFromContext(ctx)
 	if err != nil {
@@ -178,7 +186,9 @@ func (endpoint *Endpoint) GetTime(ctx context.Context, req *pb.GetTimeRequest) (
 // PingMe is called by storage node to request a pingBack from the satellite to confirm they can
 // successfully connect to the node.
 func (endpoint *Endpoint) PingMe(ctx context.Context, req *pb.PingMeRequest) (_ *pb.PingMeResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	peerID, err := identity.PeerIdentityFromContext(ctx)
 	if err != nil {

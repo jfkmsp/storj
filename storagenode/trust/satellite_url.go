@@ -6,8 +6,12 @@ package trust
 import (
 	"bufio"
 	"context"
+	"go.opentelemetry.io/otel"
 	"io"
 	"net"
+	"os"
+
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -85,7 +89,9 @@ func ParseSatelliteURL(s string) (SatelliteURL, error) {
 // ParseSatelliteURLList parses a newline separated list of Satellite URLs.
 // Empty lines or lines starting with '#' (comments) are ignored.
 func ParseSatelliteURLList(ctx context.Context, r io.Reader) (urls []SatelliteURL, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {

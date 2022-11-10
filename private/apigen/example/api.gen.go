@@ -6,11 +6,14 @@ package example
 import (
 	"context"
 	"encoding/json"
+	"go.opentelemetry.io/otel"
 	"net/http"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -34,15 +37,13 @@ type TestAPIService interface {
 // TestAPIHandler is an api handler that exposes all testapi related functionality.
 type TestAPIHandler struct {
 	log     *zap.Logger
-	mon     *monkit.Scope
 	service TestAPIService
 	auth    api.Auth
 }
 
-func NewTestAPI(log *zap.Logger, mon *monkit.Scope, service TestAPIService, router *mux.Router, auth api.Auth) *TestAPIHandler {
+func NewTestAPI(log *zap.Logger, service TestAPIService, router *mux.Router, auth api.Auth) *TestAPIHandler {
 	handler := &TestAPIHandler{
 		log:     log,
-		mon:     mon,
 		service: service,
 		auth:    auth,
 	}
@@ -56,7 +57,9 @@ func NewTestAPI(log *zap.Logger, mon *monkit.Scope, service TestAPIService, rout
 func (h *TestAPIHandler) handleGenTestAPI(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer h.mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set("Content-Type", "application/json")
 

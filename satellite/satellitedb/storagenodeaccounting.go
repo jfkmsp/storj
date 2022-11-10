@@ -6,6 +6,10 @@ package satellitedb
 import (
 	"context"
 	"database/sql"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -26,7 +30,9 @@ type StoragenodeAccounting struct {
 
 // SaveTallies records raw tallies of at rest data to the database.
 func (db *StoragenodeAccounting) SaveTallies(ctx context.Context, latestTally time.Time, nodeData map[storj.NodeID]float64) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if len(nodeData) == 0 {
 		return Error.New("In SaveTallies with empty nodeData")
 	}
@@ -62,7 +68,9 @@ func (db *StoragenodeAccounting) SaveTallies(ctx context.Context, latestTally ti
 
 // GetTallies retrieves all raw tallies.
 func (db *StoragenodeAccounting) GetTallies(ctx context.Context) (_ []*accounting.StoragenodeStorageTally, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	raws, err := db.db.All_StoragenodeStorageTally(ctx)
 	out := make([]*accounting.StoragenodeStorageTally, len(raws))
 	for i, r := range raws {
@@ -81,7 +89,9 @@ func (db *StoragenodeAccounting) GetTallies(ctx context.Context) (_ []*accountin
 
 // GetTalliesSince retrieves all raw tallies since latestRollup.
 func (db *StoragenodeAccounting) GetTalliesSince(ctx context.Context, latestRollup time.Time) (_ []*accounting.StoragenodeStorageTally, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	raws, err := db.db.All_StoragenodeStorageTally_By_IntervalEndTime_GreaterOrEqual(ctx, dbx.StoragenodeStorageTally_IntervalEndTime(latestRollup))
 	out := make([]*accounting.StoragenodeStorageTally, len(raws))
 	for i, r := range raws {
@@ -99,7 +109,9 @@ func (db *StoragenodeAccounting) GetTalliesSince(ctx context.Context, latestRoll
 }
 
 func (db *StoragenodeAccounting) getNodeIdsSince(ctx context.Context, since time.Time) (nodeids [][]byte, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	rows, err := db.db.QueryContext(ctx, db.db.Rebind(`SELECT DISTINCT storagenode_id FROM storagenode_bandwidth_rollups WHERE interval_start >= $1`), since)
 	if err != nil {
 		return nil, Error.Wrap(err)
@@ -126,7 +138,9 @@ func (db *StoragenodeAccounting) getNodeIdsSince(ctx context.Context, since time
 
 func (db *StoragenodeAccounting) getBandwidthByNodeSince(ctx context.Context, latestRollup time.Time, nodeid []byte,
 	cb func(context.Context, *accounting.StoragenodeBandwidthRollup) error) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	pageLimit := db.db.opts.ReadRollupBatchSize
 	if pageLimit <= 0 {
@@ -165,7 +179,9 @@ func (db *StoragenodeAccounting) getBandwidthByNodeSince(ctx context.Context, la
 
 func (db *StoragenodeAccounting) getBandwidthPhase2ByNodeSince(ctx context.Context, latestRollup time.Time, nodeid []byte,
 	cb func(context.Context, *accounting.StoragenodeBandwidthRollup) error) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	pageLimit := db.db.opts.ReadRollupBatchSize
 	if pageLimit <= 0 {
@@ -205,7 +221,9 @@ func (db *StoragenodeAccounting) getBandwidthPhase2ByNodeSince(ctx context.Conte
 // GetBandwidthSince retrieves all storagenode_bandwidth_rollup entires since latestRollup.
 func (db *StoragenodeAccounting) GetBandwidthSince(ctx context.Context, latestRollup time.Time,
 	cb func(context.Context, *accounting.StoragenodeBandwidthRollup) error) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// This table's key structure is storagenode_id, interval_start, so we're going to try and make
 	// things easier on the database by making individual requests node by node. This is also
@@ -240,7 +258,9 @@ func (db *StoragenodeAccounting) GetBandwidthSince(ctx context.Context, latestRo
 
 // SaveRollup records raw tallies of at rest data to the database.
 func (db *StoragenodeAccounting) SaveRollup(ctx context.Context, latestRollup time.Time, stats accounting.RollupStats) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if len(stats) == 0 {
 		return Error.New("In SaveRollup with empty nodeData")
 	}
@@ -258,7 +278,9 @@ func (db *StoragenodeAccounting) SaveRollup(ctx context.Context, latestRollup ti
 	}
 
 	insertBatch := func(ctx context.Context, db *dbx.DB, batch []*accounting.Rollup) (err error) {
-		defer mon.Task()(&ctx)(&err)
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		defer span.End()
 		n := len(batch)
 
 		nodeID := make([]storj.NodeID, n)
@@ -344,7 +366,9 @@ func (db *StoragenodeAccounting) SaveRollup(ctx context.Context, latestRollup ti
 
 // LastTimestamp records the greatest last tallied time.
 func (db *StoragenodeAccounting) LastTimestamp(ctx context.Context, timestampType string) (_ time.Time, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	lastTally := time.Time{}
 	err = db.db.WithTx(ctx, func(ctx context.Context, tx *dbx.Tx) error {
 		lt, err := tx.Find_AccountingTimestamps_Value_By_Name(ctx, dbx.AccountingTimestamps_Name(timestampType))
@@ -362,7 +386,9 @@ func (db *StoragenodeAccounting) LastTimestamp(ctx context.Context, timestampTyp
 
 // QueryPaymentInfo queries Overlay, Accounting Rollup on nodeID.
 func (db *StoragenodeAccounting) QueryPaymentInfo(ctx context.Context, start time.Time, end time.Time) (_ []*accounting.CSVRow, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	sqlStmt := `SELECT n.id, n.created_at, r.at_rest_total, r.get_repair_total,
 		r.put_repair_total, r.get_audit_total, r.put_total, r.get_total, n.wallet, n.disqualified
 		FROM (
@@ -409,7 +435,9 @@ func (db *StoragenodeAccounting) QueryPaymentInfo(ctx context.Context, start tim
 
 // QueryStorageNodePeriodUsage returns usage invoices for nodes for a compensation period.
 func (db *StoragenodeAccounting) QueryStorageNodePeriodUsage(ctx context.Context, period compensation.Period) (_ []accounting.StorageNodePeriodUsage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	stmt := db.db.Rebind(`
 		SELECT
@@ -463,7 +491,9 @@ func (db *StoragenodeAccounting) QueryStorageNodePeriodUsage(ctx context.Context
 
 // QueryStorageNodeUsage returns slice of StorageNodeUsage for given period.
 func (db *StoragenodeAccounting) QueryStorageNodeUsage(ctx context.Context, nodeID storj.NodeID, start time.Time, end time.Time) (_ []accounting.StorageNodeUsage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	lastRollup, err := db.db.Find_AccountingTimestamps_Value_By_Name(ctx, dbx.AccountingTimestamps_Name(accounting.LastRollup))
 	if err != nil {
@@ -533,7 +563,9 @@ func (db *StoragenodeAccounting) QueryStorageNodeUsage(ctx context.Context, node
 
 // DeleteTalliesBefore deletes all raw tallies prior to some time.
 func (db *StoragenodeAccounting) DeleteTalliesBefore(ctx context.Context, latestRollup time.Time, batchSize int) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if batchSize <= 0 {
 		batchSize = 10000
@@ -582,7 +614,9 @@ func (db *StoragenodeAccounting) DeleteTalliesBefore(ctx context.Context, latest
 
 // ArchiveRollupsBefore archives rollups older than a given time.
 func (db *StoragenodeAccounting) ArchiveRollupsBefore(ctx context.Context, before time.Time, batchSize int) (nodeRollupsDeleted int, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if batchSize <= 0 {
 		return 0, nil
@@ -637,7 +671,9 @@ func (db *StoragenodeAccounting) ArchiveRollupsBefore(ctx context.Context, befor
 
 // GetRollupsSince retrieves all archived bandwidth rollup records since a given time.
 func (db *StoragenodeAccounting) GetRollupsSince(ctx context.Context, since time.Time) (bwRollups []accounting.StoragenodeBandwidthRollup, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	pageLimit := db.db.opts.ReadRollupBatchSize
 	if pageLimit <= 0 {
@@ -673,7 +709,9 @@ func (db *StoragenodeAccounting) GetRollupsSince(ctx context.Context, since time
 
 // GetArchivedRollupsSince retrieves all archived bandwidth rollup records since a given time.
 func (db *StoragenodeAccounting) GetArchivedRollupsSince(ctx context.Context, since time.Time) (bwRollups []accounting.StoragenodeBandwidthRollup, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	pageLimit := db.db.opts.ReadRollupBatchSize
 	if pageLimit <= 0 {

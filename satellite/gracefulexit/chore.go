@@ -6,6 +6,11 @@ package gracefulexit
 import (
 	"context"
 	"database/sql"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -43,9 +48,11 @@ func NewChore(log *zap.Logger, db DB, overlay overlay.DB, segmentLoop *segmentlo
 
 // Run starts the chore.
 func (chore *Chore) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
 	return chore.Loop.Run(ctx, func(ctx context.Context) (err error) {
-		defer mon.Task()(&ctx)(&err)
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+		defer span.End()
 
 		exitingNodes, err := chore.overlay.GetExitingNodes(ctx)
 		if err != nil {
@@ -84,7 +91,8 @@ func (chore *Chore) Run(ctx context.Context) (err error) {
 					ExitSuccess:    false,
 					ExitFinishedAt: time.Now().UTC(),
 				}
-				mon.Meter("graceful_exit_fail_inactive").Mark(1)
+				counter, _ := meter.SyncInt64().Counter("graceful_exit_fail_inactive")
+				counter.Add(context.Background(), 1)
 				_, err = chore.overlay.UpdateExitStatus(ctx, exitStatusRequest)
 				if err != nil {
 					chore.log.Error("error updating exit status", zap.Error(err))
@@ -125,7 +133,8 @@ func (chore *Chore) Run(ctx context.Context) (err error) {
 			}
 
 			bytesToTransfer := pathCollector.nodeIDStorage[nodeID]
-			mon.IntVal("graceful_exit_init_bytes_stored").Observe(bytesToTransfer)
+			histCounter, _ := meter.SyncInt64().Histogram("graceful_exit_init_bytes_stored")
+			histCounter.Record(ctx, bytesToTransfer)
 		}
 		return nil
 	})

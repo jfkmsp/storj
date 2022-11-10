@@ -5,9 +5,11 @@ package nodeevents
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -18,7 +20,6 @@ import (
 var (
 	// Error is the standard error class for node events.
 	Error = errs.Class("node events")
-	mon   = monkit.Package()
 )
 
 // Config contains configurable values for node events chore.
@@ -59,7 +60,6 @@ func NewChore(log *zap.Logger, db DB, satellite string, notifier Notifier, confi
 
 // Run runs the chore.
 func (chore *Chore) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
 	return chore.Loop.Run(ctx, chore.processWhileQueueHasItems)
 }
 
@@ -83,7 +83,9 @@ func (chore *Chore) processWhileQueueHasItems(ctx context.Context) error {
 
 // process picks items from the DB, combines them into an email and sends it.
 func (chore *Chore) process(ctx context.Context) (n int, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	batch, err := chore.db.GetNextBatch(ctx, chore.nowFn().Add(-chore.config.SelectionWaitPeriod))
 	if err != nil {

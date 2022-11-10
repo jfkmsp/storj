@@ -10,7 +10,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"go.opentelemetry.io/otel"
+	"os"
 	"reflect"
+
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -12679,7 +12683,9 @@ func (obj *pgxImpl) Create_NodeEvent(ctx context.Context,
 	node_event_event NodeEvent_Event_Field,
 	optional NodeEvent_Create_Fields) (
 	node_event *NodeEvent, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	__id_val := node_event_id.value()
 	__email_val := node_event_email.value()
 	__node_id_val := node_event_node_id.value()
@@ -12730,7 +12736,9 @@ func (obj *pgxImpl) Create_ValueAttribution(ctx context.Context,
 	value_attribution_partner_id ValueAttribution_PartnerId_Field,
 	optional ValueAttribution_Create_Fields) (
 	value_attribution *ValueAttribution, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__project_id_val := value_attribution_project_id.value()
@@ -12763,7 +12771,9 @@ func (obj *pgxImpl) Create_ReverificationAudits(ctx context.Context,
 	reverification_audits_piece_num ReverificationAudits_PieceNum_Field,
 	optional ReverificationAudits_Create_Fields) (
 	reverification_audits *ReverificationAudits, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	__node_id_val := reverification_audits_node_id.value()
 	__stream_id_val := reverification_audits_stream_id.value()
 	__position_val := reverification_audits_position.value()
@@ -12818,7 +12828,9 @@ func (obj *pgxImpl) CreateNoReturn_AccountingTimestamps(ctx context.Context,
 	accounting_timestamps_name AccountingTimestamps_Name_Field,
 	accounting_timestamps_value AccountingTimestamps_Value_Field) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	__name_val := accounting_timestamps_name.value()
 	__value_val := accounting_timestamps_value.value()
 
@@ -12843,7 +12855,9 @@ func (obj *pgxImpl) Create_Reputation(ctx context.Context,
 	reputation_audit_history Reputation_AuditHistory_Field,
 	optional Reputation_Create_Fields) (
 	reputation *Reputation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	__id_val := reputation_id.value()
 	__vetted_at_val := optional.VettedAt.value()
 	__disqualified_val := optional.Disqualified.value()
@@ -12935,7 +12949,9 @@ func (obj *pgxImpl) Create_User(ctx context.Context,
 	user_password_hash User_PasswordHash_Field,
 	optional User_Create_Fields) (
 	user *User, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__id_val := user_id.value()
@@ -13054,7 +13070,9 @@ func (obj *pgxImpl) Create_WebappSession(ctx context.Context,
 	webapp_session_user_agent WebappSession_UserAgent_Field,
 	webapp_session_expires_at WebappSession_ExpiresAt_Field) (
 	webapp_session *WebappSession, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	__id_val := webapp_session_id.value()
 	__user_id_val := webapp_session_user_id.value()
 	__ip_address_val := webapp_session_ip_address.value()
@@ -13086,7 +13104,9 @@ func (obj *pgxImpl) Create_Project(ctx context.Context,
 	project_owner_id Project_OwnerId_Field,
 	optional Project_Create_Fields) (
 	project *Project, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__id_val := project_id.value()
@@ -13148,7 +13168,9 @@ func (obj *pgxImpl) Create_ProjectMember(ctx context.Context,
 	project_member_member_id ProjectMember_MemberId_Field,
 	project_member_project_id ProjectMember_ProjectId_Field) (
 	project_member *ProjectMember, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__member_id_val := project_member_member_id.value()
@@ -13180,7 +13202,9 @@ func (obj *pgxImpl) Create_ApiKey(ctx context.Context,
 	api_key_secret ApiKey_Secret_Field,
 	optional ApiKey_Create_Fields) (
 	api_key *ApiKey, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__id_val := api_key_id.value()
@@ -13213,7 +13237,9 @@ func (obj *pgxImpl) CreateNoReturn_Revocation(ctx context.Context,
 	revocation_revoked Revocation_Revoked_Field,
 	revocation_api_key_id Revocation_ApiKeyId_Field) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	__revoked_val := revocation_revoked.value()
 	__api_key_id_val := revocation_api_key_id.value()
 
@@ -13241,7 +13267,9 @@ func (obj *pgxImpl) Create_StoragenodeBandwidthRollup(ctx context.Context,
 	storagenode_bandwidth_rollup_settled StoragenodeBandwidthRollup_Settled_Field,
 	optional StoragenodeBandwidthRollup_Create_Fields) (
 	storagenode_bandwidth_rollup *StoragenodeBandwidthRollup, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	__storagenode_id_val := storagenode_bandwidth_rollup_storagenode_id.value()
 	__interval_start_val := storagenode_bandwidth_rollup_interval_start.value()
 	__interval_seconds_val := storagenode_bandwidth_rollup_interval_seconds.value()
@@ -13309,7 +13337,9 @@ func (obj *pgxImpl) ReplaceNoReturn_StoragenodePaystub(ctx context.Context,
 	storagenode_paystub_paid StoragenodePaystub_Paid_Field,
 	storagenode_paystub_distributed StoragenodePaystub_Distributed_Field) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__period_val := storagenode_paystub_period.value()
@@ -13357,7 +13387,9 @@ func (obj *pgxImpl) CreateNoReturn_StoragenodePayment(ctx context.Context,
 	storagenode_payment_amount StoragenodePayment_Amount_Field,
 	optional StoragenodePayment_Create_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__created_at_val := __now
@@ -13388,7 +13420,9 @@ func (obj *pgxImpl) CreateNoReturn_PeerIdentity(ctx context.Context,
 	peer_identity_leaf_serial_number PeerIdentity_LeafSerialNumber_Field,
 	peer_identity_chain PeerIdentity_Chain_Field) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__node_id_val := peer_identity_node_id.value()
@@ -13417,7 +13451,9 @@ func (obj *pgxImpl) Create_RegistrationToken(ctx context.Context,
 	registration_token_project_limit RegistrationToken_ProjectLimit_Field,
 	optional RegistrationToken_Create_Fields) (
 	registration_token *RegistrationToken, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__secret_val := registration_token_secret.value()
@@ -13446,7 +13482,9 @@ func (obj *pgxImpl) Create_ResetPasswordToken(ctx context.Context,
 	reset_password_token_secret ResetPasswordToken_Secret_Field,
 	reset_password_token_owner_id ResetPasswordToken_OwnerId_Field) (
 	reset_password_token *ResetPasswordToken, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__secret_val := reset_password_token_secret.value()
@@ -13486,7 +13524,9 @@ func (obj *pgxImpl) Create_BucketMetainfo(ctx context.Context,
 	bucket_metainfo_default_redundancy_total_shares BucketMetainfo_DefaultRedundancyTotalShares_Field,
 	optional BucketMetainfo_Create_Fields) (
 	bucket_metainfo *BucketMetainfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__id_val := bucket_metainfo_id.value()
@@ -13528,7 +13568,9 @@ func (obj *pgxImpl) Create_StripeCustomer(ctx context.Context,
 	stripe_customer_user_id StripeCustomer_UserId_Field,
 	stripe_customer_customer_id StripeCustomer_CustomerId_Field) (
 	stripe_customer *StripeCustomer, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__user_id_val := stripe_customer_user_id.value()
@@ -13556,7 +13598,9 @@ func (obj *pgxImpl) CreateNoReturn_BillingBalance(ctx context.Context,
 	billing_balance_user_id BillingBalance_UserId_Field,
 	billing_balance_balance BillingBalance_Balance_Field) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__user_id_val := billing_balance_user_id.value()
@@ -13590,7 +13634,9 @@ func (obj *pgxImpl) Create_BillingTransaction(ctx context.Context,
 	billing_transaction_metadata BillingTransaction_Metadata_Field,
 	billing_transaction_timestamp BillingTransaction_Timestamp_Field) (
 	billing_transaction *BillingTransaction, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__user_id_val := billing_transaction_user_id.value()
@@ -13625,7 +13671,9 @@ func (obj *pgxImpl) CreateNoReturn_StorjscanWallet(ctx context.Context,
 	storjscan_wallet_user_id StorjscanWallet_UserId_Field,
 	storjscan_wallet_wallet_address StorjscanWallet_WalletAddress_Field) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__user_id_val := storjscan_wallet_user_id.value()
@@ -13658,7 +13706,9 @@ func (obj *pgxImpl) Create_CoinpaymentsTransaction(ctx context.Context,
 	coinpayments_transaction_key CoinpaymentsTransaction_Key_Field,
 	coinpayments_transaction_timeout CoinpaymentsTransaction_Timeout_Field) (
 	coinpayments_transaction *CoinpaymentsTransaction, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__id_val := coinpayments_transaction_id.value()
@@ -13698,7 +13748,9 @@ func (obj *pgxImpl) Create_StripecoinpaymentsInvoiceProjectRecord(ctx context.Co
 	stripecoinpayments_invoice_project_record_state StripecoinpaymentsInvoiceProjectRecord_State_Field,
 	optional StripecoinpaymentsInvoiceProjectRecord_Create_Fields) (
 	stripecoinpayments_invoice_project_record *StripecoinpaymentsInvoiceProjectRecord, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__id_val := stripecoinpayments_invoice_project_record_id.value()
@@ -13733,7 +13785,9 @@ func (obj *pgxImpl) Create_StripecoinpaymentsTxConversionRate(ctx context.Contex
 	stripecoinpayments_tx_conversion_rate_tx_id StripecoinpaymentsTxConversionRate_TxId_Field,
 	stripecoinpayments_tx_conversion_rate_rate_numeric StripecoinpaymentsTxConversionRate_RateNumeric_Field) (
 	stripecoinpayments_tx_conversion_rate *StripecoinpaymentsTxConversionRate, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__tx_id_val := stripecoinpayments_tx_conversion_rate_tx_id.value()
@@ -13765,7 +13819,9 @@ func (obj *pgxImpl) Create_CouponCode(ctx context.Context,
 	coupon_code_type CouponCode_Type_Field,
 	optional CouponCode_Create_Fields) (
 	coupon_code *CouponCode, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__id_val := coupon_code_id.value()
@@ -13803,7 +13859,9 @@ func (obj *pgxImpl) Create_Coupon(ctx context.Context,
 	coupon_duration Coupon_Duration_Field,
 	optional Coupon_Create_Fields) (
 	coupon *Coupon, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__id_val := coupon_id.value()
@@ -13840,7 +13898,9 @@ func (obj *pgxImpl) Create_CouponUsage(ctx context.Context,
 	coupon_usage_status CouponUsage_Status_Field,
 	coupon_usage_period CouponUsage_Period_Field) (
 	coupon_usage *CouponUsage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	__coupon_id_val := coupon_usage_coupon_id.value()
 	__amount_val := coupon_usage_amount.value()
 	__status_val := coupon_usage_status.value()
@@ -13875,7 +13935,9 @@ func (obj *pgxImpl) CreateNoReturn_StorjscanPayment(ctx context.Context,
 	storjscan_payment_status StorjscanPayment_Status_Field,
 	storjscan_payment_timestamp StorjscanPayment_Timestamp_Field) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__block_hash_val := storjscan_payment_block_hash.value()
@@ -13910,7 +13972,9 @@ func (obj *pgxImpl) ReplaceNoReturn_NodeApiVersion(ctx context.Context,
 	node_api_version_id NodeApiVersion_Id_Field,
 	node_api_version_api_version NodeApiVersion_ApiVersion_Field) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__id_val := node_api_version_id.value()
@@ -13942,7 +14006,9 @@ func (obj *pgxImpl) CreateNoReturn_OauthClient(ctx context.Context,
 	oauth_client_app_name OauthClient_AppName_Field,
 	oauth_client_app_logo_url OauthClient_AppLogoUrl_Field) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	__id_val := oauth_client_id.value()
 	__encrypted_secret_val := oauth_client_encrypted_secret.value()
 	__redirect_url_val := oauth_client_redirect_url.value()
@@ -13978,7 +14044,9 @@ func (obj *pgxImpl) CreateNoReturn_OauthCode(ctx context.Context,
 	oauth_code_expires_at OauthCode_ExpiresAt_Field,
 	optional OauthCode_Create_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	__client_id_val := oauth_code_client_id.value()
 	__user_id_val := oauth_code_user_id.value()
 	__scope_val := oauth_code_scope.value()
@@ -14015,7 +14083,9 @@ func (obj *pgxImpl) CreateNoReturn_OauthToken(ctx context.Context,
 	oauth_token_created_at OauthToken_CreatedAt_Field,
 	oauth_token_expires_at OauthToken_ExpiresAt_Field) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	__client_id_val := oauth_token_client_id.value()
 	__user_id_val := oauth_token_user_id.value()
 	__scope_val := oauth_token_scope.value()
@@ -14044,7 +14114,9 @@ func (obj *pgxImpl) First_NodeEvent_By_Email_And_Event_OrderBy_Desc_CreatedAt(ct
 	node_event_email NodeEvent_Email_Field,
 	node_event_event NodeEvent_Event_Field) (
 	node_event *NodeEvent, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT node_events.id, node_events.email, node_events.node_id, node_events.event, node_events.created_at, node_events.email_sent FROM node_events WHERE node_events.email = ? AND node_events.event = ? ORDER BY node_events.created_at DESC LIMIT 1 OFFSET 0")
 
@@ -14092,7 +14164,9 @@ func (obj *pgxImpl) Get_ValueAttribution_By_ProjectId_And_BucketName(ctx context
 	value_attribution_project_id ValueAttribution_ProjectId_Field,
 	value_attribution_bucket_name ValueAttribution_BucketName_Field) (
 	value_attribution *ValueAttribution, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT value_attributions.project_id, value_attributions.bucket_name, value_attributions.partner_id, value_attributions.user_agent, value_attributions.last_updated FROM value_attributions WHERE value_attributions.project_id = ? AND value_attributions.bucket_name = ?")
 
@@ -14114,7 +14188,9 @@ func (obj *pgxImpl) Get_ValueAttribution_By_ProjectId_And_BucketName(ctx context
 func (obj *pgxImpl) Get_SegmentPendingAudits_By_NodeId(ctx context.Context,
 	segment_pending_audits_node_id SegmentPendingAudits_NodeId_Field) (
 	segment_pending_audits *SegmentPendingAudits, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT segment_pending_audits.node_id, segment_pending_audits.stream_id, segment_pending_audits.position, segment_pending_audits.piece_id, segment_pending_audits.stripe_index, segment_pending_audits.share_size, segment_pending_audits.expected_share_hash, segment_pending_audits.reverify_count FROM segment_pending_audits WHERE segment_pending_audits.node_id = ?")
 
@@ -14136,7 +14212,9 @@ func (obj *pgxImpl) Get_SegmentPendingAudits_By_NodeId(ctx context.Context,
 func (obj *pgxImpl) Find_AccountingTimestamps_Value_By_Name(ctx context.Context,
 	accounting_timestamps_name AccountingTimestamps_Name_Field) (
 	row *Value_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT accounting_timestamps.value FROM accounting_timestamps WHERE accounting_timestamps.name = ?")
 
@@ -14161,7 +14239,9 @@ func (obj *pgxImpl) Find_AccountingTimestamps_Value_By_Name(ctx context.Context,
 func (obj *pgxImpl) Get_Node_By_Id(ctx context.Context,
 	node_id Node_Id_Field) (
 	node *Node, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT nodes.id, nodes.address, nodes.last_net, nodes.last_ip_port, nodes.country_code, nodes.protocol, nodes.type, nodes.email, nodes.wallet, nodes.wallet_features, nodes.free_disk, nodes.piece_count, nodes.major, nodes.minor, nodes.patch, nodes.hash, nodes.timestamp, nodes.release, nodes.latency_90, nodes.vetted_at, nodes.created_at, nodes.updated_at, nodes.last_contact_success, nodes.last_contact_failure, nodes.disqualified, nodes.disqualification_reason, nodes.unknown_audit_suspended, nodes.offline_suspended, nodes.under_review, nodes.exit_initiated_at, nodes.exit_loop_completed_at, nodes.exit_finished_at, nodes.exit_success, nodes.contained, nodes.last_offline_email, nodes.last_software_update_email FROM nodes WHERE nodes.id = ?")
 
@@ -14182,7 +14262,9 @@ func (obj *pgxImpl) Get_Node_By_Id(ctx context.Context,
 
 func (obj *pgxImpl) All_Node_Id(ctx context.Context) (
 	rows []*Id_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT nodes.id FROM nodes")
 
@@ -14226,7 +14308,9 @@ func (obj *pgxImpl) All_Node_Id(ctx context.Context) (
 func (obj *pgxImpl) Paged_Node(ctx context.Context,
 	limit int, start *Paged_Node_Continuation) (
 	rows []*Node, next *Paged_Node_Continuation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT nodes.id, nodes.address, nodes.last_net, nodes.last_ip_port, nodes.country_code, nodes.protocol, nodes.type, nodes.email, nodes.wallet, nodes.wallet_features, nodes.free_disk, nodes.piece_count, nodes.major, nodes.minor, nodes.patch, nodes.hash, nodes.timestamp, nodes.release, nodes.latency_90, nodes.vetted_at, nodes.created_at, nodes.updated_at, nodes.last_contact_success, nodes.last_contact_failure, nodes.disqualified, nodes.disqualification_reason, nodes.unknown_audit_suspended, nodes.offline_suspended, nodes.under_review, nodes.exit_initiated_at, nodes.exit_loop_completed_at, nodes.exit_finished_at, nodes.exit_success, nodes.contained, nodes.last_offline_email, nodes.last_software_update_email, nodes.id FROM nodes WHERE (nodes.id) > ? ORDER BY nodes.id LIMIT ?")
 
@@ -14284,7 +14368,9 @@ func (obj *pgxImpl) Paged_Node(ctx context.Context,
 
 func (obj *pgxImpl) All_Node_Id_Node_PieceCount_By_PieceCount_Not_Number(ctx context.Context) (
 	rows []*Id_PieceCount_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT nodes.id, nodes.piece_count FROM nodes WHERE nodes.piece_count != 0")
 
@@ -14328,7 +14414,9 @@ func (obj *pgxImpl) All_Node_Id_Node_PieceCount_By_PieceCount_Not_Number(ctx con
 func (obj *pgxImpl) Get_Reputation_By_Id(ctx context.Context,
 	reputation_id Reputation_Id_Field) (
 	reputation *Reputation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT reputations.id, reputations.audit_success_count, reputations.total_audit_count, reputations.vetted_at, reputations.created_at, reputations.updated_at, reputations.disqualified, reputations.disqualification_reason, reputations.unknown_audit_suspended, reputations.offline_suspended, reputations.under_review, reputations.online_score, reputations.audit_history, reputations.audit_reputation_alpha, reputations.audit_reputation_beta, reputations.unknown_audit_reputation_alpha, reputations.unknown_audit_reputation_beta FROM reputations WHERE reputations.id = ?")
 
@@ -14350,7 +14438,9 @@ func (obj *pgxImpl) Get_Reputation_By_Id(ctx context.Context,
 func (obj *pgxImpl) All_User_By_NormalizedEmail(ctx context.Context,
 	user_normalized_email User_NormalizedEmail_Field) (
 	rows []*User, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT users.id, users.email, users.normalized_email, users.full_name, users.short_name, users.password_hash, users.status, users.partner_id, users.user_agent, users.created_at, users.project_limit, users.project_bandwidth_limit, users.project_storage_limit, users.project_segment_limit, users.paid_tier, users.position, users.company_name, users.company_size, users.working_on, users.is_professional, users.employee_count, users.have_sales_contact, users.mfa_enabled, users.mfa_secret_key, users.mfa_recovery_codes, users.signup_promo_code, users.last_verification_reminder, users.verification_reminders, users.failed_login_count, users.login_lockout_expiration, users.signup_captcha FROM users WHERE users.normalized_email = ?")
 
@@ -14395,7 +14485,9 @@ func (obj *pgxImpl) All_User_By_NormalizedEmail(ctx context.Context,
 func (obj *pgxImpl) Get_User_By_NormalizedEmail_And_Status_Not_Number(ctx context.Context,
 	user_normalized_email User_NormalizedEmail_Field) (
 	user *User, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT users.id, users.email, users.normalized_email, users.full_name, users.short_name, users.password_hash, users.status, users.partner_id, users.user_agent, users.created_at, users.project_limit, users.project_bandwidth_limit, users.project_storage_limit, users.project_segment_limit, users.paid_tier, users.position, users.company_name, users.company_size, users.working_on, users.is_professional, users.employee_count, users.have_sales_contact, users.mfa_enabled, users.mfa_secret_key, users.mfa_recovery_codes, users.signup_promo_code, users.last_verification_reminder, users.verification_reminders, users.failed_login_count, users.login_lockout_expiration, users.signup_captcha FROM users WHERE users.normalized_email = ? AND users.status != 0 LIMIT 2")
 
@@ -14453,7 +14545,9 @@ func (obj *pgxImpl) Get_User_By_NormalizedEmail_And_Status_Not_Number(ctx contex
 func (obj *pgxImpl) Get_User_By_Id(ctx context.Context,
 	user_id User_Id_Field) (
 	user *User, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT users.id, users.email, users.normalized_email, users.full_name, users.short_name, users.password_hash, users.status, users.partner_id, users.user_agent, users.created_at, users.project_limit, users.project_bandwidth_limit, users.project_storage_limit, users.project_segment_limit, users.paid_tier, users.position, users.company_name, users.company_size, users.working_on, users.is_professional, users.employee_count, users.have_sales_contact, users.mfa_enabled, users.mfa_secret_key, users.mfa_recovery_codes, users.signup_promo_code, users.last_verification_reminder, users.verification_reminders, users.failed_login_count, users.login_lockout_expiration, users.signup_captcha FROM users WHERE users.id = ?")
 
@@ -14475,7 +14569,9 @@ func (obj *pgxImpl) Get_User_By_Id(ctx context.Context,
 func (obj *pgxImpl) Get_User_ProjectLimit_By_Id(ctx context.Context,
 	user_id User_Id_Field) (
 	row *ProjectLimit_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT users.project_limit FROM users WHERE users.id = ?")
 
@@ -14497,7 +14593,9 @@ func (obj *pgxImpl) Get_User_ProjectLimit_By_Id(ctx context.Context,
 func (obj *pgxImpl) Get_User_PaidTier_By_Id(ctx context.Context,
 	user_id User_Id_Field) (
 	row *PaidTier_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT users.paid_tier FROM users WHERE users.id = ?")
 
@@ -14519,7 +14617,9 @@ func (obj *pgxImpl) Get_User_PaidTier_By_Id(ctx context.Context,
 func (obj *pgxImpl) Get_User_ProjectStorageLimit_User_ProjectBandwidthLimit_User_ProjectSegmentLimit_By_Id(ctx context.Context,
 	user_id User_Id_Field) (
 	row *ProjectStorageLimit_ProjectBandwidthLimit_ProjectSegmentLimit_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT users.project_storage_limit, users.project_bandwidth_limit, users.project_segment_limit FROM users WHERE users.id = ?")
 
@@ -14541,7 +14641,9 @@ func (obj *pgxImpl) Get_User_ProjectStorageLimit_User_ProjectBandwidthLimit_User
 func (obj *pgxImpl) All_WebappSession_By_UserId(ctx context.Context,
 	webapp_session_user_id WebappSession_UserId_Field) (
 	rows []*WebappSession, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT webapp_sessions.id, webapp_sessions.user_id, webapp_sessions.ip_address, webapp_sessions.user_agent, webapp_sessions.status, webapp_sessions.expires_at FROM webapp_sessions WHERE webapp_sessions.user_id = ?")
 
@@ -14586,7 +14688,9 @@ func (obj *pgxImpl) All_WebappSession_By_UserId(ctx context.Context,
 func (obj *pgxImpl) Get_WebappSession_By_Id(ctx context.Context,
 	webapp_session_id WebappSession_Id_Field) (
 	webapp_session *WebappSession, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT webapp_sessions.id, webapp_sessions.user_id, webapp_sessions.ip_address, webapp_sessions.user_agent, webapp_sessions.status, webapp_sessions.expires_at FROM webapp_sessions WHERE webapp_sessions.id = ?")
 
@@ -14608,7 +14712,9 @@ func (obj *pgxImpl) Get_WebappSession_By_Id(ctx context.Context,
 func (obj *pgxImpl) Get_Project_Salt_By_Id(ctx context.Context,
 	project_id Project_Id_Field) (
 	row *Salt_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.salt FROM projects WHERE projects.id = ?")
 
@@ -14630,7 +14736,9 @@ func (obj *pgxImpl) Get_Project_Salt_By_Id(ctx context.Context,
 func (obj *pgxImpl) Get_Project_By_PublicId(ctx context.Context,
 	project_public_id Project_PublicId_Field) (
 	project *Project, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __cond_0 = &__sqlbundle_Condition{Left: "projects.public_id", Equal: true, Right: "?", Null: true}
 
@@ -14693,7 +14801,9 @@ func (obj *pgxImpl) Get_Project_By_PublicId(ctx context.Context,
 func (obj *pgxImpl) Get_Project_By_Id(ctx context.Context,
 	project_id Project_Id_Field) (
 	project *Project, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.id, projects.public_id, projects.name, projects.description, projects.usage_limit, projects.bandwidth_limit, projects.user_specified_usage_limit, projects.user_specified_bandwidth_limit, projects.segment_limit, projects.rate_limit, projects.burst_limit, projects.max_buckets, projects.partner_id, projects.user_agent, projects.owner_id, projects.salt, projects.created_at FROM projects WHERE projects.id = ?")
 
@@ -14715,7 +14825,9 @@ func (obj *pgxImpl) Get_Project_By_Id(ctx context.Context,
 func (obj *pgxImpl) Get_Project_UsageLimit_By_Id(ctx context.Context,
 	project_id Project_Id_Field) (
 	row *UsageLimit_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.usage_limit FROM projects WHERE projects.id = ?")
 
@@ -14737,7 +14849,9 @@ func (obj *pgxImpl) Get_Project_UsageLimit_By_Id(ctx context.Context,
 func (obj *pgxImpl) Get_Project_BandwidthLimit_By_Id(ctx context.Context,
 	project_id Project_Id_Field) (
 	row *BandwidthLimit_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.bandwidth_limit FROM projects WHERE projects.id = ?")
 
@@ -14759,7 +14873,9 @@ func (obj *pgxImpl) Get_Project_BandwidthLimit_By_Id(ctx context.Context,
 func (obj *pgxImpl) Get_Project_UserSpecifiedUsageLimit_By_Id(ctx context.Context,
 	project_id Project_Id_Field) (
 	row *UserSpecifiedUsageLimit_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.user_specified_usage_limit FROM projects WHERE projects.id = ?")
 
@@ -14781,7 +14897,9 @@ func (obj *pgxImpl) Get_Project_UserSpecifiedUsageLimit_By_Id(ctx context.Contex
 func (obj *pgxImpl) Get_Project_UserSpecifiedBandwidthLimit_By_Id(ctx context.Context,
 	project_id Project_Id_Field) (
 	row *UserSpecifiedBandwidthLimit_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.user_specified_bandwidth_limit FROM projects WHERE projects.id = ?")
 
@@ -14803,7 +14921,9 @@ func (obj *pgxImpl) Get_Project_UserSpecifiedBandwidthLimit_By_Id(ctx context.Co
 func (obj *pgxImpl) Get_Project_SegmentLimit_By_Id(ctx context.Context,
 	project_id Project_Id_Field) (
 	row *SegmentLimit_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.segment_limit FROM projects WHERE projects.id = ?")
 
@@ -14825,7 +14945,9 @@ func (obj *pgxImpl) Get_Project_SegmentLimit_By_Id(ctx context.Context,
 func (obj *pgxImpl) Get_Project_MaxBuckets_By_Id(ctx context.Context,
 	project_id Project_Id_Field) (
 	row *MaxBuckets_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.max_buckets FROM projects WHERE projects.id = ?")
 
@@ -14847,7 +14969,9 @@ func (obj *pgxImpl) Get_Project_MaxBuckets_By_Id(ctx context.Context,
 func (obj *pgxImpl) Get_Project_BandwidthLimit_Project_UsageLimit_Project_SegmentLimit_By_Id(ctx context.Context,
 	project_id Project_Id_Field) (
 	row *BandwidthLimit_UsageLimit_SegmentLimit_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.bandwidth_limit, projects.usage_limit, projects.segment_limit FROM projects WHERE projects.id = ?")
 
@@ -14868,7 +14992,9 @@ func (obj *pgxImpl) Get_Project_BandwidthLimit_Project_UsageLimit_Project_Segmen
 
 func (obj *pgxImpl) All_Project(ctx context.Context) (
 	rows []*Project, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.id, projects.public_id, projects.name, projects.description, projects.usage_limit, projects.bandwidth_limit, projects.user_specified_usage_limit, projects.user_specified_bandwidth_limit, projects.segment_limit, projects.rate_limit, projects.burst_limit, projects.max_buckets, projects.partner_id, projects.user_agent, projects.owner_id, projects.salt, projects.created_at FROM projects")
 
@@ -14912,7 +15038,9 @@ func (obj *pgxImpl) All_Project(ctx context.Context) (
 func (obj *pgxImpl) All_Project_By_CreatedAt_Less_OrderBy_Asc_CreatedAt(ctx context.Context,
 	project_created_at_less Project_CreatedAt_Field) (
 	rows []*Project, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.id, projects.public_id, projects.name, projects.description, projects.usage_limit, projects.bandwidth_limit, projects.user_specified_usage_limit, projects.user_specified_bandwidth_limit, projects.segment_limit, projects.rate_limit, projects.burst_limit, projects.max_buckets, projects.partner_id, projects.user_agent, projects.owner_id, projects.salt, projects.created_at FROM projects WHERE projects.created_at < ? ORDER BY projects.created_at")
 
@@ -14957,7 +15085,9 @@ func (obj *pgxImpl) All_Project_By_CreatedAt_Less_OrderBy_Asc_CreatedAt(ctx cont
 func (obj *pgxImpl) All_Project_By_OwnerId_OrderBy_Asc_CreatedAt(ctx context.Context,
 	project_owner_id Project_OwnerId_Field) (
 	rows []*Project, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.id, projects.public_id, projects.name, projects.description, projects.usage_limit, projects.bandwidth_limit, projects.user_specified_usage_limit, projects.user_specified_bandwidth_limit, projects.segment_limit, projects.rate_limit, projects.burst_limit, projects.max_buckets, projects.partner_id, projects.user_agent, projects.owner_id, projects.salt, projects.created_at FROM projects WHERE projects.owner_id = ? ORDER BY projects.created_at")
 
@@ -15002,7 +15132,9 @@ func (obj *pgxImpl) All_Project_By_OwnerId_OrderBy_Asc_CreatedAt(ctx context.Con
 func (obj *pgxImpl) All_Project_By_ProjectMember_MemberId_OrderBy_Asc_Project_Name(ctx context.Context,
 	project_member_member_id ProjectMember_MemberId_Field) (
 	rows []*Project, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.id, projects.public_id, projects.name, projects.description, projects.usage_limit, projects.bandwidth_limit, projects.user_specified_usage_limit, projects.user_specified_bandwidth_limit, projects.segment_limit, projects.rate_limit, projects.burst_limit, projects.max_buckets, projects.partner_id, projects.user_agent, projects.owner_id, projects.salt, projects.created_at FROM projects  JOIN project_members ON projects.id = project_members.project_id WHERE project_members.member_id = ? ORDER BY projects.name")
 
@@ -15048,7 +15180,9 @@ func (obj *pgxImpl) Limited_Project_By_CreatedAt_Less_OrderBy_Asc_CreatedAt(ctx 
 	project_created_at_less Project_CreatedAt_Field,
 	limit int, offset int64) (
 	rows []*Project, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.id, projects.public_id, projects.name, projects.description, projects.usage_limit, projects.bandwidth_limit, projects.user_specified_usage_limit, projects.user_specified_bandwidth_limit, projects.segment_limit, projects.rate_limit, projects.burst_limit, projects.max_buckets, projects.partner_id, projects.user_agent, projects.owner_id, projects.salt, projects.created_at FROM projects WHERE projects.created_at < ? ORDER BY projects.created_at LIMIT ? OFFSET ?")
 
@@ -15096,7 +15230,9 @@ func (obj *pgxImpl) Limited_Project_By_CreatedAt_Less_OrderBy_Asc_CreatedAt(ctx 
 func (obj *pgxImpl) All_ProjectMember_By_MemberId(ctx context.Context,
 	project_member_member_id ProjectMember_MemberId_Field) (
 	rows []*ProjectMember, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT project_members.member_id, project_members.project_id, project_members.created_at FROM project_members WHERE project_members.member_id = ?")
 
@@ -15141,7 +15277,9 @@ func (obj *pgxImpl) All_ProjectMember_By_MemberId(ctx context.Context,
 func (obj *pgxImpl) Get_ApiKey_By_Id(ctx context.Context,
 	api_key_id ApiKey_Id_Field) (
 	api_key *ApiKey, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT api_keys.id, api_keys.project_id, api_keys.head, api_keys.name, api_keys.secret, api_keys.partner_id, api_keys.user_agent, api_keys.created_at FROM api_keys WHERE api_keys.id = ?")
 
@@ -15163,7 +15301,9 @@ func (obj *pgxImpl) Get_ApiKey_By_Id(ctx context.Context,
 func (obj *pgxImpl) Get_ApiKey_By_Head(ctx context.Context,
 	api_key_head ApiKey_Head_Field) (
 	api_key *ApiKey, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT api_keys.id, api_keys.project_id, api_keys.head, api_keys.name, api_keys.secret, api_keys.partner_id, api_keys.user_agent, api_keys.created_at FROM api_keys WHERE api_keys.head = ?")
 
@@ -15186,7 +15326,9 @@ func (obj *pgxImpl) Get_ApiKey_By_Name_And_ProjectId(ctx context.Context,
 	api_key_name ApiKey_Name_Field,
 	api_key_project_id ApiKey_ProjectId_Field) (
 	api_key *ApiKey, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT api_keys.id, api_keys.project_id, api_keys.head, api_keys.name, api_keys.secret, api_keys.partner_id, api_keys.user_agent, api_keys.created_at FROM api_keys WHERE api_keys.name = ? AND api_keys.project_id = ?")
 
@@ -15209,7 +15351,9 @@ func (obj *pgxImpl) Paged_BucketBandwidthRollup_By_IntervalStart_GreaterOrEqual(
 	bucket_bandwidth_rollup_interval_start_greater_or_equal BucketBandwidthRollup_IntervalStart_Field,
 	limit int, start *Paged_BucketBandwidthRollup_By_IntervalStart_GreaterOrEqual_Continuation) (
 	rows []*BucketBandwidthRollup, next *Paged_BucketBandwidthRollup_By_IntervalStart_GreaterOrEqual_Continuation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bucket_bandwidth_rollups.bucket_name, bucket_bandwidth_rollups.project_id, bucket_bandwidth_rollups.interval_start, bucket_bandwidth_rollups.interval_seconds, bucket_bandwidth_rollups.action, bucket_bandwidth_rollups.inline, bucket_bandwidth_rollups.allocated, bucket_bandwidth_rollups.settled, bucket_bandwidth_rollups.bucket_name, bucket_bandwidth_rollups.project_id, bucket_bandwidth_rollups.interval_start, bucket_bandwidth_rollups.action FROM bucket_bandwidth_rollups WHERE bucket_bandwidth_rollups.interval_start >= ? AND (bucket_bandwidth_rollups.bucket_name, bucket_bandwidth_rollups.project_id, bucket_bandwidth_rollups.interval_start, bucket_bandwidth_rollups.action) > (?, ?, ?, ?) ORDER BY bucket_bandwidth_rollups.bucket_name, bucket_bandwidth_rollups.project_id, bucket_bandwidth_rollups.interval_start, bucket_bandwidth_rollups.action LIMIT ?")
 
@@ -15270,7 +15414,9 @@ func (obj *pgxImpl) Paged_BucketBandwidthRollupArchive_By_IntervalStart_GreaterO
 	bucket_bandwidth_rollup_archive_interval_start_greater_or_equal BucketBandwidthRollupArchive_IntervalStart_Field,
 	limit int, start *Paged_BucketBandwidthRollupArchive_By_IntervalStart_GreaterOrEqual_Continuation) (
 	rows []*BucketBandwidthRollupArchive, next *Paged_BucketBandwidthRollupArchive_By_IntervalStart_GreaterOrEqual_Continuation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bucket_bandwidth_rollup_archives.bucket_name, bucket_bandwidth_rollup_archives.project_id, bucket_bandwidth_rollup_archives.interval_start, bucket_bandwidth_rollup_archives.interval_seconds, bucket_bandwidth_rollup_archives.action, bucket_bandwidth_rollup_archives.inline, bucket_bandwidth_rollup_archives.allocated, bucket_bandwidth_rollup_archives.settled, bucket_bandwidth_rollup_archives.bucket_name, bucket_bandwidth_rollup_archives.project_id, bucket_bandwidth_rollup_archives.interval_start, bucket_bandwidth_rollup_archives.action FROM bucket_bandwidth_rollup_archives WHERE bucket_bandwidth_rollup_archives.interval_start >= ? AND (bucket_bandwidth_rollup_archives.bucket_name, bucket_bandwidth_rollup_archives.project_id, bucket_bandwidth_rollup_archives.interval_start, bucket_bandwidth_rollup_archives.action) > (?, ?, ?, ?) ORDER BY bucket_bandwidth_rollup_archives.bucket_name, bucket_bandwidth_rollup_archives.project_id, bucket_bandwidth_rollup_archives.interval_start, bucket_bandwidth_rollup_archives.action LIMIT ?")
 
@@ -15329,7 +15475,9 @@ func (obj *pgxImpl) Paged_BucketBandwidthRollupArchive_By_IntervalStart_GreaterO
 
 func (obj *pgxImpl) All_BucketStorageTally_OrderBy_Desc_IntervalStart(ctx context.Context) (
 	rows []*BucketStorageTally, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bucket_storage_tallies.bucket_name, bucket_storage_tallies.project_id, bucket_storage_tallies.interval_start, bucket_storage_tallies.total_bytes, bucket_storage_tallies.inline, bucket_storage_tallies.remote, bucket_storage_tallies.total_segments_count, bucket_storage_tallies.remote_segments_count, bucket_storage_tallies.inline_segments_count, bucket_storage_tallies.object_count, bucket_storage_tallies.metadata_size FROM bucket_storage_tallies ORDER BY bucket_storage_tallies.interval_start DESC")
 
@@ -15376,7 +15524,9 @@ func (obj *pgxImpl) All_BucketStorageTally_By_ProjectId_And_BucketName_And_Inter
 	bucket_storage_tally_interval_start_greater_or_equal BucketStorageTally_IntervalStart_Field,
 	bucket_storage_tally_interval_start_less_or_equal BucketStorageTally_IntervalStart_Field) (
 	rows []*BucketStorageTally, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bucket_storage_tallies.bucket_name, bucket_storage_tallies.project_id, bucket_storage_tallies.interval_start, bucket_storage_tallies.total_bytes, bucket_storage_tallies.inline, bucket_storage_tallies.remote, bucket_storage_tallies.total_segments_count, bucket_storage_tallies.remote_segments_count, bucket_storage_tallies.inline_segments_count, bucket_storage_tallies.object_count, bucket_storage_tallies.metadata_size FROM bucket_storage_tallies WHERE bucket_storage_tallies.project_id = ? AND bucket_storage_tallies.bucket_name = ? AND bucket_storage_tallies.interval_start >= ? AND bucket_storage_tallies.interval_start <= ? ORDER BY bucket_storage_tallies.interval_start DESC")
 
@@ -15422,7 +15572,9 @@ func (obj *pgxImpl) All_StoragenodeBandwidthRollup_By_StoragenodeId_And_Interval
 	storagenode_bandwidth_rollup_storagenode_id StoragenodeBandwidthRollup_StoragenodeId_Field,
 	storagenode_bandwidth_rollup_interval_start StoragenodeBandwidthRollup_IntervalStart_Field) (
 	rows []*StoragenodeBandwidthRollup, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storagenode_bandwidth_rollups.storagenode_id, storagenode_bandwidth_rollups.interval_start, storagenode_bandwidth_rollups.interval_seconds, storagenode_bandwidth_rollups.action, storagenode_bandwidth_rollups.allocated, storagenode_bandwidth_rollups.settled FROM storagenode_bandwidth_rollups WHERE storagenode_bandwidth_rollups.storagenode_id = ? AND storagenode_bandwidth_rollups.interval_start = ?")
 
@@ -15468,7 +15620,9 @@ func (obj *pgxImpl) Paged_StoragenodeBandwidthRollup_By_IntervalStart_GreaterOrE
 	storagenode_bandwidth_rollup_interval_start_greater_or_equal StoragenodeBandwidthRollup_IntervalStart_Field,
 	limit int, start *Paged_StoragenodeBandwidthRollup_By_IntervalStart_GreaterOrEqual_Continuation) (
 	rows []*StoragenodeBandwidthRollup, next *Paged_StoragenodeBandwidthRollup_By_IntervalStart_GreaterOrEqual_Continuation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storagenode_bandwidth_rollups.storagenode_id, storagenode_bandwidth_rollups.interval_start, storagenode_bandwidth_rollups.interval_seconds, storagenode_bandwidth_rollups.action, storagenode_bandwidth_rollups.allocated, storagenode_bandwidth_rollups.settled, storagenode_bandwidth_rollups.storagenode_id, storagenode_bandwidth_rollups.interval_start, storagenode_bandwidth_rollups.action FROM storagenode_bandwidth_rollups WHERE storagenode_bandwidth_rollups.interval_start >= ? AND (storagenode_bandwidth_rollups.storagenode_id, storagenode_bandwidth_rollups.interval_start, storagenode_bandwidth_rollups.action) > (?, ?, ?) ORDER BY storagenode_bandwidth_rollups.storagenode_id, storagenode_bandwidth_rollups.interval_start, storagenode_bandwidth_rollups.action LIMIT ?")
 
@@ -15530,7 +15684,9 @@ func (obj *pgxImpl) Paged_StoragenodeBandwidthRollup_By_StoragenodeId_And_Interv
 	storagenode_bandwidth_rollup_interval_start_greater_or_equal StoragenodeBandwidthRollup_IntervalStart_Field,
 	limit int, start *Paged_StoragenodeBandwidthRollup_By_StoragenodeId_And_IntervalStart_GreaterOrEqual_Continuation) (
 	rows []*StoragenodeBandwidthRollup, next *Paged_StoragenodeBandwidthRollup_By_StoragenodeId_And_IntervalStart_GreaterOrEqual_Continuation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storagenode_bandwidth_rollups.storagenode_id, storagenode_bandwidth_rollups.interval_start, storagenode_bandwidth_rollups.interval_seconds, storagenode_bandwidth_rollups.action, storagenode_bandwidth_rollups.allocated, storagenode_bandwidth_rollups.settled, storagenode_bandwidth_rollups.storagenode_id, storagenode_bandwidth_rollups.interval_start, storagenode_bandwidth_rollups.action FROM storagenode_bandwidth_rollups WHERE storagenode_bandwidth_rollups.storagenode_id = ? AND storagenode_bandwidth_rollups.interval_start >= ? AND (storagenode_bandwidth_rollups.storagenode_id, storagenode_bandwidth_rollups.interval_start, storagenode_bandwidth_rollups.action) > (?, ?, ?) ORDER BY storagenode_bandwidth_rollups.storagenode_id, storagenode_bandwidth_rollups.interval_start, storagenode_bandwidth_rollups.action LIMIT ?")
 
@@ -15591,7 +15747,9 @@ func (obj *pgxImpl) Paged_StoragenodeBandwidthRollupArchive_By_IntervalStart_Gre
 	storagenode_bandwidth_rollup_archive_interval_start_greater_or_equal StoragenodeBandwidthRollupArchive_IntervalStart_Field,
 	limit int, start *Paged_StoragenodeBandwidthRollupArchive_By_IntervalStart_GreaterOrEqual_Continuation) (
 	rows []*StoragenodeBandwidthRollupArchive, next *Paged_StoragenodeBandwidthRollupArchive_By_IntervalStart_GreaterOrEqual_Continuation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storagenode_bandwidth_rollup_archives.storagenode_id, storagenode_bandwidth_rollup_archives.interval_start, storagenode_bandwidth_rollup_archives.interval_seconds, storagenode_bandwidth_rollup_archives.action, storagenode_bandwidth_rollup_archives.allocated, storagenode_bandwidth_rollup_archives.settled, storagenode_bandwidth_rollup_archives.storagenode_id, storagenode_bandwidth_rollup_archives.interval_start, storagenode_bandwidth_rollup_archives.action FROM storagenode_bandwidth_rollup_archives WHERE storagenode_bandwidth_rollup_archives.interval_start >= ? AND (storagenode_bandwidth_rollup_archives.storagenode_id, storagenode_bandwidth_rollup_archives.interval_start, storagenode_bandwidth_rollup_archives.action) > (?, ?, ?) ORDER BY storagenode_bandwidth_rollup_archives.storagenode_id, storagenode_bandwidth_rollup_archives.interval_start, storagenode_bandwidth_rollup_archives.action LIMIT ?")
 
@@ -15653,7 +15811,9 @@ func (obj *pgxImpl) Paged_StoragenodeBandwidthRollupPhase2_By_StoragenodeId_And_
 	storagenode_bandwidth_rollup_phase2_interval_start_greater_or_equal StoragenodeBandwidthRollupPhase2_IntervalStart_Field,
 	limit int, start *Paged_StoragenodeBandwidthRollupPhase2_By_StoragenodeId_And_IntervalStart_GreaterOrEqual_Continuation) (
 	rows []*StoragenodeBandwidthRollupPhase2, next *Paged_StoragenodeBandwidthRollupPhase2_By_StoragenodeId_And_IntervalStart_GreaterOrEqual_Continuation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storagenode_bandwidth_rollups_phase2.storagenode_id, storagenode_bandwidth_rollups_phase2.interval_start, storagenode_bandwidth_rollups_phase2.interval_seconds, storagenode_bandwidth_rollups_phase2.action, storagenode_bandwidth_rollups_phase2.allocated, storagenode_bandwidth_rollups_phase2.settled, storagenode_bandwidth_rollups_phase2.storagenode_id, storagenode_bandwidth_rollups_phase2.interval_start, storagenode_bandwidth_rollups_phase2.action FROM storagenode_bandwidth_rollups_phase2 WHERE storagenode_bandwidth_rollups_phase2.storagenode_id = ? AND storagenode_bandwidth_rollups_phase2.interval_start >= ? AND (storagenode_bandwidth_rollups_phase2.storagenode_id, storagenode_bandwidth_rollups_phase2.interval_start, storagenode_bandwidth_rollups_phase2.action) > (?, ?, ?) ORDER BY storagenode_bandwidth_rollups_phase2.storagenode_id, storagenode_bandwidth_rollups_phase2.interval_start, storagenode_bandwidth_rollups_phase2.action LIMIT ?")
 
@@ -15712,7 +15872,9 @@ func (obj *pgxImpl) Paged_StoragenodeBandwidthRollupPhase2_By_StoragenodeId_And_
 
 func (obj *pgxImpl) All_StoragenodeStorageTally(ctx context.Context) (
 	rows []*StoragenodeStorageTally, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storagenode_storage_tallies.node_id, storagenode_storage_tallies.interval_end_time, storagenode_storage_tallies.data_total FROM storagenode_storage_tallies")
 
@@ -15756,7 +15918,9 @@ func (obj *pgxImpl) All_StoragenodeStorageTally(ctx context.Context) (
 func (obj *pgxImpl) All_StoragenodeStorageTally_By_IntervalEndTime_GreaterOrEqual(ctx context.Context,
 	storagenode_storage_tally_interval_end_time_greater_or_equal StoragenodeStorageTally_IntervalEndTime_Field) (
 	rows []*StoragenodeStorageTally, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storagenode_storage_tallies.node_id, storagenode_storage_tallies.interval_end_time, storagenode_storage_tallies.data_total FROM storagenode_storage_tallies WHERE storagenode_storage_tallies.interval_end_time >= ?")
 
@@ -15802,7 +15966,9 @@ func (obj *pgxImpl) Get_StoragenodePaystub_By_NodeId_And_Period(ctx context.Cont
 	storagenode_paystub_node_id StoragenodePaystub_NodeId_Field,
 	storagenode_paystub_period StoragenodePaystub_Period_Field) (
 	storagenode_paystub *StoragenodePaystub, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storagenode_paystubs.period, storagenode_paystubs.node_id, storagenode_paystubs.created_at, storagenode_paystubs.codes, storagenode_paystubs.usage_at_rest, storagenode_paystubs.usage_get, storagenode_paystubs.usage_put, storagenode_paystubs.usage_get_repair, storagenode_paystubs.usage_put_repair, storagenode_paystubs.usage_get_audit, storagenode_paystubs.comp_at_rest, storagenode_paystubs.comp_get, storagenode_paystubs.comp_put, storagenode_paystubs.comp_get_repair, storagenode_paystubs.comp_put_repair, storagenode_paystubs.comp_get_audit, storagenode_paystubs.surge_percent, storagenode_paystubs.held, storagenode_paystubs.owed, storagenode_paystubs.disposed, storagenode_paystubs.paid, storagenode_paystubs.distributed FROM storagenode_paystubs WHERE storagenode_paystubs.node_id = ? AND storagenode_paystubs.period = ?")
 
@@ -15824,7 +15990,9 @@ func (obj *pgxImpl) Get_StoragenodePaystub_By_NodeId_And_Period(ctx context.Cont
 func (obj *pgxImpl) All_StoragenodePaystub_By_NodeId(ctx context.Context,
 	storagenode_paystub_node_id StoragenodePaystub_NodeId_Field) (
 	rows []*StoragenodePaystub, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storagenode_paystubs.period, storagenode_paystubs.node_id, storagenode_paystubs.created_at, storagenode_paystubs.codes, storagenode_paystubs.usage_at_rest, storagenode_paystubs.usage_get, storagenode_paystubs.usage_put, storagenode_paystubs.usage_get_repair, storagenode_paystubs.usage_put_repair, storagenode_paystubs.usage_get_audit, storagenode_paystubs.comp_at_rest, storagenode_paystubs.comp_get, storagenode_paystubs.comp_put, storagenode_paystubs.comp_get_repair, storagenode_paystubs.comp_put_repair, storagenode_paystubs.comp_get_audit, storagenode_paystubs.surge_percent, storagenode_paystubs.held, storagenode_paystubs.owed, storagenode_paystubs.disposed, storagenode_paystubs.paid, storagenode_paystubs.distributed FROM storagenode_paystubs WHERE storagenode_paystubs.node_id = ?")
 
@@ -15871,7 +16039,9 @@ func (obj *pgxImpl) Limited_StoragenodePayment_By_NodeId_And_Period_OrderBy_Desc
 	storagenode_payment_period StoragenodePayment_Period_Field,
 	limit int, offset int64) (
 	rows []*StoragenodePayment, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storagenode_payments.id, storagenode_payments.created_at, storagenode_payments.node_id, storagenode_payments.period, storagenode_payments.amount, storagenode_payments.receipt, storagenode_payments.notes FROM storagenode_payments WHERE storagenode_payments.node_id = ? AND storagenode_payments.period = ? ORDER BY storagenode_payments.id DESC LIMIT ? OFFSET ?")
 
@@ -15919,7 +16089,9 @@ func (obj *pgxImpl) Limited_StoragenodePayment_By_NodeId_And_Period_OrderBy_Desc
 func (obj *pgxImpl) All_StoragenodePayment_By_NodeId(ctx context.Context,
 	storagenode_payment_node_id StoragenodePayment_NodeId_Field) (
 	rows []*StoragenodePayment, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storagenode_payments.id, storagenode_payments.created_at, storagenode_payments.node_id, storagenode_payments.period, storagenode_payments.amount, storagenode_payments.receipt, storagenode_payments.notes FROM storagenode_payments WHERE storagenode_payments.node_id = ?")
 
@@ -15965,7 +16137,9 @@ func (obj *pgxImpl) All_StoragenodePayment_By_NodeId_And_Period(ctx context.Cont
 	storagenode_payment_node_id StoragenodePayment_NodeId_Field,
 	storagenode_payment_period StoragenodePayment_Period_Field) (
 	rows []*StoragenodePayment, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storagenode_payments.id, storagenode_payments.created_at, storagenode_payments.node_id, storagenode_payments.period, storagenode_payments.amount, storagenode_payments.receipt, storagenode_payments.notes FROM storagenode_payments WHERE storagenode_payments.node_id = ? AND storagenode_payments.period = ?")
 
@@ -16010,7 +16184,9 @@ func (obj *pgxImpl) All_StoragenodePayment_By_NodeId_And_Period(ctx context.Cont
 func (obj *pgxImpl) Get_PeerIdentity_By_NodeId(ctx context.Context,
 	peer_identity_node_id PeerIdentity_NodeId_Field) (
 	peer_identity *PeerIdentity, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT peer_identities.node_id, peer_identities.leaf_serial_number, peer_identities.chain, peer_identities.updated_at FROM peer_identities WHERE peer_identities.node_id = ?")
 
@@ -16032,7 +16208,9 @@ func (obj *pgxImpl) Get_PeerIdentity_By_NodeId(ctx context.Context,
 func (obj *pgxImpl) Get_PeerIdentity_LeafSerialNumber_By_NodeId(ctx context.Context,
 	peer_identity_node_id PeerIdentity_NodeId_Field) (
 	row *LeafSerialNumber_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT peer_identities.leaf_serial_number FROM peer_identities WHERE peer_identities.node_id = ?")
 
@@ -16054,7 +16232,9 @@ func (obj *pgxImpl) Get_PeerIdentity_LeafSerialNumber_By_NodeId(ctx context.Cont
 func (obj *pgxImpl) Get_RegistrationToken_By_Secret(ctx context.Context,
 	registration_token_secret RegistrationToken_Secret_Field) (
 	registration_token *RegistrationToken, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT registration_tokens.secret, registration_tokens.owner_id, registration_tokens.project_limit, registration_tokens.created_at FROM registration_tokens WHERE registration_tokens.secret = ?")
 
@@ -16076,7 +16256,9 @@ func (obj *pgxImpl) Get_RegistrationToken_By_Secret(ctx context.Context,
 func (obj *pgxImpl) Get_RegistrationToken_By_OwnerId(ctx context.Context,
 	registration_token_owner_id RegistrationToken_OwnerId_Field) (
 	registration_token *RegistrationToken, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __cond_0 = &__sqlbundle_Condition{Left: "registration_tokens.owner_id", Equal: true, Right: "?", Null: true}
 
@@ -16103,7 +16285,9 @@ func (obj *pgxImpl) Get_RegistrationToken_By_OwnerId(ctx context.Context,
 func (obj *pgxImpl) Get_ResetPasswordToken_By_Secret(ctx context.Context,
 	reset_password_token_secret ResetPasswordToken_Secret_Field) (
 	reset_password_token *ResetPasswordToken, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT reset_password_tokens.secret, reset_password_tokens.owner_id, reset_password_tokens.created_at FROM reset_password_tokens WHERE reset_password_tokens.secret = ?")
 
@@ -16125,7 +16309,9 @@ func (obj *pgxImpl) Get_ResetPasswordToken_By_Secret(ctx context.Context,
 func (obj *pgxImpl) Get_ResetPasswordToken_By_OwnerId(ctx context.Context,
 	reset_password_token_owner_id ResetPasswordToken_OwnerId_Field) (
 	reset_password_token *ResetPasswordToken, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT reset_password_tokens.secret, reset_password_tokens.owner_id, reset_password_tokens.created_at FROM reset_password_tokens WHERE reset_password_tokens.owner_id = ?")
 
@@ -16148,7 +16334,9 @@ func (obj *pgxImpl) Get_BucketMetainfo_By_ProjectId_And_Name(ctx context.Context
 	bucket_metainfo_project_id BucketMetainfo_ProjectId_Field,
 	bucket_metainfo_name BucketMetainfo_Name_Field) (
 	bucket_metainfo *BucketMetainfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bucket_metainfos.id, bucket_metainfos.project_id, bucket_metainfos.name, bucket_metainfos.partner_id, bucket_metainfos.user_agent, bucket_metainfos.path_cipher, bucket_metainfos.created_at, bucket_metainfos.default_segment_size, bucket_metainfos.default_encryption_cipher_suite, bucket_metainfos.default_encryption_block_size, bucket_metainfos.default_redundancy_algorithm, bucket_metainfos.default_redundancy_share_size, bucket_metainfos.default_redundancy_required_shares, bucket_metainfos.default_redundancy_repair_shares, bucket_metainfos.default_redundancy_optimal_shares, bucket_metainfos.default_redundancy_total_shares, bucket_metainfos.placement FROM bucket_metainfos WHERE bucket_metainfos.project_id = ? AND bucket_metainfos.name = ?")
 
@@ -16171,7 +16359,9 @@ func (obj *pgxImpl) Get_BucketMetainfo_CreatedAt_By_ProjectId_And_Name(ctx conte
 	bucket_metainfo_project_id BucketMetainfo_ProjectId_Field,
 	bucket_metainfo_name BucketMetainfo_Name_Field) (
 	row *CreatedAt_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bucket_metainfos.created_at FROM bucket_metainfos WHERE bucket_metainfos.project_id = ? AND bucket_metainfos.name = ?")
 
@@ -16194,7 +16384,9 @@ func (obj *pgxImpl) Get_BucketMetainfo_Id_By_ProjectId_And_Name(ctx context.Cont
 	bucket_metainfo_project_id BucketMetainfo_ProjectId_Field,
 	bucket_metainfo_name BucketMetainfo_Name_Field) (
 	row *Id_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bucket_metainfos.id FROM bucket_metainfos WHERE bucket_metainfos.project_id = ? AND bucket_metainfos.name = ?")
 
@@ -16217,7 +16409,9 @@ func (obj *pgxImpl) Get_BucketMetainfo_Placement_By_ProjectId_And_Name(ctx conte
 	bucket_metainfo_project_id BucketMetainfo_ProjectId_Field,
 	bucket_metainfo_name BucketMetainfo_Name_Field) (
 	row *Placement_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bucket_metainfos.placement FROM bucket_metainfos WHERE bucket_metainfos.project_id = ? AND bucket_metainfos.name = ?")
 
@@ -16240,7 +16434,9 @@ func (obj *pgxImpl) Has_BucketMetainfo_By_ProjectId_And_Name(ctx context.Context
 	bucket_metainfo_project_id BucketMetainfo_ProjectId_Field,
 	bucket_metainfo_name BucketMetainfo_Name_Field) (
 	has bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT EXISTS( SELECT 1 FROM bucket_metainfos WHERE bucket_metainfos.project_id = ? AND bucket_metainfos.name = ? )")
 
@@ -16263,7 +16459,9 @@ func (obj *pgxImpl) Limited_BucketMetainfo_By_ProjectId_And_Name_GreaterOrEqual_
 	bucket_metainfo_name_greater_or_equal BucketMetainfo_Name_Field,
 	limit int, offset int64) (
 	rows []*BucketMetainfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bucket_metainfos.id, bucket_metainfos.project_id, bucket_metainfos.name, bucket_metainfos.partner_id, bucket_metainfos.user_agent, bucket_metainfos.path_cipher, bucket_metainfos.created_at, bucket_metainfos.default_segment_size, bucket_metainfos.default_encryption_cipher_suite, bucket_metainfos.default_encryption_block_size, bucket_metainfos.default_redundancy_algorithm, bucket_metainfos.default_redundancy_share_size, bucket_metainfos.default_redundancy_required_shares, bucket_metainfos.default_redundancy_repair_shares, bucket_metainfos.default_redundancy_optimal_shares, bucket_metainfos.default_redundancy_total_shares, bucket_metainfos.placement FROM bucket_metainfos WHERE bucket_metainfos.project_id = ? AND bucket_metainfos.name >= ? ORDER BY bucket_metainfos.name LIMIT ? OFFSET ?")
 
@@ -16313,7 +16511,9 @@ func (obj *pgxImpl) Limited_BucketMetainfo_By_ProjectId_And_Name_Greater_OrderBy
 	bucket_metainfo_name_greater BucketMetainfo_Name_Field,
 	limit int, offset int64) (
 	rows []*BucketMetainfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bucket_metainfos.id, bucket_metainfos.project_id, bucket_metainfos.name, bucket_metainfos.partner_id, bucket_metainfos.user_agent, bucket_metainfos.path_cipher, bucket_metainfos.created_at, bucket_metainfos.default_segment_size, bucket_metainfos.default_encryption_cipher_suite, bucket_metainfos.default_encryption_block_size, bucket_metainfos.default_redundancy_algorithm, bucket_metainfos.default_redundancy_share_size, bucket_metainfos.default_redundancy_required_shares, bucket_metainfos.default_redundancy_repair_shares, bucket_metainfos.default_redundancy_optimal_shares, bucket_metainfos.default_redundancy_total_shares, bucket_metainfos.placement FROM bucket_metainfos WHERE bucket_metainfos.project_id = ? AND bucket_metainfos.name > ? ORDER BY bucket_metainfos.name LIMIT ? OFFSET ?")
 
@@ -16361,7 +16561,9 @@ func (obj *pgxImpl) Limited_BucketMetainfo_By_ProjectId_And_Name_Greater_OrderBy
 func (obj *pgxImpl) Count_BucketMetainfo_Name_By_ProjectId(ctx context.Context,
 	bucket_metainfo_project_id BucketMetainfo_ProjectId_Field) (
 	count int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT COUNT(*) FROM bucket_metainfos WHERE bucket_metainfos.project_id = ?")
 
@@ -16383,7 +16585,9 @@ func (obj *pgxImpl) Count_BucketMetainfo_Name_By_ProjectId(ctx context.Context,
 func (obj *pgxImpl) Get_GracefulExitProgress_By_NodeId(ctx context.Context,
 	graceful_exit_progress_node_id GracefulExitProgress_NodeId_Field) (
 	graceful_exit_progress *GracefulExitProgress, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT graceful_exit_progress.node_id, graceful_exit_progress.bytes_transferred, graceful_exit_progress.pieces_transferred, graceful_exit_progress.pieces_failed, graceful_exit_progress.updated_at FROM graceful_exit_progress WHERE graceful_exit_progress.node_id = ?")
 
@@ -16408,7 +16612,9 @@ func (obj *pgxImpl) Get_GracefulExitSegmentTransfer_By_NodeId_And_StreamId_And_P
 	graceful_exit_segment_transfer_position GracefulExitSegmentTransfer_Position_Field,
 	graceful_exit_segment_transfer_piece_num GracefulExitSegmentTransfer_PieceNum_Field) (
 	graceful_exit_segment_transfer *GracefulExitSegmentTransfer, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT graceful_exit_segment_transfer_queue.node_id, graceful_exit_segment_transfer_queue.stream_id, graceful_exit_segment_transfer_queue.position, graceful_exit_segment_transfer_queue.piece_num, graceful_exit_segment_transfer_queue.root_piece_id, graceful_exit_segment_transfer_queue.durability_ratio, graceful_exit_segment_transfer_queue.queued_at, graceful_exit_segment_transfer_queue.requested_at, graceful_exit_segment_transfer_queue.last_failed_at, graceful_exit_segment_transfer_queue.last_failed_code, graceful_exit_segment_transfer_queue.failed_count, graceful_exit_segment_transfer_queue.finished_at, graceful_exit_segment_transfer_queue.order_limit_send_count FROM graceful_exit_segment_transfer_queue WHERE graceful_exit_segment_transfer_queue.node_id = ? AND graceful_exit_segment_transfer_queue.stream_id = ? AND graceful_exit_segment_transfer_queue.position = ? AND graceful_exit_segment_transfer_queue.piece_num = ?")
 
@@ -16430,7 +16636,9 @@ func (obj *pgxImpl) Get_GracefulExitSegmentTransfer_By_NodeId_And_StreamId_And_P
 func (obj *pgxImpl) Get_StripeCustomer_CustomerId_By_UserId(ctx context.Context,
 	stripe_customer_user_id StripeCustomer_UserId_Field) (
 	row *CustomerId_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT stripe_customers.customer_id FROM stripe_customers WHERE stripe_customers.user_id = ?")
 
@@ -16453,7 +16661,9 @@ func (obj *pgxImpl) Limited_StripeCustomer_By_CreatedAt_LessOrEqual_OrderBy_Desc
 	stripe_customer_created_at_less_or_equal StripeCustomer_CreatedAt_Field,
 	limit int, offset int64) (
 	rows []*StripeCustomer, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT stripe_customers.user_id, stripe_customers.customer_id, stripe_customers.created_at FROM stripe_customers WHERE stripe_customers.created_at <= ? ORDER BY stripe_customers.created_at DESC LIMIT ? OFFSET ?")
 
@@ -16501,7 +16711,9 @@ func (obj *pgxImpl) Limited_StripeCustomer_By_CreatedAt_LessOrEqual_OrderBy_Desc
 func (obj *pgxImpl) Get_BillingBalance_Balance_By_UserId(ctx context.Context,
 	billing_balance_user_id BillingBalance_UserId_Field) (
 	row *Balance_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT billing_balances.balance FROM billing_balances WHERE billing_balances.user_id = ?")
 
@@ -16523,7 +16735,9 @@ func (obj *pgxImpl) Get_BillingBalance_Balance_By_UserId(ctx context.Context,
 func (obj *pgxImpl) Get_BillingTransaction_Metadata_By_Id(ctx context.Context,
 	billing_transaction_id BillingTransaction_Id_Field) (
 	row *Metadata_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT billing_transactions.metadata FROM billing_transactions WHERE billing_transactions.id = ?")
 
@@ -16545,7 +16759,9 @@ func (obj *pgxImpl) Get_BillingTransaction_Metadata_By_Id(ctx context.Context,
 func (obj *pgxImpl) All_BillingTransaction_By_UserId_OrderBy_Desc_Timestamp(ctx context.Context,
 	billing_transaction_user_id BillingTransaction_UserId_Field) (
 	rows []*BillingTransaction, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT billing_transactions.id, billing_transactions.user_id, billing_transactions.amount, billing_transactions.currency, billing_transactions.description, billing_transactions.source, billing_transactions.status, billing_transactions.type, billing_transactions.metadata, billing_transactions.timestamp, billing_transactions.created_at FROM billing_transactions WHERE billing_transactions.user_id = ? ORDER BY billing_transactions.timestamp DESC")
 
@@ -16591,7 +16807,9 @@ func (obj *pgxImpl) First_BillingTransaction_By_Source_And_Type_OrderBy_Desc_Cre
 	billing_transaction_source BillingTransaction_Source_Field,
 	billing_transaction_type BillingTransaction_Type_Field) (
 	billing_transaction *BillingTransaction, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT billing_transactions.id, billing_transactions.user_id, billing_transactions.amount, billing_transactions.currency, billing_transactions.description, billing_transactions.source, billing_transactions.status, billing_transactions.type, billing_transactions.metadata, billing_transactions.timestamp, billing_transactions.created_at FROM billing_transactions WHERE billing_transactions.source = ? AND billing_transactions.type = ? ORDER BY billing_transactions.created_at DESC LIMIT 1 OFFSET 0")
 
@@ -16638,7 +16856,9 @@ func (obj *pgxImpl) First_BillingTransaction_By_Source_And_Type_OrderBy_Desc_Cre
 func (obj *pgxImpl) Get_StorjscanWallet_UserId_By_WalletAddress(ctx context.Context,
 	storjscan_wallet_wallet_address StorjscanWallet_WalletAddress_Field) (
 	row *UserId_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storjscan_wallets.user_id FROM storjscan_wallets WHERE storjscan_wallets.wallet_address = ? LIMIT 2")
 
@@ -16696,7 +16916,9 @@ func (obj *pgxImpl) Get_StorjscanWallet_UserId_By_WalletAddress(ctx context.Cont
 func (obj *pgxImpl) Get_StorjscanWallet_WalletAddress_By_UserId(ctx context.Context,
 	storjscan_wallet_user_id StorjscanWallet_UserId_Field) (
 	row *WalletAddress_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storjscan_wallets.wallet_address FROM storjscan_wallets WHERE storjscan_wallets.user_id = ? LIMIT 2")
 
@@ -16753,7 +16975,9 @@ func (obj *pgxImpl) Get_StorjscanWallet_WalletAddress_By_UserId(ctx context.Cont
 
 func (obj *pgxImpl) All_StorjscanWallet(ctx context.Context) (
 	rows []*StorjscanWallet, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storjscan_wallets.user_id, storjscan_wallets.wallet_address, storjscan_wallets.created_at FROM storjscan_wallets")
 
@@ -16797,7 +17021,9 @@ func (obj *pgxImpl) All_StorjscanWallet(ctx context.Context) (
 func (obj *pgxImpl) All_CoinpaymentsTransaction_By_UserId_OrderBy_Desc_CreatedAt(ctx context.Context,
 	coinpayments_transaction_user_id CoinpaymentsTransaction_UserId_Field) (
 	rows []*CoinpaymentsTransaction, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT coinpayments_transactions.id, coinpayments_transactions.user_id, coinpayments_transactions.address, coinpayments_transactions.amount_numeric, coinpayments_transactions.received_numeric, coinpayments_transactions.status, coinpayments_transactions.key, coinpayments_transactions.timeout, coinpayments_transactions.created_at FROM coinpayments_transactions WHERE coinpayments_transactions.user_id = ? ORDER BY coinpayments_transactions.created_at DESC")
 
@@ -16844,7 +17070,9 @@ func (obj *pgxImpl) Get_StripecoinpaymentsInvoiceProjectRecord_By_ProjectId_And_
 	stripecoinpayments_invoice_project_record_period_start StripecoinpaymentsInvoiceProjectRecord_PeriodStart_Field,
 	stripecoinpayments_invoice_project_record_period_end StripecoinpaymentsInvoiceProjectRecord_PeriodEnd_Field) (
 	stripecoinpayments_invoice_project_record *StripecoinpaymentsInvoiceProjectRecord, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT stripecoinpayments_invoice_project_records.id, stripecoinpayments_invoice_project_records.project_id, stripecoinpayments_invoice_project_records.storage, stripecoinpayments_invoice_project_records.egress, stripecoinpayments_invoice_project_records.objects, stripecoinpayments_invoice_project_records.segments, stripecoinpayments_invoice_project_records.period_start, stripecoinpayments_invoice_project_records.period_end, stripecoinpayments_invoice_project_records.state, stripecoinpayments_invoice_project_records.created_at FROM stripecoinpayments_invoice_project_records WHERE stripecoinpayments_invoice_project_records.project_id = ? AND stripecoinpayments_invoice_project_records.period_start = ? AND stripecoinpayments_invoice_project_records.period_end = ?")
 
@@ -16869,7 +17097,9 @@ func (obj *pgxImpl) Limited_StripecoinpaymentsInvoiceProjectRecord_By_PeriodStar
 	stripecoinpayments_invoice_project_record_state StripecoinpaymentsInvoiceProjectRecord_State_Field,
 	limit int, offset int64) (
 	rows []*StripecoinpaymentsInvoiceProjectRecord, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT stripecoinpayments_invoice_project_records.id, stripecoinpayments_invoice_project_records.project_id, stripecoinpayments_invoice_project_records.storage, stripecoinpayments_invoice_project_records.egress, stripecoinpayments_invoice_project_records.objects, stripecoinpayments_invoice_project_records.segments, stripecoinpayments_invoice_project_records.period_start, stripecoinpayments_invoice_project_records.period_end, stripecoinpayments_invoice_project_records.state, stripecoinpayments_invoice_project_records.created_at FROM stripecoinpayments_invoice_project_records WHERE stripecoinpayments_invoice_project_records.period_start = ? AND stripecoinpayments_invoice_project_records.period_end = ? AND stripecoinpayments_invoice_project_records.state = ? LIMIT ? OFFSET ?")
 
@@ -16917,7 +17147,9 @@ func (obj *pgxImpl) Limited_StripecoinpaymentsInvoiceProjectRecord_By_PeriodStar
 func (obj *pgxImpl) Get_StripecoinpaymentsTxConversionRate_By_TxId(ctx context.Context,
 	stripecoinpayments_tx_conversion_rate_tx_id StripecoinpaymentsTxConversionRate_TxId_Field) (
 	stripecoinpayments_tx_conversion_rate *StripecoinpaymentsTxConversionRate, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT stripecoinpayments_tx_conversion_rates.tx_id, stripecoinpayments_tx_conversion_rates.rate_numeric, stripecoinpayments_tx_conversion_rates.created_at FROM stripecoinpayments_tx_conversion_rates WHERE stripecoinpayments_tx_conversion_rates.tx_id = ?")
 
@@ -16939,7 +17171,9 @@ func (obj *pgxImpl) Get_StripecoinpaymentsTxConversionRate_By_TxId(ctx context.C
 func (obj *pgxImpl) Get_CouponCode_By_Name(ctx context.Context,
 	coupon_code_name CouponCode_Name_Field) (
 	coupon_code *CouponCode, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT coupon_codes.id, coupon_codes.name, coupon_codes.amount, coupon_codes.description, coupon_codes.type, coupon_codes.billing_periods, coupon_codes.created_at FROM coupon_codes WHERE coupon_codes.name = ?")
 
@@ -16961,7 +17195,9 @@ func (obj *pgxImpl) Get_CouponCode_By_Name(ctx context.Context,
 func (obj *pgxImpl) Get_Coupon_By_Id(ctx context.Context,
 	coupon_id Coupon_Id_Field) (
 	coupon *Coupon, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT coupons.id, coupons.user_id, coupons.amount, coupons.description, coupons.type, coupons.status, coupons.duration, coupons.billing_periods, coupons.coupon_code_name, coupons.created_at FROM coupons WHERE coupons.id = ?")
 
@@ -16983,7 +17219,9 @@ func (obj *pgxImpl) Get_Coupon_By_Id(ctx context.Context,
 func (obj *pgxImpl) All_Coupon_By_UserId_OrderBy_Desc_CreatedAt(ctx context.Context,
 	coupon_user_id Coupon_UserId_Field) (
 	rows []*Coupon, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT coupons.id, coupons.user_id, coupons.amount, coupons.description, coupons.type, coupons.status, coupons.duration, coupons.billing_periods, coupons.coupon_code_name, coupons.created_at FROM coupons WHERE coupons.user_id = ? ORDER BY coupons.created_at DESC")
 
@@ -17029,7 +17267,9 @@ func (obj *pgxImpl) All_Coupon_By_UserId_And_Status_OrderBy_Desc_CreatedAt(ctx c
 	coupon_user_id Coupon_UserId_Field,
 	coupon_status Coupon_Status_Field) (
 	rows []*Coupon, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT coupons.id, coupons.user_id, coupons.amount, coupons.description, coupons.type, coupons.status, coupons.duration, coupons.billing_periods, coupons.coupon_code_name, coupons.created_at FROM coupons WHERE coupons.user_id = ? AND coupons.status = ? ORDER BY coupons.created_at DESC")
 
@@ -17074,7 +17314,9 @@ func (obj *pgxImpl) All_Coupon_By_UserId_And_Status_OrderBy_Desc_CreatedAt(ctx c
 func (obj *pgxImpl) All_Coupon_By_Status_OrderBy_Desc_CreatedAt(ctx context.Context,
 	coupon_status Coupon_Status_Field) (
 	rows []*Coupon, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT coupons.id, coupons.user_id, coupons.amount, coupons.description, coupons.type, coupons.status, coupons.duration, coupons.billing_periods, coupons.coupon_code_name, coupons.created_at FROM coupons WHERE coupons.status = ? ORDER BY coupons.created_at DESC")
 
@@ -17121,7 +17363,9 @@ func (obj *pgxImpl) Limited_Coupon_By_CreatedAt_LessOrEqual_And_Status_OrderBy_D
 	coupon_status Coupon_Status_Field,
 	limit int, offset int64) (
 	rows []*Coupon, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT coupons.id, coupons.user_id, coupons.amount, coupons.description, coupons.type, coupons.status, coupons.duration, coupons.billing_periods, coupons.coupon_code_name, coupons.created_at FROM coupons WHERE coupons.created_at <= ? AND coupons.status = ? ORDER BY coupons.created_at DESC LIMIT ? OFFSET ?")
 
@@ -17170,7 +17414,9 @@ func (obj *pgxImpl) Limited_CouponUsage_By_Period_And_Status_Equal_Number(ctx co
 	coupon_usage_period CouponUsage_Period_Field,
 	limit int, offset int64) (
 	rows []*CouponUsage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT coupon_usages.coupon_id, coupon_usages.amount, coupon_usages.status, coupon_usages.period FROM coupon_usages WHERE coupon_usages.period = ? AND coupon_usages.status = 0 LIMIT ? OFFSET ?")
 
@@ -17217,7 +17463,9 @@ func (obj *pgxImpl) Limited_CouponUsage_By_Period_And_Status_Equal_Number(ctx co
 
 func (obj *pgxImpl) All_StorjscanPayment_OrderBy_Asc_BlockNumber_Asc_LogIndex(ctx context.Context) (
 	rows []*StorjscanPayment, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storjscan_payments.block_hash, storjscan_payments.block_number, storjscan_payments.transaction, storjscan_payments.log_index, storjscan_payments.from_address, storjscan_payments.to_address, storjscan_payments.token_value, storjscan_payments.usd_value, storjscan_payments.status, storjscan_payments.timestamp, storjscan_payments.created_at FROM storjscan_payments ORDER BY storjscan_payments.block_number, storjscan_payments.log_index")
 
@@ -17262,7 +17510,9 @@ func (obj *pgxImpl) Limited_StorjscanPayment_By_ToAddress_OrderBy_Desc_BlockNumb
 	storjscan_payment_to_address StorjscanPayment_ToAddress_Field,
 	limit int, offset int64) (
 	rows []*StorjscanPayment, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storjscan_payments.block_hash, storjscan_payments.block_number, storjscan_payments.transaction, storjscan_payments.log_index, storjscan_payments.from_address, storjscan_payments.to_address, storjscan_payments.token_value, storjscan_payments.usd_value, storjscan_payments.status, storjscan_payments.timestamp, storjscan_payments.created_at FROM storjscan_payments WHERE storjscan_payments.to_address = ? ORDER BY storjscan_payments.block_number DESC, storjscan_payments.log_index DESC LIMIT ? OFFSET ?")
 
@@ -17310,7 +17560,9 @@ func (obj *pgxImpl) Limited_StorjscanPayment_By_ToAddress_OrderBy_Desc_BlockNumb
 func (obj *pgxImpl) First_StorjscanPayment_BlockNumber_By_Status_OrderBy_Desc_BlockNumber_Desc_LogIndex(ctx context.Context,
 	storjscan_payment_status StorjscanPayment_Status_Field) (
 	row *BlockNumber_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storjscan_payments.block_number FROM storjscan_payments WHERE storjscan_payments.status = ? ORDER BY storjscan_payments.block_number DESC, storjscan_payments.log_index DESC LIMIT 1 OFFSET 0")
 
@@ -17358,7 +17610,9 @@ func (obj *pgxImpl) Has_NodeApiVersion_By_Id_And_ApiVersion_GreaterOrEqual(ctx c
 	node_api_version_id NodeApiVersion_Id_Field,
 	node_api_version_api_version_greater_or_equal NodeApiVersion_ApiVersion_Field) (
 	has bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT EXISTS( SELECT 1 FROM node_api_versions WHERE node_api_versions.id = ? AND node_api_versions.api_version >= ? )")
 
@@ -17379,7 +17633,9 @@ func (obj *pgxImpl) Has_NodeApiVersion_By_Id_And_ApiVersion_GreaterOrEqual(ctx c
 func (obj *pgxImpl) Get_OauthClient_By_Id(ctx context.Context,
 	oauth_client_id OauthClient_Id_Field) (
 	oauth_client *OauthClient, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT oauth_clients.id, oauth_clients.encrypted_secret, oauth_clients.redirect_url, oauth_clients.user_id, oauth_clients.app_name, oauth_clients.app_logo_url FROM oauth_clients WHERE oauth_clients.id = ?")
 
@@ -17401,7 +17657,9 @@ func (obj *pgxImpl) Get_OauthClient_By_Id(ctx context.Context,
 func (obj *pgxImpl) Get_OauthCode_By_Code_And_ClaimedAt_Is_Null(ctx context.Context,
 	oauth_code_code OauthCode_Code_Field) (
 	oauth_code *OauthCode, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT oauth_codes.client_id, oauth_codes.user_id, oauth_codes.scope, oauth_codes.redirect_url, oauth_codes.challenge, oauth_codes.challenge_method, oauth_codes.code, oauth_codes.created_at, oauth_codes.expires_at, oauth_codes.claimed_at FROM oauth_codes WHERE oauth_codes.code = ? AND oauth_codes.claimed_at is NULL")
 
@@ -17424,7 +17682,9 @@ func (obj *pgxImpl) Get_OauthToken_By_Kind_And_Token(ctx context.Context,
 	oauth_token_kind OauthToken_Kind_Field,
 	oauth_token_token OauthToken_Token_Field) (
 	oauth_token *OauthToken, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT oauth_tokens.client_id, oauth_tokens.user_id, oauth_tokens.scope, oauth_tokens.kind, oauth_tokens.token, oauth_tokens.created_at, oauth_tokens.expires_at FROM oauth_tokens WHERE oauth_tokens.kind = ? AND oauth_tokens.token = ?")
 
@@ -17447,7 +17707,9 @@ func (obj *pgxImpl) UpdateNoReturn_AccountingTimestamps_By_Name(ctx context.Cont
 	accounting_timestamps_name AccountingTimestamps_Name_Field,
 	update AccountingTimestamps_Update_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE accounting_timestamps SET "), __sets, __sqlbundle_Literal(" WHERE accounting_timestamps.name = ?")}}
@@ -17484,7 +17746,9 @@ func (obj *pgxImpl) Update_Node_By_Id(ctx context.Context,
 	node_id Node_Id_Field,
 	update Node_Update_Fields) (
 	node *Node, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE nodes SET "), __sets, __sqlbundle_Literal(" WHERE nodes.id = ? RETURNING nodes.id, nodes.address, nodes.last_net, nodes.last_ip_port, nodes.country_code, nodes.protocol, nodes.type, nodes.email, nodes.wallet, nodes.wallet_features, nodes.free_disk, nodes.piece_count, nodes.major, nodes.minor, nodes.patch, nodes.hash, nodes.timestamp, nodes.release, nodes.latency_90, nodes.vetted_at, nodes.created_at, nodes.updated_at, nodes.last_contact_success, nodes.last_contact_failure, nodes.disqualified, nodes.disqualification_reason, nodes.unknown_audit_suspended, nodes.offline_suspended, nodes.under_review, nodes.exit_initiated_at, nodes.exit_loop_completed_at, nodes.exit_finished_at, nodes.exit_success, nodes.contained, nodes.last_offline_email, nodes.last_software_update_email")}}
@@ -17686,7 +17950,9 @@ func (obj *pgxImpl) UpdateNoReturn_Node_By_Id(ctx context.Context,
 	node_id Node_Id_Field,
 	update Node_Update_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE nodes SET "), __sets, __sqlbundle_Literal(" WHERE nodes.id = ?")}}
@@ -17884,7 +18150,9 @@ func (obj *pgxImpl) UpdateNoReturn_Node_By_Id_And_Disqualified_Is_Null_And_ExitF
 	node_id Node_Id_Field,
 	update Node_Update_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE nodes SET "), __sets, __sqlbundle_Literal(" WHERE nodes.id = ? AND nodes.disqualified is NULL AND nodes.exit_finished_at is NULL")}}
@@ -18082,7 +18350,9 @@ func (obj *pgxImpl) Update_Reputation_By_Id(ctx context.Context,
 	reputation_id Reputation_Id_Field,
 	update Reputation_Update_Fields) (
 	reputation *Reputation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE reputations SET "), __sets, __sqlbundle_Literal(" WHERE reputations.id = ? RETURNING reputations.id, reputations.audit_success_count, reputations.total_audit_count, reputations.vetted_at, reputations.created_at, reputations.updated_at, reputations.disqualified, reputations.disqualification_reason, reputations.unknown_audit_suspended, reputations.offline_suspended, reputations.under_review, reputations.online_score, reputations.audit_history, reputations.audit_reputation_alpha, reputations.audit_reputation_beta, reputations.unknown_audit_reputation_alpha, reputations.unknown_audit_reputation_beta")}}
@@ -18190,7 +18460,9 @@ func (obj *pgxImpl) Update_Reputation_By_Id_And_AuditHistory(ctx context.Context
 	reputation_audit_history Reputation_AuditHistory_Field,
 	update Reputation_Update_Fields) (
 	reputation *Reputation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE reputations SET "), __sets, __sqlbundle_Literal(" WHERE reputations.id = ? AND reputations.audit_history = ? RETURNING reputations.id, reputations.audit_success_count, reputations.total_audit_count, reputations.vetted_at, reputations.created_at, reputations.updated_at, reputations.disqualified, reputations.disqualification_reason, reputations.unknown_audit_suspended, reputations.offline_suspended, reputations.under_review, reputations.online_score, reputations.audit_history, reputations.audit_reputation_alpha, reputations.audit_reputation_beta, reputations.unknown_audit_reputation_alpha, reputations.unknown_audit_reputation_beta")}}
@@ -18297,7 +18569,9 @@ func (obj *pgxImpl) UpdateNoReturn_Reputation_By_Id(ctx context.Context,
 	reputation_id Reputation_Id_Field,
 	update Reputation_Update_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE reputations SET "), __sets, __sqlbundle_Literal(" WHERE reputations.id = ?")}}
@@ -18400,7 +18674,9 @@ func (obj *pgxImpl) Update_User_By_Id(ctx context.Context,
 	user_id User_Id_Field,
 	update User_Update_Fields) (
 	user *User, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE users SET "), __sets, __sqlbundle_Literal(" WHERE users.id = ? RETURNING users.id, users.email, users.normalized_email, users.full_name, users.short_name, users.password_hash, users.status, users.partner_id, users.user_agent, users.created_at, users.project_limit, users.project_bandwidth_limit, users.project_storage_limit, users.project_segment_limit, users.paid_tier, users.position, users.company_name, users.company_size, users.working_on, users.is_professional, users.employee_count, users.have_sales_contact, users.mfa_enabled, users.mfa_secret_key, users.mfa_recovery_codes, users.signup_promo_code, users.last_verification_reminder, users.verification_reminders, users.failed_login_count, users.login_lockout_expiration, users.signup_captcha")}}
@@ -18566,7 +18842,9 @@ func (obj *pgxImpl) Update_WebappSession_By_Id(ctx context.Context,
 	webapp_session_id WebappSession_Id_Field,
 	update WebappSession_Update_Fields) (
 	webapp_session *WebappSession, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE webapp_sessions SET "), __sets, __sqlbundle_Literal(" WHERE webapp_sessions.id = ? RETURNING webapp_sessions.id, webapp_sessions.user_id, webapp_sessions.ip_address, webapp_sessions.user_agent, webapp_sessions.status, webapp_sessions.expires_at")}}
@@ -18612,7 +18890,9 @@ func (obj *pgxImpl) Update_Project_By_Id(ctx context.Context,
 	project_id Project_Id_Field,
 	update Project_Update_Fields) (
 	project *Project, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE projects SET "), __sets, __sqlbundle_Literal(" WHERE projects.id = ? RETURNING projects.id, projects.public_id, projects.name, projects.description, projects.usage_limit, projects.bandwidth_limit, projects.user_specified_usage_limit, projects.user_specified_bandwidth_limit, projects.segment_limit, projects.rate_limit, projects.burst_limit, projects.max_buckets, projects.partner_id, projects.user_agent, projects.owner_id, projects.salt, projects.created_at")}}
@@ -18698,7 +18978,9 @@ func (obj *pgxImpl) UpdateNoReturn_ApiKey_By_Id(ctx context.Context,
 	api_key_id ApiKey_Id_Field,
 	update ApiKey_Update_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE api_keys SET "), __sets, __sqlbundle_Literal(" WHERE api_keys.id = ?")}}
@@ -18735,7 +19017,9 @@ func (obj *pgxImpl) UpdateNoReturn_PeerIdentity_By_NodeId(ctx context.Context,
 	peer_identity_node_id PeerIdentity_NodeId_Field,
 	update PeerIdentity_Update_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE peer_identities SET "), __sets, __sqlbundle_Literal(" WHERE peer_identities.node_id = ?")}}
@@ -18778,7 +19062,9 @@ func (obj *pgxImpl) Update_RegistrationToken_By_Secret(ctx context.Context,
 	registration_token_secret RegistrationToken_Secret_Field,
 	update RegistrationToken_Update_Fields) (
 	registration_token *RegistrationToken, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE registration_tokens SET "), __sets, __sqlbundle_Literal(" WHERE registration_tokens.secret = ? RETURNING registration_tokens.secret, registration_tokens.owner_id, registration_tokens.project_limit, registration_tokens.created_at")}}
@@ -18820,7 +19106,9 @@ func (obj *pgxImpl) Update_BucketMetainfo_By_ProjectId_And_Name(ctx context.Cont
 	bucket_metainfo_name BucketMetainfo_Name_Field,
 	update BucketMetainfo_Update_Fields) (
 	bucket_metainfo *BucketMetainfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE bucket_metainfos SET "), __sets, __sqlbundle_Literal(" WHERE bucket_metainfos.project_id = ? AND bucket_metainfos.name = ? RETURNING bucket_metainfos.id, bucket_metainfos.project_id, bucket_metainfos.name, bucket_metainfos.partner_id, bucket_metainfos.user_agent, bucket_metainfos.path_cipher, bucket_metainfos.created_at, bucket_metainfos.default_segment_size, bucket_metainfos.default_encryption_cipher_suite, bucket_metainfos.default_encryption_block_size, bucket_metainfos.default_redundancy_algorithm, bucket_metainfos.default_redundancy_share_size, bucket_metainfos.default_redundancy_required_shares, bucket_metainfos.default_redundancy_repair_shares, bucket_metainfos.default_redundancy_optimal_shares, bucket_metainfos.default_redundancy_total_shares, bucket_metainfos.placement")}}
@@ -18919,7 +19207,9 @@ func (obj *pgxImpl) UpdateNoReturn_GracefulExitSegmentTransfer_By_NodeId_And_Str
 	graceful_exit_segment_transfer_piece_num GracefulExitSegmentTransfer_PieceNum_Field,
 	update GracefulExitSegmentTransfer_Update_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE graceful_exit_segment_transfer_queue SET "), __sets, __sqlbundle_Literal(" WHERE graceful_exit_segment_transfer_queue.node_id = ? AND graceful_exit_segment_transfer_queue.stream_id = ? AND graceful_exit_segment_transfer_queue.position = ? AND graceful_exit_segment_transfer_queue.piece_num = ?")}}
@@ -18987,7 +19277,9 @@ func (obj *pgxImpl) Update_BillingBalance_By_UserId_And_Balance(ctx context.Cont
 	billing_balance_balance BillingBalance_Balance_Field,
 	update BillingBalance_Update_Fields) (
 	billing_balance *BillingBalance, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE billing_balances SET "), __sets, __sqlbundle_Literal(" WHERE billing_balances.user_id = ? AND billing_balances.balance = ? RETURNING billing_balances.user_id, billing_balances.balance, billing_balances.last_updated")}}
@@ -19029,7 +19321,9 @@ func (obj *pgxImpl) UpdateNoReturn_BillingTransaction_By_Id(ctx context.Context,
 	billing_transaction_id BillingTransaction_Id_Field,
 	update BillingTransaction_Update_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE billing_transactions SET "), __sets, __sqlbundle_Literal(" WHERE billing_transactions.id = ?")}}
@@ -19071,7 +19365,9 @@ func (obj *pgxImpl) Update_CoinpaymentsTransaction_By_Id(ctx context.Context,
 	coinpayments_transaction_id CoinpaymentsTransaction_Id_Field,
 	update CoinpaymentsTransaction_Update_Fields) (
 	coinpayments_transaction *CoinpaymentsTransaction, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE coinpayments_transactions SET "), __sets, __sqlbundle_Literal(" WHERE coinpayments_transactions.id = ? RETURNING coinpayments_transactions.id, coinpayments_transactions.user_id, coinpayments_transactions.address, coinpayments_transactions.amount_numeric, coinpayments_transactions.received_numeric, coinpayments_transactions.status, coinpayments_transactions.key, coinpayments_transactions.timeout, coinpayments_transactions.created_at")}}
@@ -19117,7 +19413,9 @@ func (obj *pgxImpl) Update_StripecoinpaymentsInvoiceProjectRecord_By_Id(ctx cont
 	stripecoinpayments_invoice_project_record_id StripecoinpaymentsInvoiceProjectRecord_Id_Field,
 	update StripecoinpaymentsInvoiceProjectRecord_Update_Fields) (
 	stripecoinpayments_invoice_project_record *StripecoinpaymentsInvoiceProjectRecord, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE stripecoinpayments_invoice_project_records SET "), __sets, __sqlbundle_Literal(" WHERE stripecoinpayments_invoice_project_records.id = ? RETURNING stripecoinpayments_invoice_project_records.id, stripecoinpayments_invoice_project_records.project_id, stripecoinpayments_invoice_project_records.storage, stripecoinpayments_invoice_project_records.egress, stripecoinpayments_invoice_project_records.objects, stripecoinpayments_invoice_project_records.segments, stripecoinpayments_invoice_project_records.period_start, stripecoinpayments_invoice_project_records.period_end, stripecoinpayments_invoice_project_records.state, stripecoinpayments_invoice_project_records.created_at")}}
@@ -19158,7 +19456,9 @@ func (obj *pgxImpl) Update_Coupon_By_Id(ctx context.Context,
 	coupon_id Coupon_Id_Field,
 	update Coupon_Update_Fields) (
 	coupon *Coupon, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE coupons SET "), __sets, __sqlbundle_Literal(" WHERE coupons.id = ? RETURNING coupons.id, coupons.user_id, coupons.amount, coupons.description, coupons.type, coupons.status, coupons.duration, coupons.billing_periods, coupons.coupon_code_name, coupons.created_at")}}
@@ -19200,7 +19500,9 @@ func (obj *pgxImpl) Update_CouponUsage_By_CouponId_And_Period(ctx context.Contex
 	coupon_usage_period CouponUsage_Period_Field,
 	update CouponUsage_Update_Fields) (
 	coupon_usage *CouponUsage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE coupon_usages SET "), __sets, __sqlbundle_Literal(" WHERE coupon_usages.coupon_id = ? AND coupon_usages.period = ? RETURNING coupon_usages.coupon_id, coupon_usages.amount, coupon_usages.status, coupon_usages.period")}}
@@ -19242,7 +19544,9 @@ func (obj *pgxImpl) UpdateNoReturn_NodeApiVersion_By_Id_And_ApiVersion_Less(ctx 
 	node_api_version_api_version_less NodeApiVersion_ApiVersion_Field,
 	update NodeApiVersion_Update_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE node_api_versions SET "), __sets, __sqlbundle_Literal(" WHERE node_api_versions.id = ? AND node_api_versions.api_version < ?")}}
@@ -19280,7 +19584,9 @@ func (obj *pgxImpl) UpdateNoReturn_OauthClient_By_Id(ctx context.Context,
 	oauth_client_id OauthClient_Id_Field,
 	update OauthClient_Update_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE oauth_clients SET "), __sets, __sqlbundle_Literal(" WHERE oauth_clients.id = ?")}}
@@ -19332,7 +19638,9 @@ func (obj *pgxImpl) UpdateNoReturn_OauthCode_By_Code_And_ClaimedAt_Is_Null(ctx c
 	oauth_code_code OauthCode_Code_Field,
 	update OauthCode_Update_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE oauth_codes SET "), __sets, __sqlbundle_Literal(" WHERE oauth_codes.code = ? AND oauth_codes.claimed_at is NULL")}}
@@ -19370,7 +19678,9 @@ func (obj *pgxImpl) UpdateNoReturn_OauthToken_By_Token_And_Kind(ctx context.Cont
 	oauth_token_kind OauthToken_Kind_Field,
 	update OauthToken_Update_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE oauth_tokens SET "), __sets, __sqlbundle_Literal(" WHERE oauth_tokens.token = ? AND oauth_tokens.kind = ?")}}
@@ -19406,7 +19716,9 @@ func (obj *pgxImpl) UpdateNoReturn_OauthToken_By_Token_And_Kind(ctx context.Cont
 func (obj *pgxImpl) Delete_NodeEvent_By_CreatedAt_Less(ctx context.Context,
 	node_event_created_at_less NodeEvent_CreatedAt_Field) (
 	count int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM node_events WHERE node_events.created_at < ?")
 
@@ -19433,7 +19745,9 @@ func (obj *pgxImpl) Delete_NodeEvent_By_CreatedAt_Less(ctx context.Context,
 func (obj *pgxImpl) Delete_SegmentPendingAudits_By_NodeId(ctx context.Context,
 	segment_pending_audits_node_id SegmentPendingAudits_NodeId_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM segment_pending_audits WHERE segment_pending_audits.node_id = ?")
 
@@ -19462,7 +19776,9 @@ func (obj *pgxImpl) Delete_ReverificationAudits_By_NodeId_And_StreamId_And_Posit
 	reverification_audits_stream_id ReverificationAudits_StreamId_Field,
 	reverification_audits_position ReverificationAudits_Position_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM reverification_audits WHERE reverification_audits.node_id = ? AND reverification_audits.stream_id = ? AND reverification_audits.position = ?")
 
@@ -19489,7 +19805,9 @@ func (obj *pgxImpl) Delete_ReverificationAudits_By_NodeId_And_StreamId_And_Posit
 func (obj *pgxImpl) Delete_RepairQueue_By_UpdatedAt_Less(ctx context.Context,
 	repair_queue_updated_at_less RepairQueue_UpdatedAt_Field) (
 	count int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM repair_queue WHERE repair_queue.updated_at < ?")
 
@@ -19516,7 +19834,9 @@ func (obj *pgxImpl) Delete_RepairQueue_By_UpdatedAt_Less(ctx context.Context,
 func (obj *pgxImpl) Delete_User_By_Id(ctx context.Context,
 	user_id User_Id_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM users WHERE users.id = ?")
 
@@ -19543,7 +19863,9 @@ func (obj *pgxImpl) Delete_User_By_Id(ctx context.Context,
 func (obj *pgxImpl) Delete_WebappSession_By_Id(ctx context.Context,
 	webapp_session_id WebappSession_Id_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM webapp_sessions WHERE webapp_sessions.id = ?")
 
@@ -19570,7 +19892,9 @@ func (obj *pgxImpl) Delete_WebappSession_By_Id(ctx context.Context,
 func (obj *pgxImpl) Delete_WebappSession_By_UserId(ctx context.Context,
 	webapp_session_user_id WebappSession_UserId_Field) (
 	count int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM webapp_sessions WHERE webapp_sessions.user_id = ?")
 
@@ -19597,7 +19921,9 @@ func (obj *pgxImpl) Delete_WebappSession_By_UserId(ctx context.Context,
 func (obj *pgxImpl) Delete_Project_By_Id(ctx context.Context,
 	project_id Project_Id_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM projects WHERE projects.id = ?")
 
@@ -19625,7 +19951,9 @@ func (obj *pgxImpl) Delete_ProjectMember_By_MemberId_And_ProjectId(ctx context.C
 	project_member_member_id ProjectMember_MemberId_Field,
 	project_member_project_id ProjectMember_ProjectId_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM project_members WHERE project_members.member_id = ? AND project_members.project_id = ?")
 
@@ -19652,7 +19980,9 @@ func (obj *pgxImpl) Delete_ProjectMember_By_MemberId_And_ProjectId(ctx context.C
 func (obj *pgxImpl) Delete_ApiKey_By_Id(ctx context.Context,
 	api_key_id ApiKey_Id_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM api_keys WHERE api_keys.id = ?")
 
@@ -19679,7 +20009,9 @@ func (obj *pgxImpl) Delete_ApiKey_By_Id(ctx context.Context,
 func (obj *pgxImpl) Delete_ResetPasswordToken_By_Secret(ctx context.Context,
 	reset_password_token_secret ResetPasswordToken_Secret_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM reset_password_tokens WHERE reset_password_tokens.secret = ?")
 
@@ -19707,7 +20039,9 @@ func (obj *pgxImpl) Delete_BucketMetainfo_By_ProjectId_And_Name(ctx context.Cont
 	bucket_metainfo_project_id BucketMetainfo_ProjectId_Field,
 	bucket_metainfo_name BucketMetainfo_Name_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM bucket_metainfos WHERE bucket_metainfos.project_id = ? AND bucket_metainfos.name = ?")
 
@@ -19734,7 +20068,9 @@ func (obj *pgxImpl) Delete_BucketMetainfo_By_ProjectId_And_Name(ctx context.Cont
 func (obj *pgxImpl) Delete_GracefulExitSegmentTransfer_By_NodeId(ctx context.Context,
 	graceful_exit_segment_transfer_node_id GracefulExitSegmentTransfer_NodeId_Field) (
 	count int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM graceful_exit_segment_transfer_queue WHERE graceful_exit_segment_transfer_queue.node_id = ?")
 
@@ -19764,7 +20100,9 @@ func (obj *pgxImpl) Delete_GracefulExitSegmentTransfer_By_NodeId_And_StreamId_An
 	graceful_exit_segment_transfer_position GracefulExitSegmentTransfer_Position_Field,
 	graceful_exit_segment_transfer_piece_num GracefulExitSegmentTransfer_PieceNum_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM graceful_exit_segment_transfer_queue WHERE graceful_exit_segment_transfer_queue.node_id = ? AND graceful_exit_segment_transfer_queue.stream_id = ? AND graceful_exit_segment_transfer_queue.position = ? AND graceful_exit_segment_transfer_queue.piece_num = ?")
 
@@ -19791,7 +20129,9 @@ func (obj *pgxImpl) Delete_GracefulExitSegmentTransfer_By_NodeId_And_StreamId_An
 func (obj *pgxImpl) Delete_GracefulExitSegmentTransfer_By_NodeId_And_FinishedAt_IsNot_Null(ctx context.Context,
 	graceful_exit_segment_transfer_node_id GracefulExitSegmentTransfer_NodeId_Field) (
 	count int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM graceful_exit_segment_transfer_queue WHERE graceful_exit_segment_transfer_queue.node_id = ? AND graceful_exit_segment_transfer_queue.finished_at is not NULL")
 
@@ -19818,7 +20158,9 @@ func (obj *pgxImpl) Delete_GracefulExitSegmentTransfer_By_NodeId_And_FinishedAt_
 func (obj *pgxImpl) Delete_CouponCode_By_Name(ctx context.Context,
 	coupon_code_name CouponCode_Name_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM coupon_codes WHERE coupon_codes.name = ?")
 
@@ -19845,7 +20187,9 @@ func (obj *pgxImpl) Delete_CouponCode_By_Name(ctx context.Context,
 func (obj *pgxImpl) Delete_Coupon_By_Id(ctx context.Context,
 	coupon_id Coupon_Id_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM coupons WHERE coupons.id = ?")
 
@@ -19872,7 +20216,9 @@ func (obj *pgxImpl) Delete_Coupon_By_Id(ctx context.Context,
 func (obj *pgxImpl) Delete_StorjscanPayment_By_Status(ctx context.Context,
 	storjscan_payment_status StorjscanPayment_Status_Field) (
 	count int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM storjscan_payments WHERE storjscan_payments.status = ?")
 
@@ -19899,7 +20245,9 @@ func (obj *pgxImpl) Delete_StorjscanPayment_By_Status(ctx context.Context,
 func (obj *pgxImpl) Delete_OauthClient_By_Id(ctx context.Context,
 	oauth_client_id OauthClient_Id_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM oauth_clients WHERE oauth_clients.id = ?")
 
@@ -19934,7 +20282,9 @@ func (impl pgxImpl) isConstraintError(err error) (
 }
 
 func (obj *pgxImpl) deleteAll(ctx context.Context) (count int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __res sql.Result
 	var __count int64
 	__res, err = obj.driver.ExecContext(ctx, "DELETE FROM user_credits;")
@@ -20459,7 +20809,9 @@ func (obj *pgxcockroachImpl) Create_NodeEvent(ctx context.Context,
 	node_event_event NodeEvent_Event_Field,
 	optional NodeEvent_Create_Fields) (
 	node_event *NodeEvent, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	__id_val := node_event_id.value()
 	__email_val := node_event_email.value()
 	__node_id_val := node_event_node_id.value()
@@ -20510,7 +20862,9 @@ func (obj *pgxcockroachImpl) Create_ValueAttribution(ctx context.Context,
 	value_attribution_partner_id ValueAttribution_PartnerId_Field,
 	optional ValueAttribution_Create_Fields) (
 	value_attribution *ValueAttribution, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__project_id_val := value_attribution_project_id.value()
@@ -20543,7 +20897,9 @@ func (obj *pgxcockroachImpl) Create_ReverificationAudits(ctx context.Context,
 	reverification_audits_piece_num ReverificationAudits_PieceNum_Field,
 	optional ReverificationAudits_Create_Fields) (
 	reverification_audits *ReverificationAudits, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	__node_id_val := reverification_audits_node_id.value()
 	__stream_id_val := reverification_audits_stream_id.value()
 	__position_val := reverification_audits_position.value()
@@ -20598,7 +20954,9 @@ func (obj *pgxcockroachImpl) CreateNoReturn_AccountingTimestamps(ctx context.Con
 	accounting_timestamps_name AccountingTimestamps_Name_Field,
 	accounting_timestamps_value AccountingTimestamps_Value_Field) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	__name_val := accounting_timestamps_name.value()
 	__value_val := accounting_timestamps_value.value()
 
@@ -20623,7 +20981,9 @@ func (obj *pgxcockroachImpl) Create_Reputation(ctx context.Context,
 	reputation_audit_history Reputation_AuditHistory_Field,
 	optional Reputation_Create_Fields) (
 	reputation *Reputation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	__id_val := reputation_id.value()
 	__vetted_at_val := optional.VettedAt.value()
 	__disqualified_val := optional.Disqualified.value()
@@ -20715,7 +21075,9 @@ func (obj *pgxcockroachImpl) Create_User(ctx context.Context,
 	user_password_hash User_PasswordHash_Field,
 	optional User_Create_Fields) (
 	user *User, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__id_val := user_id.value()
@@ -20834,7 +21196,9 @@ func (obj *pgxcockroachImpl) Create_WebappSession(ctx context.Context,
 	webapp_session_user_agent WebappSession_UserAgent_Field,
 	webapp_session_expires_at WebappSession_ExpiresAt_Field) (
 	webapp_session *WebappSession, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	__id_val := webapp_session_id.value()
 	__user_id_val := webapp_session_user_id.value()
 	__ip_address_val := webapp_session_ip_address.value()
@@ -20866,7 +21230,9 @@ func (obj *pgxcockroachImpl) Create_Project(ctx context.Context,
 	project_owner_id Project_OwnerId_Field,
 	optional Project_Create_Fields) (
 	project *Project, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__id_val := project_id.value()
@@ -20928,7 +21294,9 @@ func (obj *pgxcockroachImpl) Create_ProjectMember(ctx context.Context,
 	project_member_member_id ProjectMember_MemberId_Field,
 	project_member_project_id ProjectMember_ProjectId_Field) (
 	project_member *ProjectMember, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__member_id_val := project_member_member_id.value()
@@ -20960,7 +21328,9 @@ func (obj *pgxcockroachImpl) Create_ApiKey(ctx context.Context,
 	api_key_secret ApiKey_Secret_Field,
 	optional ApiKey_Create_Fields) (
 	api_key *ApiKey, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__id_val := api_key_id.value()
@@ -20993,7 +21363,9 @@ func (obj *pgxcockroachImpl) CreateNoReturn_Revocation(ctx context.Context,
 	revocation_revoked Revocation_Revoked_Field,
 	revocation_api_key_id Revocation_ApiKeyId_Field) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	__revoked_val := revocation_revoked.value()
 	__api_key_id_val := revocation_api_key_id.value()
 
@@ -21021,7 +21393,9 @@ func (obj *pgxcockroachImpl) Create_StoragenodeBandwidthRollup(ctx context.Conte
 	storagenode_bandwidth_rollup_settled StoragenodeBandwidthRollup_Settled_Field,
 	optional StoragenodeBandwidthRollup_Create_Fields) (
 	storagenode_bandwidth_rollup *StoragenodeBandwidthRollup, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	__storagenode_id_val := storagenode_bandwidth_rollup_storagenode_id.value()
 	__interval_start_val := storagenode_bandwidth_rollup_interval_start.value()
 	__interval_seconds_val := storagenode_bandwidth_rollup_interval_seconds.value()
@@ -21089,7 +21463,9 @@ func (obj *pgxcockroachImpl) ReplaceNoReturn_StoragenodePaystub(ctx context.Cont
 	storagenode_paystub_paid StoragenodePaystub_Paid_Field,
 	storagenode_paystub_distributed StoragenodePaystub_Distributed_Field) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__period_val := storagenode_paystub_period.value()
@@ -21137,7 +21513,9 @@ func (obj *pgxcockroachImpl) CreateNoReturn_StoragenodePayment(ctx context.Conte
 	storagenode_payment_amount StoragenodePayment_Amount_Field,
 	optional StoragenodePayment_Create_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__created_at_val := __now
@@ -21168,7 +21546,9 @@ func (obj *pgxcockroachImpl) CreateNoReturn_PeerIdentity(ctx context.Context,
 	peer_identity_leaf_serial_number PeerIdentity_LeafSerialNumber_Field,
 	peer_identity_chain PeerIdentity_Chain_Field) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__node_id_val := peer_identity_node_id.value()
@@ -21197,7 +21577,9 @@ func (obj *pgxcockroachImpl) Create_RegistrationToken(ctx context.Context,
 	registration_token_project_limit RegistrationToken_ProjectLimit_Field,
 	optional RegistrationToken_Create_Fields) (
 	registration_token *RegistrationToken, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__secret_val := registration_token_secret.value()
@@ -21226,7 +21608,9 @@ func (obj *pgxcockroachImpl) Create_ResetPasswordToken(ctx context.Context,
 	reset_password_token_secret ResetPasswordToken_Secret_Field,
 	reset_password_token_owner_id ResetPasswordToken_OwnerId_Field) (
 	reset_password_token *ResetPasswordToken, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__secret_val := reset_password_token_secret.value()
@@ -21266,7 +21650,9 @@ func (obj *pgxcockroachImpl) Create_BucketMetainfo(ctx context.Context,
 	bucket_metainfo_default_redundancy_total_shares BucketMetainfo_DefaultRedundancyTotalShares_Field,
 	optional BucketMetainfo_Create_Fields) (
 	bucket_metainfo *BucketMetainfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__id_val := bucket_metainfo_id.value()
@@ -21308,7 +21694,9 @@ func (obj *pgxcockroachImpl) Create_StripeCustomer(ctx context.Context,
 	stripe_customer_user_id StripeCustomer_UserId_Field,
 	stripe_customer_customer_id StripeCustomer_CustomerId_Field) (
 	stripe_customer *StripeCustomer, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__user_id_val := stripe_customer_user_id.value()
@@ -21336,7 +21724,9 @@ func (obj *pgxcockroachImpl) CreateNoReturn_BillingBalance(ctx context.Context,
 	billing_balance_user_id BillingBalance_UserId_Field,
 	billing_balance_balance BillingBalance_Balance_Field) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__user_id_val := billing_balance_user_id.value()
@@ -21370,7 +21760,9 @@ func (obj *pgxcockroachImpl) Create_BillingTransaction(ctx context.Context,
 	billing_transaction_metadata BillingTransaction_Metadata_Field,
 	billing_transaction_timestamp BillingTransaction_Timestamp_Field) (
 	billing_transaction *BillingTransaction, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__user_id_val := billing_transaction_user_id.value()
@@ -21405,7 +21797,9 @@ func (obj *pgxcockroachImpl) CreateNoReturn_StorjscanWallet(ctx context.Context,
 	storjscan_wallet_user_id StorjscanWallet_UserId_Field,
 	storjscan_wallet_wallet_address StorjscanWallet_WalletAddress_Field) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__user_id_val := storjscan_wallet_user_id.value()
@@ -21438,7 +21832,9 @@ func (obj *pgxcockroachImpl) Create_CoinpaymentsTransaction(ctx context.Context,
 	coinpayments_transaction_key CoinpaymentsTransaction_Key_Field,
 	coinpayments_transaction_timeout CoinpaymentsTransaction_Timeout_Field) (
 	coinpayments_transaction *CoinpaymentsTransaction, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__id_val := coinpayments_transaction_id.value()
@@ -21478,7 +21874,9 @@ func (obj *pgxcockroachImpl) Create_StripecoinpaymentsInvoiceProjectRecord(ctx c
 	stripecoinpayments_invoice_project_record_state StripecoinpaymentsInvoiceProjectRecord_State_Field,
 	optional StripecoinpaymentsInvoiceProjectRecord_Create_Fields) (
 	stripecoinpayments_invoice_project_record *StripecoinpaymentsInvoiceProjectRecord, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__id_val := stripecoinpayments_invoice_project_record_id.value()
@@ -21513,7 +21911,9 @@ func (obj *pgxcockroachImpl) Create_StripecoinpaymentsTxConversionRate(ctx conte
 	stripecoinpayments_tx_conversion_rate_tx_id StripecoinpaymentsTxConversionRate_TxId_Field,
 	stripecoinpayments_tx_conversion_rate_rate_numeric StripecoinpaymentsTxConversionRate_RateNumeric_Field) (
 	stripecoinpayments_tx_conversion_rate *StripecoinpaymentsTxConversionRate, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__tx_id_val := stripecoinpayments_tx_conversion_rate_tx_id.value()
@@ -21545,7 +21945,9 @@ func (obj *pgxcockroachImpl) Create_CouponCode(ctx context.Context,
 	coupon_code_type CouponCode_Type_Field,
 	optional CouponCode_Create_Fields) (
 	coupon_code *CouponCode, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__id_val := coupon_code_id.value()
@@ -21583,7 +21985,9 @@ func (obj *pgxcockroachImpl) Create_Coupon(ctx context.Context,
 	coupon_duration Coupon_Duration_Field,
 	optional Coupon_Create_Fields) (
 	coupon *Coupon, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__id_val := coupon_id.value()
@@ -21620,7 +22024,9 @@ func (obj *pgxcockroachImpl) Create_CouponUsage(ctx context.Context,
 	coupon_usage_status CouponUsage_Status_Field,
 	coupon_usage_period CouponUsage_Period_Field) (
 	coupon_usage *CouponUsage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	__coupon_id_val := coupon_usage_coupon_id.value()
 	__amount_val := coupon_usage_amount.value()
 	__status_val := coupon_usage_status.value()
@@ -21655,7 +22061,9 @@ func (obj *pgxcockroachImpl) CreateNoReturn_StorjscanPayment(ctx context.Context
 	storjscan_payment_status StorjscanPayment_Status_Field,
 	storjscan_payment_timestamp StorjscanPayment_Timestamp_Field) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__block_hash_val := storjscan_payment_block_hash.value()
@@ -21690,7 +22098,9 @@ func (obj *pgxcockroachImpl) ReplaceNoReturn_NodeApiVersion(ctx context.Context,
 	node_api_version_id NodeApiVersion_Id_Field,
 	node_api_version_api_version NodeApiVersion_ApiVersion_Field) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	__now := obj.db.Hooks.Now().UTC()
 	__id_val := node_api_version_id.value()
@@ -21722,7 +22132,9 @@ func (obj *pgxcockroachImpl) CreateNoReturn_OauthClient(ctx context.Context,
 	oauth_client_app_name OauthClient_AppName_Field,
 	oauth_client_app_logo_url OauthClient_AppLogoUrl_Field) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	__id_val := oauth_client_id.value()
 	__encrypted_secret_val := oauth_client_encrypted_secret.value()
 	__redirect_url_val := oauth_client_redirect_url.value()
@@ -21758,7 +22170,9 @@ func (obj *pgxcockroachImpl) CreateNoReturn_OauthCode(ctx context.Context,
 	oauth_code_expires_at OauthCode_ExpiresAt_Field,
 	optional OauthCode_Create_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	__client_id_val := oauth_code_client_id.value()
 	__user_id_val := oauth_code_user_id.value()
 	__scope_val := oauth_code_scope.value()
@@ -21795,7 +22209,9 @@ func (obj *pgxcockroachImpl) CreateNoReturn_OauthToken(ctx context.Context,
 	oauth_token_created_at OauthToken_CreatedAt_Field,
 	oauth_token_expires_at OauthToken_ExpiresAt_Field) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	__client_id_val := oauth_token_client_id.value()
 	__user_id_val := oauth_token_user_id.value()
 	__scope_val := oauth_token_scope.value()
@@ -21824,7 +22240,9 @@ func (obj *pgxcockroachImpl) First_NodeEvent_By_Email_And_Event_OrderBy_Desc_Cre
 	node_event_email NodeEvent_Email_Field,
 	node_event_event NodeEvent_Event_Field) (
 	node_event *NodeEvent, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT node_events.id, node_events.email, node_events.node_id, node_events.event, node_events.created_at, node_events.email_sent FROM node_events WHERE node_events.email = ? AND node_events.event = ? ORDER BY node_events.created_at DESC LIMIT 1 OFFSET 0")
 
@@ -21872,7 +22290,9 @@ func (obj *pgxcockroachImpl) Get_ValueAttribution_By_ProjectId_And_BucketName(ct
 	value_attribution_project_id ValueAttribution_ProjectId_Field,
 	value_attribution_bucket_name ValueAttribution_BucketName_Field) (
 	value_attribution *ValueAttribution, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT value_attributions.project_id, value_attributions.bucket_name, value_attributions.partner_id, value_attributions.user_agent, value_attributions.last_updated FROM value_attributions WHERE value_attributions.project_id = ? AND value_attributions.bucket_name = ?")
 
@@ -21894,7 +22314,9 @@ func (obj *pgxcockroachImpl) Get_ValueAttribution_By_ProjectId_And_BucketName(ct
 func (obj *pgxcockroachImpl) Get_SegmentPendingAudits_By_NodeId(ctx context.Context,
 	segment_pending_audits_node_id SegmentPendingAudits_NodeId_Field) (
 	segment_pending_audits *SegmentPendingAudits, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT segment_pending_audits.node_id, segment_pending_audits.stream_id, segment_pending_audits.position, segment_pending_audits.piece_id, segment_pending_audits.stripe_index, segment_pending_audits.share_size, segment_pending_audits.expected_share_hash, segment_pending_audits.reverify_count FROM segment_pending_audits WHERE segment_pending_audits.node_id = ?")
 
@@ -21916,7 +22338,9 @@ func (obj *pgxcockroachImpl) Get_SegmentPendingAudits_By_NodeId(ctx context.Cont
 func (obj *pgxcockroachImpl) Find_AccountingTimestamps_Value_By_Name(ctx context.Context,
 	accounting_timestamps_name AccountingTimestamps_Name_Field) (
 	row *Value_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT accounting_timestamps.value FROM accounting_timestamps WHERE accounting_timestamps.name = ?")
 
@@ -21941,7 +22365,9 @@ func (obj *pgxcockroachImpl) Find_AccountingTimestamps_Value_By_Name(ctx context
 func (obj *pgxcockroachImpl) Get_Node_By_Id(ctx context.Context,
 	node_id Node_Id_Field) (
 	node *Node, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT nodes.id, nodes.address, nodes.last_net, nodes.last_ip_port, nodes.country_code, nodes.protocol, nodes.type, nodes.email, nodes.wallet, nodes.wallet_features, nodes.free_disk, nodes.piece_count, nodes.major, nodes.minor, nodes.patch, nodes.hash, nodes.timestamp, nodes.release, nodes.latency_90, nodes.vetted_at, nodes.created_at, nodes.updated_at, nodes.last_contact_success, nodes.last_contact_failure, nodes.disqualified, nodes.disqualification_reason, nodes.unknown_audit_suspended, nodes.offline_suspended, nodes.under_review, nodes.exit_initiated_at, nodes.exit_loop_completed_at, nodes.exit_finished_at, nodes.exit_success, nodes.contained, nodes.last_offline_email, nodes.last_software_update_email FROM nodes WHERE nodes.id = ?")
 
@@ -21962,7 +22388,9 @@ func (obj *pgxcockroachImpl) Get_Node_By_Id(ctx context.Context,
 
 func (obj *pgxcockroachImpl) All_Node_Id(ctx context.Context) (
 	rows []*Id_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT nodes.id FROM nodes")
 
@@ -22006,7 +22434,9 @@ func (obj *pgxcockroachImpl) All_Node_Id(ctx context.Context) (
 func (obj *pgxcockroachImpl) Paged_Node(ctx context.Context,
 	limit int, start *Paged_Node_Continuation) (
 	rows []*Node, next *Paged_Node_Continuation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT nodes.id, nodes.address, nodes.last_net, nodes.last_ip_port, nodes.country_code, nodes.protocol, nodes.type, nodes.email, nodes.wallet, nodes.wallet_features, nodes.free_disk, nodes.piece_count, nodes.major, nodes.minor, nodes.patch, nodes.hash, nodes.timestamp, nodes.release, nodes.latency_90, nodes.vetted_at, nodes.created_at, nodes.updated_at, nodes.last_contact_success, nodes.last_contact_failure, nodes.disqualified, nodes.disqualification_reason, nodes.unknown_audit_suspended, nodes.offline_suspended, nodes.under_review, nodes.exit_initiated_at, nodes.exit_loop_completed_at, nodes.exit_finished_at, nodes.exit_success, nodes.contained, nodes.last_offline_email, nodes.last_software_update_email, nodes.id FROM nodes WHERE (nodes.id) > ? ORDER BY nodes.id LIMIT ?")
 
@@ -22064,7 +22494,9 @@ func (obj *pgxcockroachImpl) Paged_Node(ctx context.Context,
 
 func (obj *pgxcockroachImpl) All_Node_Id_Node_PieceCount_By_PieceCount_Not_Number(ctx context.Context) (
 	rows []*Id_PieceCount_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT nodes.id, nodes.piece_count FROM nodes WHERE nodes.piece_count != 0")
 
@@ -22108,7 +22540,9 @@ func (obj *pgxcockroachImpl) All_Node_Id_Node_PieceCount_By_PieceCount_Not_Numbe
 func (obj *pgxcockroachImpl) Get_Reputation_By_Id(ctx context.Context,
 	reputation_id Reputation_Id_Field) (
 	reputation *Reputation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT reputations.id, reputations.audit_success_count, reputations.total_audit_count, reputations.vetted_at, reputations.created_at, reputations.updated_at, reputations.disqualified, reputations.disqualification_reason, reputations.unknown_audit_suspended, reputations.offline_suspended, reputations.under_review, reputations.online_score, reputations.audit_history, reputations.audit_reputation_alpha, reputations.audit_reputation_beta, reputations.unknown_audit_reputation_alpha, reputations.unknown_audit_reputation_beta FROM reputations WHERE reputations.id = ?")
 
@@ -22130,7 +22564,9 @@ func (obj *pgxcockroachImpl) Get_Reputation_By_Id(ctx context.Context,
 func (obj *pgxcockroachImpl) All_User_By_NormalizedEmail(ctx context.Context,
 	user_normalized_email User_NormalizedEmail_Field) (
 	rows []*User, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT users.id, users.email, users.normalized_email, users.full_name, users.short_name, users.password_hash, users.status, users.partner_id, users.user_agent, users.created_at, users.project_limit, users.project_bandwidth_limit, users.project_storage_limit, users.project_segment_limit, users.paid_tier, users.position, users.company_name, users.company_size, users.working_on, users.is_professional, users.employee_count, users.have_sales_contact, users.mfa_enabled, users.mfa_secret_key, users.mfa_recovery_codes, users.signup_promo_code, users.last_verification_reminder, users.verification_reminders, users.failed_login_count, users.login_lockout_expiration, users.signup_captcha FROM users WHERE users.normalized_email = ?")
 
@@ -22175,7 +22611,9 @@ func (obj *pgxcockroachImpl) All_User_By_NormalizedEmail(ctx context.Context,
 func (obj *pgxcockroachImpl) Get_User_By_NormalizedEmail_And_Status_Not_Number(ctx context.Context,
 	user_normalized_email User_NormalizedEmail_Field) (
 	user *User, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT users.id, users.email, users.normalized_email, users.full_name, users.short_name, users.password_hash, users.status, users.partner_id, users.user_agent, users.created_at, users.project_limit, users.project_bandwidth_limit, users.project_storage_limit, users.project_segment_limit, users.paid_tier, users.position, users.company_name, users.company_size, users.working_on, users.is_professional, users.employee_count, users.have_sales_contact, users.mfa_enabled, users.mfa_secret_key, users.mfa_recovery_codes, users.signup_promo_code, users.last_verification_reminder, users.verification_reminders, users.failed_login_count, users.login_lockout_expiration, users.signup_captcha FROM users WHERE users.normalized_email = ? AND users.status != 0 LIMIT 2")
 
@@ -22233,7 +22671,9 @@ func (obj *pgxcockroachImpl) Get_User_By_NormalizedEmail_And_Status_Not_Number(c
 func (obj *pgxcockroachImpl) Get_User_By_Id(ctx context.Context,
 	user_id User_Id_Field) (
 	user *User, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT users.id, users.email, users.normalized_email, users.full_name, users.short_name, users.password_hash, users.status, users.partner_id, users.user_agent, users.created_at, users.project_limit, users.project_bandwidth_limit, users.project_storage_limit, users.project_segment_limit, users.paid_tier, users.position, users.company_name, users.company_size, users.working_on, users.is_professional, users.employee_count, users.have_sales_contact, users.mfa_enabled, users.mfa_secret_key, users.mfa_recovery_codes, users.signup_promo_code, users.last_verification_reminder, users.verification_reminders, users.failed_login_count, users.login_lockout_expiration, users.signup_captcha FROM users WHERE users.id = ?")
 
@@ -22255,7 +22695,9 @@ func (obj *pgxcockroachImpl) Get_User_By_Id(ctx context.Context,
 func (obj *pgxcockroachImpl) Get_User_ProjectLimit_By_Id(ctx context.Context,
 	user_id User_Id_Field) (
 	row *ProjectLimit_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT users.project_limit FROM users WHERE users.id = ?")
 
@@ -22277,7 +22719,9 @@ func (obj *pgxcockroachImpl) Get_User_ProjectLimit_By_Id(ctx context.Context,
 func (obj *pgxcockroachImpl) Get_User_PaidTier_By_Id(ctx context.Context,
 	user_id User_Id_Field) (
 	row *PaidTier_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT users.paid_tier FROM users WHERE users.id = ?")
 
@@ -22299,7 +22743,9 @@ func (obj *pgxcockroachImpl) Get_User_PaidTier_By_Id(ctx context.Context,
 func (obj *pgxcockroachImpl) Get_User_ProjectStorageLimit_User_ProjectBandwidthLimit_User_ProjectSegmentLimit_By_Id(ctx context.Context,
 	user_id User_Id_Field) (
 	row *ProjectStorageLimit_ProjectBandwidthLimit_ProjectSegmentLimit_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT users.project_storage_limit, users.project_bandwidth_limit, users.project_segment_limit FROM users WHERE users.id = ?")
 
@@ -22321,7 +22767,9 @@ func (obj *pgxcockroachImpl) Get_User_ProjectStorageLimit_User_ProjectBandwidthL
 func (obj *pgxcockroachImpl) All_WebappSession_By_UserId(ctx context.Context,
 	webapp_session_user_id WebappSession_UserId_Field) (
 	rows []*WebappSession, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT webapp_sessions.id, webapp_sessions.user_id, webapp_sessions.ip_address, webapp_sessions.user_agent, webapp_sessions.status, webapp_sessions.expires_at FROM webapp_sessions WHERE webapp_sessions.user_id = ?")
 
@@ -22366,7 +22814,9 @@ func (obj *pgxcockroachImpl) All_WebappSession_By_UserId(ctx context.Context,
 func (obj *pgxcockroachImpl) Get_WebappSession_By_Id(ctx context.Context,
 	webapp_session_id WebappSession_Id_Field) (
 	webapp_session *WebappSession, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT webapp_sessions.id, webapp_sessions.user_id, webapp_sessions.ip_address, webapp_sessions.user_agent, webapp_sessions.status, webapp_sessions.expires_at FROM webapp_sessions WHERE webapp_sessions.id = ?")
 
@@ -22388,7 +22838,9 @@ func (obj *pgxcockroachImpl) Get_WebappSession_By_Id(ctx context.Context,
 func (obj *pgxcockroachImpl) Get_Project_Salt_By_Id(ctx context.Context,
 	project_id Project_Id_Field) (
 	row *Salt_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.salt FROM projects WHERE projects.id = ?")
 
@@ -22410,7 +22862,9 @@ func (obj *pgxcockroachImpl) Get_Project_Salt_By_Id(ctx context.Context,
 func (obj *pgxcockroachImpl) Get_Project_By_PublicId(ctx context.Context,
 	project_public_id Project_PublicId_Field) (
 	project *Project, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __cond_0 = &__sqlbundle_Condition{Left: "projects.public_id", Equal: true, Right: "?", Null: true}
 
@@ -22473,7 +22927,9 @@ func (obj *pgxcockroachImpl) Get_Project_By_PublicId(ctx context.Context,
 func (obj *pgxcockroachImpl) Get_Project_By_Id(ctx context.Context,
 	project_id Project_Id_Field) (
 	project *Project, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.id, projects.public_id, projects.name, projects.description, projects.usage_limit, projects.bandwidth_limit, projects.user_specified_usage_limit, projects.user_specified_bandwidth_limit, projects.segment_limit, projects.rate_limit, projects.burst_limit, projects.max_buckets, projects.partner_id, projects.user_agent, projects.owner_id, projects.salt, projects.created_at FROM projects WHERE projects.id = ?")
 
@@ -22495,7 +22951,9 @@ func (obj *pgxcockroachImpl) Get_Project_By_Id(ctx context.Context,
 func (obj *pgxcockroachImpl) Get_Project_UsageLimit_By_Id(ctx context.Context,
 	project_id Project_Id_Field) (
 	row *UsageLimit_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.usage_limit FROM projects WHERE projects.id = ?")
 
@@ -22517,7 +22975,9 @@ func (obj *pgxcockroachImpl) Get_Project_UsageLimit_By_Id(ctx context.Context,
 func (obj *pgxcockroachImpl) Get_Project_BandwidthLimit_By_Id(ctx context.Context,
 	project_id Project_Id_Field) (
 	row *BandwidthLimit_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.bandwidth_limit FROM projects WHERE projects.id = ?")
 
@@ -22539,7 +22999,9 @@ func (obj *pgxcockroachImpl) Get_Project_BandwidthLimit_By_Id(ctx context.Contex
 func (obj *pgxcockroachImpl) Get_Project_UserSpecifiedUsageLimit_By_Id(ctx context.Context,
 	project_id Project_Id_Field) (
 	row *UserSpecifiedUsageLimit_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.user_specified_usage_limit FROM projects WHERE projects.id = ?")
 
@@ -22561,7 +23023,9 @@ func (obj *pgxcockroachImpl) Get_Project_UserSpecifiedUsageLimit_By_Id(ctx conte
 func (obj *pgxcockroachImpl) Get_Project_UserSpecifiedBandwidthLimit_By_Id(ctx context.Context,
 	project_id Project_Id_Field) (
 	row *UserSpecifiedBandwidthLimit_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.user_specified_bandwidth_limit FROM projects WHERE projects.id = ?")
 
@@ -22583,7 +23047,9 @@ func (obj *pgxcockroachImpl) Get_Project_UserSpecifiedBandwidthLimit_By_Id(ctx c
 func (obj *pgxcockroachImpl) Get_Project_SegmentLimit_By_Id(ctx context.Context,
 	project_id Project_Id_Field) (
 	row *SegmentLimit_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.segment_limit FROM projects WHERE projects.id = ?")
 
@@ -22605,7 +23071,9 @@ func (obj *pgxcockroachImpl) Get_Project_SegmentLimit_By_Id(ctx context.Context,
 func (obj *pgxcockroachImpl) Get_Project_MaxBuckets_By_Id(ctx context.Context,
 	project_id Project_Id_Field) (
 	row *MaxBuckets_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.max_buckets FROM projects WHERE projects.id = ?")
 
@@ -22627,7 +23095,9 @@ func (obj *pgxcockroachImpl) Get_Project_MaxBuckets_By_Id(ctx context.Context,
 func (obj *pgxcockroachImpl) Get_Project_BandwidthLimit_Project_UsageLimit_Project_SegmentLimit_By_Id(ctx context.Context,
 	project_id Project_Id_Field) (
 	row *BandwidthLimit_UsageLimit_SegmentLimit_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.bandwidth_limit, projects.usage_limit, projects.segment_limit FROM projects WHERE projects.id = ?")
 
@@ -22648,7 +23118,9 @@ func (obj *pgxcockroachImpl) Get_Project_BandwidthLimit_Project_UsageLimit_Proje
 
 func (obj *pgxcockroachImpl) All_Project(ctx context.Context) (
 	rows []*Project, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.id, projects.public_id, projects.name, projects.description, projects.usage_limit, projects.bandwidth_limit, projects.user_specified_usage_limit, projects.user_specified_bandwidth_limit, projects.segment_limit, projects.rate_limit, projects.burst_limit, projects.max_buckets, projects.partner_id, projects.user_agent, projects.owner_id, projects.salt, projects.created_at FROM projects")
 
@@ -22692,7 +23164,9 @@ func (obj *pgxcockroachImpl) All_Project(ctx context.Context) (
 func (obj *pgxcockroachImpl) All_Project_By_CreatedAt_Less_OrderBy_Asc_CreatedAt(ctx context.Context,
 	project_created_at_less Project_CreatedAt_Field) (
 	rows []*Project, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.id, projects.public_id, projects.name, projects.description, projects.usage_limit, projects.bandwidth_limit, projects.user_specified_usage_limit, projects.user_specified_bandwidth_limit, projects.segment_limit, projects.rate_limit, projects.burst_limit, projects.max_buckets, projects.partner_id, projects.user_agent, projects.owner_id, projects.salt, projects.created_at FROM projects WHERE projects.created_at < ? ORDER BY projects.created_at")
 
@@ -22737,7 +23211,9 @@ func (obj *pgxcockroachImpl) All_Project_By_CreatedAt_Less_OrderBy_Asc_CreatedAt
 func (obj *pgxcockroachImpl) All_Project_By_OwnerId_OrderBy_Asc_CreatedAt(ctx context.Context,
 	project_owner_id Project_OwnerId_Field) (
 	rows []*Project, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.id, projects.public_id, projects.name, projects.description, projects.usage_limit, projects.bandwidth_limit, projects.user_specified_usage_limit, projects.user_specified_bandwidth_limit, projects.segment_limit, projects.rate_limit, projects.burst_limit, projects.max_buckets, projects.partner_id, projects.user_agent, projects.owner_id, projects.salt, projects.created_at FROM projects WHERE projects.owner_id = ? ORDER BY projects.created_at")
 
@@ -22782,7 +23258,9 @@ func (obj *pgxcockroachImpl) All_Project_By_OwnerId_OrderBy_Asc_CreatedAt(ctx co
 func (obj *pgxcockroachImpl) All_Project_By_ProjectMember_MemberId_OrderBy_Asc_Project_Name(ctx context.Context,
 	project_member_member_id ProjectMember_MemberId_Field) (
 	rows []*Project, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.id, projects.public_id, projects.name, projects.description, projects.usage_limit, projects.bandwidth_limit, projects.user_specified_usage_limit, projects.user_specified_bandwidth_limit, projects.segment_limit, projects.rate_limit, projects.burst_limit, projects.max_buckets, projects.partner_id, projects.user_agent, projects.owner_id, projects.salt, projects.created_at FROM projects  JOIN project_members ON projects.id = project_members.project_id WHERE project_members.member_id = ? ORDER BY projects.name")
 
@@ -22828,7 +23306,9 @@ func (obj *pgxcockroachImpl) Limited_Project_By_CreatedAt_Less_OrderBy_Asc_Creat
 	project_created_at_less Project_CreatedAt_Field,
 	limit int, offset int64) (
 	rows []*Project, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT projects.id, projects.public_id, projects.name, projects.description, projects.usage_limit, projects.bandwidth_limit, projects.user_specified_usage_limit, projects.user_specified_bandwidth_limit, projects.segment_limit, projects.rate_limit, projects.burst_limit, projects.max_buckets, projects.partner_id, projects.user_agent, projects.owner_id, projects.salt, projects.created_at FROM projects WHERE projects.created_at < ? ORDER BY projects.created_at LIMIT ? OFFSET ?")
 
@@ -22876,7 +23356,9 @@ func (obj *pgxcockroachImpl) Limited_Project_By_CreatedAt_Less_OrderBy_Asc_Creat
 func (obj *pgxcockroachImpl) All_ProjectMember_By_MemberId(ctx context.Context,
 	project_member_member_id ProjectMember_MemberId_Field) (
 	rows []*ProjectMember, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT project_members.member_id, project_members.project_id, project_members.created_at FROM project_members WHERE project_members.member_id = ?")
 
@@ -22921,7 +23403,9 @@ func (obj *pgxcockroachImpl) All_ProjectMember_By_MemberId(ctx context.Context,
 func (obj *pgxcockroachImpl) Get_ApiKey_By_Id(ctx context.Context,
 	api_key_id ApiKey_Id_Field) (
 	api_key *ApiKey, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT api_keys.id, api_keys.project_id, api_keys.head, api_keys.name, api_keys.secret, api_keys.partner_id, api_keys.user_agent, api_keys.created_at FROM api_keys WHERE api_keys.id = ?")
 
@@ -22943,7 +23427,9 @@ func (obj *pgxcockroachImpl) Get_ApiKey_By_Id(ctx context.Context,
 func (obj *pgxcockroachImpl) Get_ApiKey_By_Head(ctx context.Context,
 	api_key_head ApiKey_Head_Field) (
 	api_key *ApiKey, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT api_keys.id, api_keys.project_id, api_keys.head, api_keys.name, api_keys.secret, api_keys.partner_id, api_keys.user_agent, api_keys.created_at FROM api_keys WHERE api_keys.head = ?")
 
@@ -22966,7 +23452,9 @@ func (obj *pgxcockroachImpl) Get_ApiKey_By_Name_And_ProjectId(ctx context.Contex
 	api_key_name ApiKey_Name_Field,
 	api_key_project_id ApiKey_ProjectId_Field) (
 	api_key *ApiKey, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT api_keys.id, api_keys.project_id, api_keys.head, api_keys.name, api_keys.secret, api_keys.partner_id, api_keys.user_agent, api_keys.created_at FROM api_keys WHERE api_keys.name = ? AND api_keys.project_id = ?")
 
@@ -22989,7 +23477,9 @@ func (obj *pgxcockroachImpl) Paged_BucketBandwidthRollup_By_IntervalStart_Greate
 	bucket_bandwidth_rollup_interval_start_greater_or_equal BucketBandwidthRollup_IntervalStart_Field,
 	limit int, start *Paged_BucketBandwidthRollup_By_IntervalStart_GreaterOrEqual_Continuation) (
 	rows []*BucketBandwidthRollup, next *Paged_BucketBandwidthRollup_By_IntervalStart_GreaterOrEqual_Continuation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bucket_bandwidth_rollups.bucket_name, bucket_bandwidth_rollups.project_id, bucket_bandwidth_rollups.interval_start, bucket_bandwidth_rollups.interval_seconds, bucket_bandwidth_rollups.action, bucket_bandwidth_rollups.inline, bucket_bandwidth_rollups.allocated, bucket_bandwidth_rollups.settled, bucket_bandwidth_rollups.bucket_name, bucket_bandwidth_rollups.project_id, bucket_bandwidth_rollups.interval_start, bucket_bandwidth_rollups.action FROM bucket_bandwidth_rollups WHERE bucket_bandwidth_rollups.interval_start >= ? AND (bucket_bandwidth_rollups.bucket_name, bucket_bandwidth_rollups.project_id, bucket_bandwidth_rollups.interval_start, bucket_bandwidth_rollups.action) > (?, ?, ?, ?) ORDER BY bucket_bandwidth_rollups.bucket_name, bucket_bandwidth_rollups.project_id, bucket_bandwidth_rollups.interval_start, bucket_bandwidth_rollups.action LIMIT ?")
 
@@ -23050,7 +23540,9 @@ func (obj *pgxcockroachImpl) Paged_BucketBandwidthRollupArchive_By_IntervalStart
 	bucket_bandwidth_rollup_archive_interval_start_greater_or_equal BucketBandwidthRollupArchive_IntervalStart_Field,
 	limit int, start *Paged_BucketBandwidthRollupArchive_By_IntervalStart_GreaterOrEqual_Continuation) (
 	rows []*BucketBandwidthRollupArchive, next *Paged_BucketBandwidthRollupArchive_By_IntervalStart_GreaterOrEqual_Continuation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bucket_bandwidth_rollup_archives.bucket_name, bucket_bandwidth_rollup_archives.project_id, bucket_bandwidth_rollup_archives.interval_start, bucket_bandwidth_rollup_archives.interval_seconds, bucket_bandwidth_rollup_archives.action, bucket_bandwidth_rollup_archives.inline, bucket_bandwidth_rollup_archives.allocated, bucket_bandwidth_rollup_archives.settled, bucket_bandwidth_rollup_archives.bucket_name, bucket_bandwidth_rollup_archives.project_id, bucket_bandwidth_rollup_archives.interval_start, bucket_bandwidth_rollup_archives.action FROM bucket_bandwidth_rollup_archives WHERE bucket_bandwidth_rollup_archives.interval_start >= ? AND (bucket_bandwidth_rollup_archives.bucket_name, bucket_bandwidth_rollup_archives.project_id, bucket_bandwidth_rollup_archives.interval_start, bucket_bandwidth_rollup_archives.action) > (?, ?, ?, ?) ORDER BY bucket_bandwidth_rollup_archives.bucket_name, bucket_bandwidth_rollup_archives.project_id, bucket_bandwidth_rollup_archives.interval_start, bucket_bandwidth_rollup_archives.action LIMIT ?")
 
@@ -23109,7 +23601,9 @@ func (obj *pgxcockroachImpl) Paged_BucketBandwidthRollupArchive_By_IntervalStart
 
 func (obj *pgxcockroachImpl) All_BucketStorageTally_OrderBy_Desc_IntervalStart(ctx context.Context) (
 	rows []*BucketStorageTally, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bucket_storage_tallies.bucket_name, bucket_storage_tallies.project_id, bucket_storage_tallies.interval_start, bucket_storage_tallies.total_bytes, bucket_storage_tallies.inline, bucket_storage_tallies.remote, bucket_storage_tallies.total_segments_count, bucket_storage_tallies.remote_segments_count, bucket_storage_tallies.inline_segments_count, bucket_storage_tallies.object_count, bucket_storage_tallies.metadata_size FROM bucket_storage_tallies ORDER BY bucket_storage_tallies.interval_start DESC")
 
@@ -23156,7 +23650,9 @@ func (obj *pgxcockroachImpl) All_BucketStorageTally_By_ProjectId_And_BucketName_
 	bucket_storage_tally_interval_start_greater_or_equal BucketStorageTally_IntervalStart_Field,
 	bucket_storage_tally_interval_start_less_or_equal BucketStorageTally_IntervalStart_Field) (
 	rows []*BucketStorageTally, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bucket_storage_tallies.bucket_name, bucket_storage_tallies.project_id, bucket_storage_tallies.interval_start, bucket_storage_tallies.total_bytes, bucket_storage_tallies.inline, bucket_storage_tallies.remote, bucket_storage_tallies.total_segments_count, bucket_storage_tallies.remote_segments_count, bucket_storage_tallies.inline_segments_count, bucket_storage_tallies.object_count, bucket_storage_tallies.metadata_size FROM bucket_storage_tallies WHERE bucket_storage_tallies.project_id = ? AND bucket_storage_tallies.bucket_name = ? AND bucket_storage_tallies.interval_start >= ? AND bucket_storage_tallies.interval_start <= ? ORDER BY bucket_storage_tallies.interval_start DESC")
 
@@ -23202,7 +23698,9 @@ func (obj *pgxcockroachImpl) All_StoragenodeBandwidthRollup_By_StoragenodeId_And
 	storagenode_bandwidth_rollup_storagenode_id StoragenodeBandwidthRollup_StoragenodeId_Field,
 	storagenode_bandwidth_rollup_interval_start StoragenodeBandwidthRollup_IntervalStart_Field) (
 	rows []*StoragenodeBandwidthRollup, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storagenode_bandwidth_rollups.storagenode_id, storagenode_bandwidth_rollups.interval_start, storagenode_bandwidth_rollups.interval_seconds, storagenode_bandwidth_rollups.action, storagenode_bandwidth_rollups.allocated, storagenode_bandwidth_rollups.settled FROM storagenode_bandwidth_rollups WHERE storagenode_bandwidth_rollups.storagenode_id = ? AND storagenode_bandwidth_rollups.interval_start = ?")
 
@@ -23248,7 +23746,9 @@ func (obj *pgxcockroachImpl) Paged_StoragenodeBandwidthRollup_By_IntervalStart_G
 	storagenode_bandwidth_rollup_interval_start_greater_or_equal StoragenodeBandwidthRollup_IntervalStart_Field,
 	limit int, start *Paged_StoragenodeBandwidthRollup_By_IntervalStart_GreaterOrEqual_Continuation) (
 	rows []*StoragenodeBandwidthRollup, next *Paged_StoragenodeBandwidthRollup_By_IntervalStart_GreaterOrEqual_Continuation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storagenode_bandwidth_rollups.storagenode_id, storagenode_bandwidth_rollups.interval_start, storagenode_bandwidth_rollups.interval_seconds, storagenode_bandwidth_rollups.action, storagenode_bandwidth_rollups.allocated, storagenode_bandwidth_rollups.settled, storagenode_bandwidth_rollups.storagenode_id, storagenode_bandwidth_rollups.interval_start, storagenode_bandwidth_rollups.action FROM storagenode_bandwidth_rollups WHERE storagenode_bandwidth_rollups.interval_start >= ? AND (storagenode_bandwidth_rollups.storagenode_id, storagenode_bandwidth_rollups.interval_start, storagenode_bandwidth_rollups.action) > (?, ?, ?) ORDER BY storagenode_bandwidth_rollups.storagenode_id, storagenode_bandwidth_rollups.interval_start, storagenode_bandwidth_rollups.action LIMIT ?")
 
@@ -23310,7 +23810,9 @@ func (obj *pgxcockroachImpl) Paged_StoragenodeBandwidthRollup_By_StoragenodeId_A
 	storagenode_bandwidth_rollup_interval_start_greater_or_equal StoragenodeBandwidthRollup_IntervalStart_Field,
 	limit int, start *Paged_StoragenodeBandwidthRollup_By_StoragenodeId_And_IntervalStart_GreaterOrEqual_Continuation) (
 	rows []*StoragenodeBandwidthRollup, next *Paged_StoragenodeBandwidthRollup_By_StoragenodeId_And_IntervalStart_GreaterOrEqual_Continuation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storagenode_bandwidth_rollups.storagenode_id, storagenode_bandwidth_rollups.interval_start, storagenode_bandwidth_rollups.interval_seconds, storagenode_bandwidth_rollups.action, storagenode_bandwidth_rollups.allocated, storagenode_bandwidth_rollups.settled, storagenode_bandwidth_rollups.storagenode_id, storagenode_bandwidth_rollups.interval_start, storagenode_bandwidth_rollups.action FROM storagenode_bandwidth_rollups WHERE storagenode_bandwidth_rollups.storagenode_id = ? AND storagenode_bandwidth_rollups.interval_start >= ? AND (storagenode_bandwidth_rollups.storagenode_id, storagenode_bandwidth_rollups.interval_start, storagenode_bandwidth_rollups.action) > (?, ?, ?) ORDER BY storagenode_bandwidth_rollups.storagenode_id, storagenode_bandwidth_rollups.interval_start, storagenode_bandwidth_rollups.action LIMIT ?")
 
@@ -23371,7 +23873,9 @@ func (obj *pgxcockroachImpl) Paged_StoragenodeBandwidthRollupArchive_By_Interval
 	storagenode_bandwidth_rollup_archive_interval_start_greater_or_equal StoragenodeBandwidthRollupArchive_IntervalStart_Field,
 	limit int, start *Paged_StoragenodeBandwidthRollupArchive_By_IntervalStart_GreaterOrEqual_Continuation) (
 	rows []*StoragenodeBandwidthRollupArchive, next *Paged_StoragenodeBandwidthRollupArchive_By_IntervalStart_GreaterOrEqual_Continuation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storagenode_bandwidth_rollup_archives.storagenode_id, storagenode_bandwidth_rollup_archives.interval_start, storagenode_bandwidth_rollup_archives.interval_seconds, storagenode_bandwidth_rollup_archives.action, storagenode_bandwidth_rollup_archives.allocated, storagenode_bandwidth_rollup_archives.settled, storagenode_bandwidth_rollup_archives.storagenode_id, storagenode_bandwidth_rollup_archives.interval_start, storagenode_bandwidth_rollup_archives.action FROM storagenode_bandwidth_rollup_archives WHERE storagenode_bandwidth_rollup_archives.interval_start >= ? AND (storagenode_bandwidth_rollup_archives.storagenode_id, storagenode_bandwidth_rollup_archives.interval_start, storagenode_bandwidth_rollup_archives.action) > (?, ?, ?) ORDER BY storagenode_bandwidth_rollup_archives.storagenode_id, storagenode_bandwidth_rollup_archives.interval_start, storagenode_bandwidth_rollup_archives.action LIMIT ?")
 
@@ -23433,7 +23937,9 @@ func (obj *pgxcockroachImpl) Paged_StoragenodeBandwidthRollupPhase2_By_Storageno
 	storagenode_bandwidth_rollup_phase2_interval_start_greater_or_equal StoragenodeBandwidthRollupPhase2_IntervalStart_Field,
 	limit int, start *Paged_StoragenodeBandwidthRollupPhase2_By_StoragenodeId_And_IntervalStart_GreaterOrEqual_Continuation) (
 	rows []*StoragenodeBandwidthRollupPhase2, next *Paged_StoragenodeBandwidthRollupPhase2_By_StoragenodeId_And_IntervalStart_GreaterOrEqual_Continuation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storagenode_bandwidth_rollups_phase2.storagenode_id, storagenode_bandwidth_rollups_phase2.interval_start, storagenode_bandwidth_rollups_phase2.interval_seconds, storagenode_bandwidth_rollups_phase2.action, storagenode_bandwidth_rollups_phase2.allocated, storagenode_bandwidth_rollups_phase2.settled, storagenode_bandwidth_rollups_phase2.storagenode_id, storagenode_bandwidth_rollups_phase2.interval_start, storagenode_bandwidth_rollups_phase2.action FROM storagenode_bandwidth_rollups_phase2 WHERE storagenode_bandwidth_rollups_phase2.storagenode_id = ? AND storagenode_bandwidth_rollups_phase2.interval_start >= ? AND (storagenode_bandwidth_rollups_phase2.storagenode_id, storagenode_bandwidth_rollups_phase2.interval_start, storagenode_bandwidth_rollups_phase2.action) > (?, ?, ?) ORDER BY storagenode_bandwidth_rollups_phase2.storagenode_id, storagenode_bandwidth_rollups_phase2.interval_start, storagenode_bandwidth_rollups_phase2.action LIMIT ?")
 
@@ -23492,7 +23998,9 @@ func (obj *pgxcockroachImpl) Paged_StoragenodeBandwidthRollupPhase2_By_Storageno
 
 func (obj *pgxcockroachImpl) All_StoragenodeStorageTally(ctx context.Context) (
 	rows []*StoragenodeStorageTally, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storagenode_storage_tallies.node_id, storagenode_storage_tallies.interval_end_time, storagenode_storage_tallies.data_total FROM storagenode_storage_tallies")
 
@@ -23536,7 +24044,9 @@ func (obj *pgxcockroachImpl) All_StoragenodeStorageTally(ctx context.Context) (
 func (obj *pgxcockroachImpl) All_StoragenodeStorageTally_By_IntervalEndTime_GreaterOrEqual(ctx context.Context,
 	storagenode_storage_tally_interval_end_time_greater_or_equal StoragenodeStorageTally_IntervalEndTime_Field) (
 	rows []*StoragenodeStorageTally, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storagenode_storage_tallies.node_id, storagenode_storage_tallies.interval_end_time, storagenode_storage_tallies.data_total FROM storagenode_storage_tallies WHERE storagenode_storage_tallies.interval_end_time >= ?")
 
@@ -23582,7 +24092,9 @@ func (obj *pgxcockroachImpl) Get_StoragenodePaystub_By_NodeId_And_Period(ctx con
 	storagenode_paystub_node_id StoragenodePaystub_NodeId_Field,
 	storagenode_paystub_period StoragenodePaystub_Period_Field) (
 	storagenode_paystub *StoragenodePaystub, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storagenode_paystubs.period, storagenode_paystubs.node_id, storagenode_paystubs.created_at, storagenode_paystubs.codes, storagenode_paystubs.usage_at_rest, storagenode_paystubs.usage_get, storagenode_paystubs.usage_put, storagenode_paystubs.usage_get_repair, storagenode_paystubs.usage_put_repair, storagenode_paystubs.usage_get_audit, storagenode_paystubs.comp_at_rest, storagenode_paystubs.comp_get, storagenode_paystubs.comp_put, storagenode_paystubs.comp_get_repair, storagenode_paystubs.comp_put_repair, storagenode_paystubs.comp_get_audit, storagenode_paystubs.surge_percent, storagenode_paystubs.held, storagenode_paystubs.owed, storagenode_paystubs.disposed, storagenode_paystubs.paid, storagenode_paystubs.distributed FROM storagenode_paystubs WHERE storagenode_paystubs.node_id = ? AND storagenode_paystubs.period = ?")
 
@@ -23604,7 +24116,9 @@ func (obj *pgxcockroachImpl) Get_StoragenodePaystub_By_NodeId_And_Period(ctx con
 func (obj *pgxcockroachImpl) All_StoragenodePaystub_By_NodeId(ctx context.Context,
 	storagenode_paystub_node_id StoragenodePaystub_NodeId_Field) (
 	rows []*StoragenodePaystub, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storagenode_paystubs.period, storagenode_paystubs.node_id, storagenode_paystubs.created_at, storagenode_paystubs.codes, storagenode_paystubs.usage_at_rest, storagenode_paystubs.usage_get, storagenode_paystubs.usage_put, storagenode_paystubs.usage_get_repair, storagenode_paystubs.usage_put_repair, storagenode_paystubs.usage_get_audit, storagenode_paystubs.comp_at_rest, storagenode_paystubs.comp_get, storagenode_paystubs.comp_put, storagenode_paystubs.comp_get_repair, storagenode_paystubs.comp_put_repair, storagenode_paystubs.comp_get_audit, storagenode_paystubs.surge_percent, storagenode_paystubs.held, storagenode_paystubs.owed, storagenode_paystubs.disposed, storagenode_paystubs.paid, storagenode_paystubs.distributed FROM storagenode_paystubs WHERE storagenode_paystubs.node_id = ?")
 
@@ -23651,7 +24165,9 @@ func (obj *pgxcockroachImpl) Limited_StoragenodePayment_By_NodeId_And_Period_Ord
 	storagenode_payment_period StoragenodePayment_Period_Field,
 	limit int, offset int64) (
 	rows []*StoragenodePayment, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storagenode_payments.id, storagenode_payments.created_at, storagenode_payments.node_id, storagenode_payments.period, storagenode_payments.amount, storagenode_payments.receipt, storagenode_payments.notes FROM storagenode_payments WHERE storagenode_payments.node_id = ? AND storagenode_payments.period = ? ORDER BY storagenode_payments.id DESC LIMIT ? OFFSET ?")
 
@@ -23699,7 +24215,9 @@ func (obj *pgxcockroachImpl) Limited_StoragenodePayment_By_NodeId_And_Period_Ord
 func (obj *pgxcockroachImpl) All_StoragenodePayment_By_NodeId(ctx context.Context,
 	storagenode_payment_node_id StoragenodePayment_NodeId_Field) (
 	rows []*StoragenodePayment, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storagenode_payments.id, storagenode_payments.created_at, storagenode_payments.node_id, storagenode_payments.period, storagenode_payments.amount, storagenode_payments.receipt, storagenode_payments.notes FROM storagenode_payments WHERE storagenode_payments.node_id = ?")
 
@@ -23745,7 +24263,9 @@ func (obj *pgxcockroachImpl) All_StoragenodePayment_By_NodeId_And_Period(ctx con
 	storagenode_payment_node_id StoragenodePayment_NodeId_Field,
 	storagenode_payment_period StoragenodePayment_Period_Field) (
 	rows []*StoragenodePayment, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storagenode_payments.id, storagenode_payments.created_at, storagenode_payments.node_id, storagenode_payments.period, storagenode_payments.amount, storagenode_payments.receipt, storagenode_payments.notes FROM storagenode_payments WHERE storagenode_payments.node_id = ? AND storagenode_payments.period = ?")
 
@@ -23790,7 +24310,9 @@ func (obj *pgxcockroachImpl) All_StoragenodePayment_By_NodeId_And_Period(ctx con
 func (obj *pgxcockroachImpl) Get_PeerIdentity_By_NodeId(ctx context.Context,
 	peer_identity_node_id PeerIdentity_NodeId_Field) (
 	peer_identity *PeerIdentity, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT peer_identities.node_id, peer_identities.leaf_serial_number, peer_identities.chain, peer_identities.updated_at FROM peer_identities WHERE peer_identities.node_id = ?")
 
@@ -23812,7 +24334,9 @@ func (obj *pgxcockroachImpl) Get_PeerIdentity_By_NodeId(ctx context.Context,
 func (obj *pgxcockroachImpl) Get_PeerIdentity_LeafSerialNumber_By_NodeId(ctx context.Context,
 	peer_identity_node_id PeerIdentity_NodeId_Field) (
 	row *LeafSerialNumber_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT peer_identities.leaf_serial_number FROM peer_identities WHERE peer_identities.node_id = ?")
 
@@ -23834,7 +24358,9 @@ func (obj *pgxcockroachImpl) Get_PeerIdentity_LeafSerialNumber_By_NodeId(ctx con
 func (obj *pgxcockroachImpl) Get_RegistrationToken_By_Secret(ctx context.Context,
 	registration_token_secret RegistrationToken_Secret_Field) (
 	registration_token *RegistrationToken, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT registration_tokens.secret, registration_tokens.owner_id, registration_tokens.project_limit, registration_tokens.created_at FROM registration_tokens WHERE registration_tokens.secret = ?")
 
@@ -23856,7 +24382,9 @@ func (obj *pgxcockroachImpl) Get_RegistrationToken_By_Secret(ctx context.Context
 func (obj *pgxcockroachImpl) Get_RegistrationToken_By_OwnerId(ctx context.Context,
 	registration_token_owner_id RegistrationToken_OwnerId_Field) (
 	registration_token *RegistrationToken, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __cond_0 = &__sqlbundle_Condition{Left: "registration_tokens.owner_id", Equal: true, Right: "?", Null: true}
 
@@ -23883,7 +24411,9 @@ func (obj *pgxcockroachImpl) Get_RegistrationToken_By_OwnerId(ctx context.Contex
 func (obj *pgxcockroachImpl) Get_ResetPasswordToken_By_Secret(ctx context.Context,
 	reset_password_token_secret ResetPasswordToken_Secret_Field) (
 	reset_password_token *ResetPasswordToken, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT reset_password_tokens.secret, reset_password_tokens.owner_id, reset_password_tokens.created_at FROM reset_password_tokens WHERE reset_password_tokens.secret = ?")
 
@@ -23905,7 +24435,9 @@ func (obj *pgxcockroachImpl) Get_ResetPasswordToken_By_Secret(ctx context.Contex
 func (obj *pgxcockroachImpl) Get_ResetPasswordToken_By_OwnerId(ctx context.Context,
 	reset_password_token_owner_id ResetPasswordToken_OwnerId_Field) (
 	reset_password_token *ResetPasswordToken, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT reset_password_tokens.secret, reset_password_tokens.owner_id, reset_password_tokens.created_at FROM reset_password_tokens WHERE reset_password_tokens.owner_id = ?")
 
@@ -23928,7 +24460,9 @@ func (obj *pgxcockroachImpl) Get_BucketMetainfo_By_ProjectId_And_Name(ctx contex
 	bucket_metainfo_project_id BucketMetainfo_ProjectId_Field,
 	bucket_metainfo_name BucketMetainfo_Name_Field) (
 	bucket_metainfo *BucketMetainfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bucket_metainfos.id, bucket_metainfos.project_id, bucket_metainfos.name, bucket_metainfos.partner_id, bucket_metainfos.user_agent, bucket_metainfos.path_cipher, bucket_metainfos.created_at, bucket_metainfos.default_segment_size, bucket_metainfos.default_encryption_cipher_suite, bucket_metainfos.default_encryption_block_size, bucket_metainfos.default_redundancy_algorithm, bucket_metainfos.default_redundancy_share_size, bucket_metainfos.default_redundancy_required_shares, bucket_metainfos.default_redundancy_repair_shares, bucket_metainfos.default_redundancy_optimal_shares, bucket_metainfos.default_redundancy_total_shares, bucket_metainfos.placement FROM bucket_metainfos WHERE bucket_metainfos.project_id = ? AND bucket_metainfos.name = ?")
 
@@ -23951,7 +24485,9 @@ func (obj *pgxcockroachImpl) Get_BucketMetainfo_CreatedAt_By_ProjectId_And_Name(
 	bucket_metainfo_project_id BucketMetainfo_ProjectId_Field,
 	bucket_metainfo_name BucketMetainfo_Name_Field) (
 	row *CreatedAt_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bucket_metainfos.created_at FROM bucket_metainfos WHERE bucket_metainfos.project_id = ? AND bucket_metainfos.name = ?")
 
@@ -23974,7 +24510,9 @@ func (obj *pgxcockroachImpl) Get_BucketMetainfo_Id_By_ProjectId_And_Name(ctx con
 	bucket_metainfo_project_id BucketMetainfo_ProjectId_Field,
 	bucket_metainfo_name BucketMetainfo_Name_Field) (
 	row *Id_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bucket_metainfos.id FROM bucket_metainfos WHERE bucket_metainfos.project_id = ? AND bucket_metainfos.name = ?")
 
@@ -23997,7 +24535,9 @@ func (obj *pgxcockroachImpl) Get_BucketMetainfo_Placement_By_ProjectId_And_Name(
 	bucket_metainfo_project_id BucketMetainfo_ProjectId_Field,
 	bucket_metainfo_name BucketMetainfo_Name_Field) (
 	row *Placement_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bucket_metainfos.placement FROM bucket_metainfos WHERE bucket_metainfos.project_id = ? AND bucket_metainfos.name = ?")
 
@@ -24020,7 +24560,9 @@ func (obj *pgxcockroachImpl) Has_BucketMetainfo_By_ProjectId_And_Name(ctx contex
 	bucket_metainfo_project_id BucketMetainfo_ProjectId_Field,
 	bucket_metainfo_name BucketMetainfo_Name_Field) (
 	has bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT EXISTS( SELECT 1 FROM bucket_metainfos WHERE bucket_metainfos.project_id = ? AND bucket_metainfos.name = ? )")
 
@@ -24043,7 +24585,9 @@ func (obj *pgxcockroachImpl) Limited_BucketMetainfo_By_ProjectId_And_Name_Greate
 	bucket_metainfo_name_greater_or_equal BucketMetainfo_Name_Field,
 	limit int, offset int64) (
 	rows []*BucketMetainfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bucket_metainfos.id, bucket_metainfos.project_id, bucket_metainfos.name, bucket_metainfos.partner_id, bucket_metainfos.user_agent, bucket_metainfos.path_cipher, bucket_metainfos.created_at, bucket_metainfos.default_segment_size, bucket_metainfos.default_encryption_cipher_suite, bucket_metainfos.default_encryption_block_size, bucket_metainfos.default_redundancy_algorithm, bucket_metainfos.default_redundancy_share_size, bucket_metainfos.default_redundancy_required_shares, bucket_metainfos.default_redundancy_repair_shares, bucket_metainfos.default_redundancy_optimal_shares, bucket_metainfos.default_redundancy_total_shares, bucket_metainfos.placement FROM bucket_metainfos WHERE bucket_metainfos.project_id = ? AND bucket_metainfos.name >= ? ORDER BY bucket_metainfos.name LIMIT ? OFFSET ?")
 
@@ -24093,7 +24637,9 @@ func (obj *pgxcockroachImpl) Limited_BucketMetainfo_By_ProjectId_And_Name_Greate
 	bucket_metainfo_name_greater BucketMetainfo_Name_Field,
 	limit int, offset int64) (
 	rows []*BucketMetainfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT bucket_metainfos.id, bucket_metainfos.project_id, bucket_metainfos.name, bucket_metainfos.partner_id, bucket_metainfos.user_agent, bucket_metainfos.path_cipher, bucket_metainfos.created_at, bucket_metainfos.default_segment_size, bucket_metainfos.default_encryption_cipher_suite, bucket_metainfos.default_encryption_block_size, bucket_metainfos.default_redundancy_algorithm, bucket_metainfos.default_redundancy_share_size, bucket_metainfos.default_redundancy_required_shares, bucket_metainfos.default_redundancy_repair_shares, bucket_metainfos.default_redundancy_optimal_shares, bucket_metainfos.default_redundancy_total_shares, bucket_metainfos.placement FROM bucket_metainfos WHERE bucket_metainfos.project_id = ? AND bucket_metainfos.name > ? ORDER BY bucket_metainfos.name LIMIT ? OFFSET ?")
 
@@ -24141,7 +24687,9 @@ func (obj *pgxcockroachImpl) Limited_BucketMetainfo_By_ProjectId_And_Name_Greate
 func (obj *pgxcockroachImpl) Count_BucketMetainfo_Name_By_ProjectId(ctx context.Context,
 	bucket_metainfo_project_id BucketMetainfo_ProjectId_Field) (
 	count int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT COUNT(*) FROM bucket_metainfos WHERE bucket_metainfos.project_id = ?")
 
@@ -24163,7 +24711,9 @@ func (obj *pgxcockroachImpl) Count_BucketMetainfo_Name_By_ProjectId(ctx context.
 func (obj *pgxcockroachImpl) Get_GracefulExitProgress_By_NodeId(ctx context.Context,
 	graceful_exit_progress_node_id GracefulExitProgress_NodeId_Field) (
 	graceful_exit_progress *GracefulExitProgress, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT graceful_exit_progress.node_id, graceful_exit_progress.bytes_transferred, graceful_exit_progress.pieces_transferred, graceful_exit_progress.pieces_failed, graceful_exit_progress.updated_at FROM graceful_exit_progress WHERE graceful_exit_progress.node_id = ?")
 
@@ -24188,7 +24738,9 @@ func (obj *pgxcockroachImpl) Get_GracefulExitSegmentTransfer_By_NodeId_And_Strea
 	graceful_exit_segment_transfer_position GracefulExitSegmentTransfer_Position_Field,
 	graceful_exit_segment_transfer_piece_num GracefulExitSegmentTransfer_PieceNum_Field) (
 	graceful_exit_segment_transfer *GracefulExitSegmentTransfer, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT graceful_exit_segment_transfer_queue.node_id, graceful_exit_segment_transfer_queue.stream_id, graceful_exit_segment_transfer_queue.position, graceful_exit_segment_transfer_queue.piece_num, graceful_exit_segment_transfer_queue.root_piece_id, graceful_exit_segment_transfer_queue.durability_ratio, graceful_exit_segment_transfer_queue.queued_at, graceful_exit_segment_transfer_queue.requested_at, graceful_exit_segment_transfer_queue.last_failed_at, graceful_exit_segment_transfer_queue.last_failed_code, graceful_exit_segment_transfer_queue.failed_count, graceful_exit_segment_transfer_queue.finished_at, graceful_exit_segment_transfer_queue.order_limit_send_count FROM graceful_exit_segment_transfer_queue WHERE graceful_exit_segment_transfer_queue.node_id = ? AND graceful_exit_segment_transfer_queue.stream_id = ? AND graceful_exit_segment_transfer_queue.position = ? AND graceful_exit_segment_transfer_queue.piece_num = ?")
 
@@ -24210,7 +24762,9 @@ func (obj *pgxcockroachImpl) Get_GracefulExitSegmentTransfer_By_NodeId_And_Strea
 func (obj *pgxcockroachImpl) Get_StripeCustomer_CustomerId_By_UserId(ctx context.Context,
 	stripe_customer_user_id StripeCustomer_UserId_Field) (
 	row *CustomerId_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT stripe_customers.customer_id FROM stripe_customers WHERE stripe_customers.user_id = ?")
 
@@ -24233,7 +24787,9 @@ func (obj *pgxcockroachImpl) Limited_StripeCustomer_By_CreatedAt_LessOrEqual_Ord
 	stripe_customer_created_at_less_or_equal StripeCustomer_CreatedAt_Field,
 	limit int, offset int64) (
 	rows []*StripeCustomer, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT stripe_customers.user_id, stripe_customers.customer_id, stripe_customers.created_at FROM stripe_customers WHERE stripe_customers.created_at <= ? ORDER BY stripe_customers.created_at DESC LIMIT ? OFFSET ?")
 
@@ -24281,7 +24837,9 @@ func (obj *pgxcockroachImpl) Limited_StripeCustomer_By_CreatedAt_LessOrEqual_Ord
 func (obj *pgxcockroachImpl) Get_BillingBalance_Balance_By_UserId(ctx context.Context,
 	billing_balance_user_id BillingBalance_UserId_Field) (
 	row *Balance_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT billing_balances.balance FROM billing_balances WHERE billing_balances.user_id = ?")
 
@@ -24303,7 +24861,9 @@ func (obj *pgxcockroachImpl) Get_BillingBalance_Balance_By_UserId(ctx context.Co
 func (obj *pgxcockroachImpl) Get_BillingTransaction_Metadata_By_Id(ctx context.Context,
 	billing_transaction_id BillingTransaction_Id_Field) (
 	row *Metadata_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT billing_transactions.metadata FROM billing_transactions WHERE billing_transactions.id = ?")
 
@@ -24325,7 +24885,9 @@ func (obj *pgxcockroachImpl) Get_BillingTransaction_Metadata_By_Id(ctx context.C
 func (obj *pgxcockroachImpl) All_BillingTransaction_By_UserId_OrderBy_Desc_Timestamp(ctx context.Context,
 	billing_transaction_user_id BillingTransaction_UserId_Field) (
 	rows []*BillingTransaction, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT billing_transactions.id, billing_transactions.user_id, billing_transactions.amount, billing_transactions.currency, billing_transactions.description, billing_transactions.source, billing_transactions.status, billing_transactions.type, billing_transactions.metadata, billing_transactions.timestamp, billing_transactions.created_at FROM billing_transactions WHERE billing_transactions.user_id = ? ORDER BY billing_transactions.timestamp DESC")
 
@@ -24371,7 +24933,9 @@ func (obj *pgxcockroachImpl) First_BillingTransaction_By_Source_And_Type_OrderBy
 	billing_transaction_source BillingTransaction_Source_Field,
 	billing_transaction_type BillingTransaction_Type_Field) (
 	billing_transaction *BillingTransaction, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT billing_transactions.id, billing_transactions.user_id, billing_transactions.amount, billing_transactions.currency, billing_transactions.description, billing_transactions.source, billing_transactions.status, billing_transactions.type, billing_transactions.metadata, billing_transactions.timestamp, billing_transactions.created_at FROM billing_transactions WHERE billing_transactions.source = ? AND billing_transactions.type = ? ORDER BY billing_transactions.created_at DESC LIMIT 1 OFFSET 0")
 
@@ -24418,7 +24982,9 @@ func (obj *pgxcockroachImpl) First_BillingTransaction_By_Source_And_Type_OrderBy
 func (obj *pgxcockroachImpl) Get_StorjscanWallet_UserId_By_WalletAddress(ctx context.Context,
 	storjscan_wallet_wallet_address StorjscanWallet_WalletAddress_Field) (
 	row *UserId_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storjscan_wallets.user_id FROM storjscan_wallets WHERE storjscan_wallets.wallet_address = ? LIMIT 2")
 
@@ -24476,7 +25042,9 @@ func (obj *pgxcockroachImpl) Get_StorjscanWallet_UserId_By_WalletAddress(ctx con
 func (obj *pgxcockroachImpl) Get_StorjscanWallet_WalletAddress_By_UserId(ctx context.Context,
 	storjscan_wallet_user_id StorjscanWallet_UserId_Field) (
 	row *WalletAddress_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storjscan_wallets.wallet_address FROM storjscan_wallets WHERE storjscan_wallets.user_id = ? LIMIT 2")
 
@@ -24533,7 +25101,9 @@ func (obj *pgxcockroachImpl) Get_StorjscanWallet_WalletAddress_By_UserId(ctx con
 
 func (obj *pgxcockroachImpl) All_StorjscanWallet(ctx context.Context) (
 	rows []*StorjscanWallet, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storjscan_wallets.user_id, storjscan_wallets.wallet_address, storjscan_wallets.created_at FROM storjscan_wallets")
 
@@ -24577,7 +25147,9 @@ func (obj *pgxcockroachImpl) All_StorjscanWallet(ctx context.Context) (
 func (obj *pgxcockroachImpl) All_CoinpaymentsTransaction_By_UserId_OrderBy_Desc_CreatedAt(ctx context.Context,
 	coinpayments_transaction_user_id CoinpaymentsTransaction_UserId_Field) (
 	rows []*CoinpaymentsTransaction, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT coinpayments_transactions.id, coinpayments_transactions.user_id, coinpayments_transactions.address, coinpayments_transactions.amount_numeric, coinpayments_transactions.received_numeric, coinpayments_transactions.status, coinpayments_transactions.key, coinpayments_transactions.timeout, coinpayments_transactions.created_at FROM coinpayments_transactions WHERE coinpayments_transactions.user_id = ? ORDER BY coinpayments_transactions.created_at DESC")
 
@@ -24624,7 +25196,9 @@ func (obj *pgxcockroachImpl) Get_StripecoinpaymentsInvoiceProjectRecord_By_Proje
 	stripecoinpayments_invoice_project_record_period_start StripecoinpaymentsInvoiceProjectRecord_PeriodStart_Field,
 	stripecoinpayments_invoice_project_record_period_end StripecoinpaymentsInvoiceProjectRecord_PeriodEnd_Field) (
 	stripecoinpayments_invoice_project_record *StripecoinpaymentsInvoiceProjectRecord, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT stripecoinpayments_invoice_project_records.id, stripecoinpayments_invoice_project_records.project_id, stripecoinpayments_invoice_project_records.storage, stripecoinpayments_invoice_project_records.egress, stripecoinpayments_invoice_project_records.objects, stripecoinpayments_invoice_project_records.segments, stripecoinpayments_invoice_project_records.period_start, stripecoinpayments_invoice_project_records.period_end, stripecoinpayments_invoice_project_records.state, stripecoinpayments_invoice_project_records.created_at FROM stripecoinpayments_invoice_project_records WHERE stripecoinpayments_invoice_project_records.project_id = ? AND stripecoinpayments_invoice_project_records.period_start = ? AND stripecoinpayments_invoice_project_records.period_end = ?")
 
@@ -24649,7 +25223,9 @@ func (obj *pgxcockroachImpl) Limited_StripecoinpaymentsInvoiceProjectRecord_By_P
 	stripecoinpayments_invoice_project_record_state StripecoinpaymentsInvoiceProjectRecord_State_Field,
 	limit int, offset int64) (
 	rows []*StripecoinpaymentsInvoiceProjectRecord, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT stripecoinpayments_invoice_project_records.id, stripecoinpayments_invoice_project_records.project_id, stripecoinpayments_invoice_project_records.storage, stripecoinpayments_invoice_project_records.egress, stripecoinpayments_invoice_project_records.objects, stripecoinpayments_invoice_project_records.segments, stripecoinpayments_invoice_project_records.period_start, stripecoinpayments_invoice_project_records.period_end, stripecoinpayments_invoice_project_records.state, stripecoinpayments_invoice_project_records.created_at FROM stripecoinpayments_invoice_project_records WHERE stripecoinpayments_invoice_project_records.period_start = ? AND stripecoinpayments_invoice_project_records.period_end = ? AND stripecoinpayments_invoice_project_records.state = ? LIMIT ? OFFSET ?")
 
@@ -24697,7 +25273,9 @@ func (obj *pgxcockroachImpl) Limited_StripecoinpaymentsInvoiceProjectRecord_By_P
 func (obj *pgxcockroachImpl) Get_StripecoinpaymentsTxConversionRate_By_TxId(ctx context.Context,
 	stripecoinpayments_tx_conversion_rate_tx_id StripecoinpaymentsTxConversionRate_TxId_Field) (
 	stripecoinpayments_tx_conversion_rate *StripecoinpaymentsTxConversionRate, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT stripecoinpayments_tx_conversion_rates.tx_id, stripecoinpayments_tx_conversion_rates.rate_numeric, stripecoinpayments_tx_conversion_rates.created_at FROM stripecoinpayments_tx_conversion_rates WHERE stripecoinpayments_tx_conversion_rates.tx_id = ?")
 
@@ -24719,7 +25297,9 @@ func (obj *pgxcockroachImpl) Get_StripecoinpaymentsTxConversionRate_By_TxId(ctx 
 func (obj *pgxcockroachImpl) Get_CouponCode_By_Name(ctx context.Context,
 	coupon_code_name CouponCode_Name_Field) (
 	coupon_code *CouponCode, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT coupon_codes.id, coupon_codes.name, coupon_codes.amount, coupon_codes.description, coupon_codes.type, coupon_codes.billing_periods, coupon_codes.created_at FROM coupon_codes WHERE coupon_codes.name = ?")
 
@@ -24741,7 +25321,9 @@ func (obj *pgxcockroachImpl) Get_CouponCode_By_Name(ctx context.Context,
 func (obj *pgxcockroachImpl) Get_Coupon_By_Id(ctx context.Context,
 	coupon_id Coupon_Id_Field) (
 	coupon *Coupon, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT coupons.id, coupons.user_id, coupons.amount, coupons.description, coupons.type, coupons.status, coupons.duration, coupons.billing_periods, coupons.coupon_code_name, coupons.created_at FROM coupons WHERE coupons.id = ?")
 
@@ -24763,7 +25345,9 @@ func (obj *pgxcockroachImpl) Get_Coupon_By_Id(ctx context.Context,
 func (obj *pgxcockroachImpl) All_Coupon_By_UserId_OrderBy_Desc_CreatedAt(ctx context.Context,
 	coupon_user_id Coupon_UserId_Field) (
 	rows []*Coupon, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT coupons.id, coupons.user_id, coupons.amount, coupons.description, coupons.type, coupons.status, coupons.duration, coupons.billing_periods, coupons.coupon_code_name, coupons.created_at FROM coupons WHERE coupons.user_id = ? ORDER BY coupons.created_at DESC")
 
@@ -24809,7 +25393,9 @@ func (obj *pgxcockroachImpl) All_Coupon_By_UserId_And_Status_OrderBy_Desc_Create
 	coupon_user_id Coupon_UserId_Field,
 	coupon_status Coupon_Status_Field) (
 	rows []*Coupon, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT coupons.id, coupons.user_id, coupons.amount, coupons.description, coupons.type, coupons.status, coupons.duration, coupons.billing_periods, coupons.coupon_code_name, coupons.created_at FROM coupons WHERE coupons.user_id = ? AND coupons.status = ? ORDER BY coupons.created_at DESC")
 
@@ -24854,7 +25440,9 @@ func (obj *pgxcockroachImpl) All_Coupon_By_UserId_And_Status_OrderBy_Desc_Create
 func (obj *pgxcockroachImpl) All_Coupon_By_Status_OrderBy_Desc_CreatedAt(ctx context.Context,
 	coupon_status Coupon_Status_Field) (
 	rows []*Coupon, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT coupons.id, coupons.user_id, coupons.amount, coupons.description, coupons.type, coupons.status, coupons.duration, coupons.billing_periods, coupons.coupon_code_name, coupons.created_at FROM coupons WHERE coupons.status = ? ORDER BY coupons.created_at DESC")
 
@@ -24901,7 +25489,9 @@ func (obj *pgxcockroachImpl) Limited_Coupon_By_CreatedAt_LessOrEqual_And_Status_
 	coupon_status Coupon_Status_Field,
 	limit int, offset int64) (
 	rows []*Coupon, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT coupons.id, coupons.user_id, coupons.amount, coupons.description, coupons.type, coupons.status, coupons.duration, coupons.billing_periods, coupons.coupon_code_name, coupons.created_at FROM coupons WHERE coupons.created_at <= ? AND coupons.status = ? ORDER BY coupons.created_at DESC LIMIT ? OFFSET ?")
 
@@ -24950,7 +25540,9 @@ func (obj *pgxcockroachImpl) Limited_CouponUsage_By_Period_And_Status_Equal_Numb
 	coupon_usage_period CouponUsage_Period_Field,
 	limit int, offset int64) (
 	rows []*CouponUsage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT coupon_usages.coupon_id, coupon_usages.amount, coupon_usages.status, coupon_usages.period FROM coupon_usages WHERE coupon_usages.period = ? AND coupon_usages.status = 0 LIMIT ? OFFSET ?")
 
@@ -24997,7 +25589,9 @@ func (obj *pgxcockroachImpl) Limited_CouponUsage_By_Period_And_Status_Equal_Numb
 
 func (obj *pgxcockroachImpl) All_StorjscanPayment_OrderBy_Asc_BlockNumber_Asc_LogIndex(ctx context.Context) (
 	rows []*StorjscanPayment, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storjscan_payments.block_hash, storjscan_payments.block_number, storjscan_payments.transaction, storjscan_payments.log_index, storjscan_payments.from_address, storjscan_payments.to_address, storjscan_payments.token_value, storjscan_payments.usd_value, storjscan_payments.status, storjscan_payments.timestamp, storjscan_payments.created_at FROM storjscan_payments ORDER BY storjscan_payments.block_number, storjscan_payments.log_index")
 
@@ -25042,7 +25636,9 @@ func (obj *pgxcockroachImpl) Limited_StorjscanPayment_By_ToAddress_OrderBy_Desc_
 	storjscan_payment_to_address StorjscanPayment_ToAddress_Field,
 	limit int, offset int64) (
 	rows []*StorjscanPayment, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storjscan_payments.block_hash, storjscan_payments.block_number, storjscan_payments.transaction, storjscan_payments.log_index, storjscan_payments.from_address, storjscan_payments.to_address, storjscan_payments.token_value, storjscan_payments.usd_value, storjscan_payments.status, storjscan_payments.timestamp, storjscan_payments.created_at FROM storjscan_payments WHERE storjscan_payments.to_address = ? ORDER BY storjscan_payments.block_number DESC, storjscan_payments.log_index DESC LIMIT ? OFFSET ?")
 
@@ -25090,7 +25686,9 @@ func (obj *pgxcockroachImpl) Limited_StorjscanPayment_By_ToAddress_OrderBy_Desc_
 func (obj *pgxcockroachImpl) First_StorjscanPayment_BlockNumber_By_Status_OrderBy_Desc_BlockNumber_Desc_LogIndex(ctx context.Context,
 	storjscan_payment_status StorjscanPayment_Status_Field) (
 	row *BlockNumber_Row, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT storjscan_payments.block_number FROM storjscan_payments WHERE storjscan_payments.status = ? ORDER BY storjscan_payments.block_number DESC, storjscan_payments.log_index DESC LIMIT 1 OFFSET 0")
 
@@ -25138,7 +25736,9 @@ func (obj *pgxcockroachImpl) Has_NodeApiVersion_By_Id_And_ApiVersion_GreaterOrEq
 	node_api_version_id NodeApiVersion_Id_Field,
 	node_api_version_api_version_greater_or_equal NodeApiVersion_ApiVersion_Field) (
 	has bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT EXISTS( SELECT 1 FROM node_api_versions WHERE node_api_versions.id = ? AND node_api_versions.api_version >= ? )")
 
@@ -25159,7 +25759,9 @@ func (obj *pgxcockroachImpl) Has_NodeApiVersion_By_Id_And_ApiVersion_GreaterOrEq
 func (obj *pgxcockroachImpl) Get_OauthClient_By_Id(ctx context.Context,
 	oauth_client_id OauthClient_Id_Field) (
 	oauth_client *OauthClient, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT oauth_clients.id, oauth_clients.encrypted_secret, oauth_clients.redirect_url, oauth_clients.user_id, oauth_clients.app_name, oauth_clients.app_logo_url FROM oauth_clients WHERE oauth_clients.id = ?")
 
@@ -25181,7 +25783,9 @@ func (obj *pgxcockroachImpl) Get_OauthClient_By_Id(ctx context.Context,
 func (obj *pgxcockroachImpl) Get_OauthCode_By_Code_And_ClaimedAt_Is_Null(ctx context.Context,
 	oauth_code_code OauthCode_Code_Field) (
 	oauth_code *OauthCode, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT oauth_codes.client_id, oauth_codes.user_id, oauth_codes.scope, oauth_codes.redirect_url, oauth_codes.challenge, oauth_codes.challenge_method, oauth_codes.code, oauth_codes.created_at, oauth_codes.expires_at, oauth_codes.claimed_at FROM oauth_codes WHERE oauth_codes.code = ? AND oauth_codes.claimed_at is NULL")
 
@@ -25204,7 +25808,9 @@ func (obj *pgxcockroachImpl) Get_OauthToken_By_Kind_And_Token(ctx context.Contex
 	oauth_token_kind OauthToken_Kind_Field,
 	oauth_token_token OauthToken_Token_Field) (
 	oauth_token *OauthToken, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT oauth_tokens.client_id, oauth_tokens.user_id, oauth_tokens.scope, oauth_tokens.kind, oauth_tokens.token, oauth_tokens.created_at, oauth_tokens.expires_at FROM oauth_tokens WHERE oauth_tokens.kind = ? AND oauth_tokens.token = ?")
 
@@ -25227,7 +25833,9 @@ func (obj *pgxcockroachImpl) UpdateNoReturn_AccountingTimestamps_By_Name(ctx con
 	accounting_timestamps_name AccountingTimestamps_Name_Field,
 	update AccountingTimestamps_Update_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE accounting_timestamps SET "), __sets, __sqlbundle_Literal(" WHERE accounting_timestamps.name = ?")}}
@@ -25264,7 +25872,9 @@ func (obj *pgxcockroachImpl) Update_Node_By_Id(ctx context.Context,
 	node_id Node_Id_Field,
 	update Node_Update_Fields) (
 	node *Node, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE nodes SET "), __sets, __sqlbundle_Literal(" WHERE nodes.id = ? RETURNING nodes.id, nodes.address, nodes.last_net, nodes.last_ip_port, nodes.country_code, nodes.protocol, nodes.type, nodes.email, nodes.wallet, nodes.wallet_features, nodes.free_disk, nodes.piece_count, nodes.major, nodes.minor, nodes.patch, nodes.hash, nodes.timestamp, nodes.release, nodes.latency_90, nodes.vetted_at, nodes.created_at, nodes.updated_at, nodes.last_contact_success, nodes.last_contact_failure, nodes.disqualified, nodes.disqualification_reason, nodes.unknown_audit_suspended, nodes.offline_suspended, nodes.under_review, nodes.exit_initiated_at, nodes.exit_loop_completed_at, nodes.exit_finished_at, nodes.exit_success, nodes.contained, nodes.last_offline_email, nodes.last_software_update_email")}}
@@ -25466,7 +26076,9 @@ func (obj *pgxcockroachImpl) UpdateNoReturn_Node_By_Id(ctx context.Context,
 	node_id Node_Id_Field,
 	update Node_Update_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE nodes SET "), __sets, __sqlbundle_Literal(" WHERE nodes.id = ?")}}
@@ -25664,7 +26276,9 @@ func (obj *pgxcockroachImpl) UpdateNoReturn_Node_By_Id_And_Disqualified_Is_Null_
 	node_id Node_Id_Field,
 	update Node_Update_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE nodes SET "), __sets, __sqlbundle_Literal(" WHERE nodes.id = ? AND nodes.disqualified is NULL AND nodes.exit_finished_at is NULL")}}
@@ -25862,7 +26476,9 @@ func (obj *pgxcockroachImpl) Update_Reputation_By_Id(ctx context.Context,
 	reputation_id Reputation_Id_Field,
 	update Reputation_Update_Fields) (
 	reputation *Reputation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE reputations SET "), __sets, __sqlbundle_Literal(" WHERE reputations.id = ? RETURNING reputations.id, reputations.audit_success_count, reputations.total_audit_count, reputations.vetted_at, reputations.created_at, reputations.updated_at, reputations.disqualified, reputations.disqualification_reason, reputations.unknown_audit_suspended, reputations.offline_suspended, reputations.under_review, reputations.online_score, reputations.audit_history, reputations.audit_reputation_alpha, reputations.audit_reputation_beta, reputations.unknown_audit_reputation_alpha, reputations.unknown_audit_reputation_beta")}}
@@ -25970,7 +26586,9 @@ func (obj *pgxcockroachImpl) Update_Reputation_By_Id_And_AuditHistory(ctx contex
 	reputation_audit_history Reputation_AuditHistory_Field,
 	update Reputation_Update_Fields) (
 	reputation *Reputation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE reputations SET "), __sets, __sqlbundle_Literal(" WHERE reputations.id = ? AND reputations.audit_history = ? RETURNING reputations.id, reputations.audit_success_count, reputations.total_audit_count, reputations.vetted_at, reputations.created_at, reputations.updated_at, reputations.disqualified, reputations.disqualification_reason, reputations.unknown_audit_suspended, reputations.offline_suspended, reputations.under_review, reputations.online_score, reputations.audit_history, reputations.audit_reputation_alpha, reputations.audit_reputation_beta, reputations.unknown_audit_reputation_alpha, reputations.unknown_audit_reputation_beta")}}
@@ -26077,7 +26695,9 @@ func (obj *pgxcockroachImpl) UpdateNoReturn_Reputation_By_Id(ctx context.Context
 	reputation_id Reputation_Id_Field,
 	update Reputation_Update_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE reputations SET "), __sets, __sqlbundle_Literal(" WHERE reputations.id = ?")}}
@@ -26180,7 +26800,9 @@ func (obj *pgxcockroachImpl) Update_User_By_Id(ctx context.Context,
 	user_id User_Id_Field,
 	update User_Update_Fields) (
 	user *User, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE users SET "), __sets, __sqlbundle_Literal(" WHERE users.id = ? RETURNING users.id, users.email, users.normalized_email, users.full_name, users.short_name, users.password_hash, users.status, users.partner_id, users.user_agent, users.created_at, users.project_limit, users.project_bandwidth_limit, users.project_storage_limit, users.project_segment_limit, users.paid_tier, users.position, users.company_name, users.company_size, users.working_on, users.is_professional, users.employee_count, users.have_sales_contact, users.mfa_enabled, users.mfa_secret_key, users.mfa_recovery_codes, users.signup_promo_code, users.last_verification_reminder, users.verification_reminders, users.failed_login_count, users.login_lockout_expiration, users.signup_captcha")}}
@@ -26346,7 +26968,9 @@ func (obj *pgxcockroachImpl) Update_WebappSession_By_Id(ctx context.Context,
 	webapp_session_id WebappSession_Id_Field,
 	update WebappSession_Update_Fields) (
 	webapp_session *WebappSession, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE webapp_sessions SET "), __sets, __sqlbundle_Literal(" WHERE webapp_sessions.id = ? RETURNING webapp_sessions.id, webapp_sessions.user_id, webapp_sessions.ip_address, webapp_sessions.user_agent, webapp_sessions.status, webapp_sessions.expires_at")}}
@@ -26392,7 +27016,9 @@ func (obj *pgxcockroachImpl) Update_Project_By_Id(ctx context.Context,
 	project_id Project_Id_Field,
 	update Project_Update_Fields) (
 	project *Project, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE projects SET "), __sets, __sqlbundle_Literal(" WHERE projects.id = ? RETURNING projects.id, projects.public_id, projects.name, projects.description, projects.usage_limit, projects.bandwidth_limit, projects.user_specified_usage_limit, projects.user_specified_bandwidth_limit, projects.segment_limit, projects.rate_limit, projects.burst_limit, projects.max_buckets, projects.partner_id, projects.user_agent, projects.owner_id, projects.salt, projects.created_at")}}
@@ -26478,7 +27104,9 @@ func (obj *pgxcockroachImpl) UpdateNoReturn_ApiKey_By_Id(ctx context.Context,
 	api_key_id ApiKey_Id_Field,
 	update ApiKey_Update_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE api_keys SET "), __sets, __sqlbundle_Literal(" WHERE api_keys.id = ?")}}
@@ -26515,7 +27143,9 @@ func (obj *pgxcockroachImpl) UpdateNoReturn_PeerIdentity_By_NodeId(ctx context.C
 	peer_identity_node_id PeerIdentity_NodeId_Field,
 	update PeerIdentity_Update_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE peer_identities SET "), __sets, __sqlbundle_Literal(" WHERE peer_identities.node_id = ?")}}
@@ -26558,7 +27188,9 @@ func (obj *pgxcockroachImpl) Update_RegistrationToken_By_Secret(ctx context.Cont
 	registration_token_secret RegistrationToken_Secret_Field,
 	update RegistrationToken_Update_Fields) (
 	registration_token *RegistrationToken, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE registration_tokens SET "), __sets, __sqlbundle_Literal(" WHERE registration_tokens.secret = ? RETURNING registration_tokens.secret, registration_tokens.owner_id, registration_tokens.project_limit, registration_tokens.created_at")}}
@@ -26600,7 +27232,9 @@ func (obj *pgxcockroachImpl) Update_BucketMetainfo_By_ProjectId_And_Name(ctx con
 	bucket_metainfo_name BucketMetainfo_Name_Field,
 	update BucketMetainfo_Update_Fields) (
 	bucket_metainfo *BucketMetainfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE bucket_metainfos SET "), __sets, __sqlbundle_Literal(" WHERE bucket_metainfos.project_id = ? AND bucket_metainfos.name = ? RETURNING bucket_metainfos.id, bucket_metainfos.project_id, bucket_metainfos.name, bucket_metainfos.partner_id, bucket_metainfos.user_agent, bucket_metainfos.path_cipher, bucket_metainfos.created_at, bucket_metainfos.default_segment_size, bucket_metainfos.default_encryption_cipher_suite, bucket_metainfos.default_encryption_block_size, bucket_metainfos.default_redundancy_algorithm, bucket_metainfos.default_redundancy_share_size, bucket_metainfos.default_redundancy_required_shares, bucket_metainfos.default_redundancy_repair_shares, bucket_metainfos.default_redundancy_optimal_shares, bucket_metainfos.default_redundancy_total_shares, bucket_metainfos.placement")}}
@@ -26699,7 +27333,9 @@ func (obj *pgxcockroachImpl) UpdateNoReturn_GracefulExitSegmentTransfer_By_NodeI
 	graceful_exit_segment_transfer_piece_num GracefulExitSegmentTransfer_PieceNum_Field,
 	update GracefulExitSegmentTransfer_Update_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE graceful_exit_segment_transfer_queue SET "), __sets, __sqlbundle_Literal(" WHERE graceful_exit_segment_transfer_queue.node_id = ? AND graceful_exit_segment_transfer_queue.stream_id = ? AND graceful_exit_segment_transfer_queue.position = ? AND graceful_exit_segment_transfer_queue.piece_num = ?")}}
@@ -26767,7 +27403,9 @@ func (obj *pgxcockroachImpl) Update_BillingBalance_By_UserId_And_Balance(ctx con
 	billing_balance_balance BillingBalance_Balance_Field,
 	update BillingBalance_Update_Fields) (
 	billing_balance *BillingBalance, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE billing_balances SET "), __sets, __sqlbundle_Literal(" WHERE billing_balances.user_id = ? AND billing_balances.balance = ? RETURNING billing_balances.user_id, billing_balances.balance, billing_balances.last_updated")}}
@@ -26809,7 +27447,9 @@ func (obj *pgxcockroachImpl) UpdateNoReturn_BillingTransaction_By_Id(ctx context
 	billing_transaction_id BillingTransaction_Id_Field,
 	update BillingTransaction_Update_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE billing_transactions SET "), __sets, __sqlbundle_Literal(" WHERE billing_transactions.id = ?")}}
@@ -26851,7 +27491,9 @@ func (obj *pgxcockroachImpl) Update_CoinpaymentsTransaction_By_Id(ctx context.Co
 	coinpayments_transaction_id CoinpaymentsTransaction_Id_Field,
 	update CoinpaymentsTransaction_Update_Fields) (
 	coinpayments_transaction *CoinpaymentsTransaction, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE coinpayments_transactions SET "), __sets, __sqlbundle_Literal(" WHERE coinpayments_transactions.id = ? RETURNING coinpayments_transactions.id, coinpayments_transactions.user_id, coinpayments_transactions.address, coinpayments_transactions.amount_numeric, coinpayments_transactions.received_numeric, coinpayments_transactions.status, coinpayments_transactions.key, coinpayments_transactions.timeout, coinpayments_transactions.created_at")}}
@@ -26897,7 +27539,9 @@ func (obj *pgxcockroachImpl) Update_StripecoinpaymentsInvoiceProjectRecord_By_Id
 	stripecoinpayments_invoice_project_record_id StripecoinpaymentsInvoiceProjectRecord_Id_Field,
 	update StripecoinpaymentsInvoiceProjectRecord_Update_Fields) (
 	stripecoinpayments_invoice_project_record *StripecoinpaymentsInvoiceProjectRecord, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE stripecoinpayments_invoice_project_records SET "), __sets, __sqlbundle_Literal(" WHERE stripecoinpayments_invoice_project_records.id = ? RETURNING stripecoinpayments_invoice_project_records.id, stripecoinpayments_invoice_project_records.project_id, stripecoinpayments_invoice_project_records.storage, stripecoinpayments_invoice_project_records.egress, stripecoinpayments_invoice_project_records.objects, stripecoinpayments_invoice_project_records.segments, stripecoinpayments_invoice_project_records.period_start, stripecoinpayments_invoice_project_records.period_end, stripecoinpayments_invoice_project_records.state, stripecoinpayments_invoice_project_records.created_at")}}
@@ -26938,7 +27582,9 @@ func (obj *pgxcockroachImpl) Update_Coupon_By_Id(ctx context.Context,
 	coupon_id Coupon_Id_Field,
 	update Coupon_Update_Fields) (
 	coupon *Coupon, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE coupons SET "), __sets, __sqlbundle_Literal(" WHERE coupons.id = ? RETURNING coupons.id, coupons.user_id, coupons.amount, coupons.description, coupons.type, coupons.status, coupons.duration, coupons.billing_periods, coupons.coupon_code_name, coupons.created_at")}}
@@ -26980,7 +27626,9 @@ func (obj *pgxcockroachImpl) Update_CouponUsage_By_CouponId_And_Period(ctx conte
 	coupon_usage_period CouponUsage_Period_Field,
 	update CouponUsage_Update_Fields) (
 	coupon_usage *CouponUsage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE coupon_usages SET "), __sets, __sqlbundle_Literal(" WHERE coupon_usages.coupon_id = ? AND coupon_usages.period = ? RETURNING coupon_usages.coupon_id, coupon_usages.amount, coupon_usages.status, coupon_usages.period")}}
@@ -27022,7 +27670,9 @@ func (obj *pgxcockroachImpl) UpdateNoReturn_NodeApiVersion_By_Id_And_ApiVersion_
 	node_api_version_api_version_less NodeApiVersion_ApiVersion_Field,
 	update NodeApiVersion_Update_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE node_api_versions SET "), __sets, __sqlbundle_Literal(" WHERE node_api_versions.id = ? AND node_api_versions.api_version < ?")}}
@@ -27060,7 +27710,9 @@ func (obj *pgxcockroachImpl) UpdateNoReturn_OauthClient_By_Id(ctx context.Contex
 	oauth_client_id OauthClient_Id_Field,
 	update OauthClient_Update_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE oauth_clients SET "), __sets, __sqlbundle_Literal(" WHERE oauth_clients.id = ?")}}
@@ -27112,7 +27764,9 @@ func (obj *pgxcockroachImpl) UpdateNoReturn_OauthCode_By_Code_And_ClaimedAt_Is_N
 	oauth_code_code OauthCode_Code_Field,
 	update OauthCode_Update_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE oauth_codes SET "), __sets, __sqlbundle_Literal(" WHERE oauth_codes.code = ? AND oauth_codes.claimed_at is NULL")}}
@@ -27150,7 +27804,9 @@ func (obj *pgxcockroachImpl) UpdateNoReturn_OauthToken_By_Token_And_Kind(ctx con
 	oauth_token_kind OauthToken_Kind_Field,
 	update OauthToken_Update_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE oauth_tokens SET "), __sets, __sqlbundle_Literal(" WHERE oauth_tokens.token = ? AND oauth_tokens.kind = ?")}}
@@ -27186,7 +27842,9 @@ func (obj *pgxcockroachImpl) UpdateNoReturn_OauthToken_By_Token_And_Kind(ctx con
 func (obj *pgxcockroachImpl) Delete_NodeEvent_By_CreatedAt_Less(ctx context.Context,
 	node_event_created_at_less NodeEvent_CreatedAt_Field) (
 	count int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM node_events WHERE node_events.created_at < ?")
 
@@ -27213,7 +27871,9 @@ func (obj *pgxcockroachImpl) Delete_NodeEvent_By_CreatedAt_Less(ctx context.Cont
 func (obj *pgxcockroachImpl) Delete_SegmentPendingAudits_By_NodeId(ctx context.Context,
 	segment_pending_audits_node_id SegmentPendingAudits_NodeId_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM segment_pending_audits WHERE segment_pending_audits.node_id = ?")
 
@@ -27242,7 +27902,9 @@ func (obj *pgxcockroachImpl) Delete_ReverificationAudits_By_NodeId_And_StreamId_
 	reverification_audits_stream_id ReverificationAudits_StreamId_Field,
 	reverification_audits_position ReverificationAudits_Position_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM reverification_audits WHERE reverification_audits.node_id = ? AND reverification_audits.stream_id = ? AND reverification_audits.position = ?")
 
@@ -27269,7 +27931,9 @@ func (obj *pgxcockroachImpl) Delete_ReverificationAudits_By_NodeId_And_StreamId_
 func (obj *pgxcockroachImpl) Delete_RepairQueue_By_UpdatedAt_Less(ctx context.Context,
 	repair_queue_updated_at_less RepairQueue_UpdatedAt_Field) (
 	count int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM repair_queue WHERE repair_queue.updated_at < ?")
 
@@ -27296,7 +27960,9 @@ func (obj *pgxcockroachImpl) Delete_RepairQueue_By_UpdatedAt_Less(ctx context.Co
 func (obj *pgxcockroachImpl) Delete_User_By_Id(ctx context.Context,
 	user_id User_Id_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM users WHERE users.id = ?")
 
@@ -27323,7 +27989,9 @@ func (obj *pgxcockroachImpl) Delete_User_By_Id(ctx context.Context,
 func (obj *pgxcockroachImpl) Delete_WebappSession_By_Id(ctx context.Context,
 	webapp_session_id WebappSession_Id_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM webapp_sessions WHERE webapp_sessions.id = ?")
 
@@ -27350,7 +28018,9 @@ func (obj *pgxcockroachImpl) Delete_WebappSession_By_Id(ctx context.Context,
 func (obj *pgxcockroachImpl) Delete_WebappSession_By_UserId(ctx context.Context,
 	webapp_session_user_id WebappSession_UserId_Field) (
 	count int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM webapp_sessions WHERE webapp_sessions.user_id = ?")
 
@@ -27377,7 +28047,9 @@ func (obj *pgxcockroachImpl) Delete_WebappSession_By_UserId(ctx context.Context,
 func (obj *pgxcockroachImpl) Delete_Project_By_Id(ctx context.Context,
 	project_id Project_Id_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM projects WHERE projects.id = ?")
 
@@ -27405,7 +28077,9 @@ func (obj *pgxcockroachImpl) Delete_ProjectMember_By_MemberId_And_ProjectId(ctx 
 	project_member_member_id ProjectMember_MemberId_Field,
 	project_member_project_id ProjectMember_ProjectId_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM project_members WHERE project_members.member_id = ? AND project_members.project_id = ?")
 
@@ -27432,7 +28106,9 @@ func (obj *pgxcockroachImpl) Delete_ProjectMember_By_MemberId_And_ProjectId(ctx 
 func (obj *pgxcockroachImpl) Delete_ApiKey_By_Id(ctx context.Context,
 	api_key_id ApiKey_Id_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM api_keys WHERE api_keys.id = ?")
 
@@ -27459,7 +28135,9 @@ func (obj *pgxcockroachImpl) Delete_ApiKey_By_Id(ctx context.Context,
 func (obj *pgxcockroachImpl) Delete_ResetPasswordToken_By_Secret(ctx context.Context,
 	reset_password_token_secret ResetPasswordToken_Secret_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM reset_password_tokens WHERE reset_password_tokens.secret = ?")
 
@@ -27487,7 +28165,9 @@ func (obj *pgxcockroachImpl) Delete_BucketMetainfo_By_ProjectId_And_Name(ctx con
 	bucket_metainfo_project_id BucketMetainfo_ProjectId_Field,
 	bucket_metainfo_name BucketMetainfo_Name_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM bucket_metainfos WHERE bucket_metainfos.project_id = ? AND bucket_metainfos.name = ?")
 
@@ -27514,7 +28194,9 @@ func (obj *pgxcockroachImpl) Delete_BucketMetainfo_By_ProjectId_And_Name(ctx con
 func (obj *pgxcockroachImpl) Delete_GracefulExitSegmentTransfer_By_NodeId(ctx context.Context,
 	graceful_exit_segment_transfer_node_id GracefulExitSegmentTransfer_NodeId_Field) (
 	count int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM graceful_exit_segment_transfer_queue WHERE graceful_exit_segment_transfer_queue.node_id = ?")
 
@@ -27544,7 +28226,9 @@ func (obj *pgxcockroachImpl) Delete_GracefulExitSegmentTransfer_By_NodeId_And_St
 	graceful_exit_segment_transfer_position GracefulExitSegmentTransfer_Position_Field,
 	graceful_exit_segment_transfer_piece_num GracefulExitSegmentTransfer_PieceNum_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM graceful_exit_segment_transfer_queue WHERE graceful_exit_segment_transfer_queue.node_id = ? AND graceful_exit_segment_transfer_queue.stream_id = ? AND graceful_exit_segment_transfer_queue.position = ? AND graceful_exit_segment_transfer_queue.piece_num = ?")
 
@@ -27571,7 +28255,9 @@ func (obj *pgxcockroachImpl) Delete_GracefulExitSegmentTransfer_By_NodeId_And_St
 func (obj *pgxcockroachImpl) Delete_GracefulExitSegmentTransfer_By_NodeId_And_FinishedAt_IsNot_Null(ctx context.Context,
 	graceful_exit_segment_transfer_node_id GracefulExitSegmentTransfer_NodeId_Field) (
 	count int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM graceful_exit_segment_transfer_queue WHERE graceful_exit_segment_transfer_queue.node_id = ? AND graceful_exit_segment_transfer_queue.finished_at is not NULL")
 
@@ -27598,7 +28284,9 @@ func (obj *pgxcockroachImpl) Delete_GracefulExitSegmentTransfer_By_NodeId_And_Fi
 func (obj *pgxcockroachImpl) Delete_CouponCode_By_Name(ctx context.Context,
 	coupon_code_name CouponCode_Name_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM coupon_codes WHERE coupon_codes.name = ?")
 
@@ -27625,7 +28313,9 @@ func (obj *pgxcockroachImpl) Delete_CouponCode_By_Name(ctx context.Context,
 func (obj *pgxcockroachImpl) Delete_Coupon_By_Id(ctx context.Context,
 	coupon_id Coupon_Id_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM coupons WHERE coupons.id = ?")
 
@@ -27652,7 +28342,9 @@ func (obj *pgxcockroachImpl) Delete_Coupon_By_Id(ctx context.Context,
 func (obj *pgxcockroachImpl) Delete_StorjscanPayment_By_Status(ctx context.Context,
 	storjscan_payment_status StorjscanPayment_Status_Field) (
 	count int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM storjscan_payments WHERE storjscan_payments.status = ?")
 
@@ -27679,7 +28371,9 @@ func (obj *pgxcockroachImpl) Delete_StorjscanPayment_By_Status(ctx context.Conte
 func (obj *pgxcockroachImpl) Delete_OauthClient_By_Id(ctx context.Context,
 	oauth_client_id OauthClient_Id_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM oauth_clients WHERE oauth_clients.id = ?")
 
@@ -27714,7 +28408,9 @@ func (impl pgxcockroachImpl) isConstraintError(err error) (
 }
 
 func (obj *pgxcockroachImpl) deleteAll(ctx context.Context) (count int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __res sql.Result
 	var __count int64
 	__res, err = obj.driver.ExecContext(ctx, "DELETE FROM user_credits;")

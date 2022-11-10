@@ -5,9 +5,12 @@ package testplanet
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
 	"net"
 	"os"
 	"path/filepath"
+
+	"runtime"
 	"runtime/pprof"
 	"strconv"
 
@@ -223,7 +226,9 @@ func (system *Satellite) NodeURL() storj.NodeURL {
 // AddUser adds user to a satellite. Password from newUser will be always overridden by FullName to have
 // known password which can be used automatically.
 func (system *Satellite) AddUser(ctx context.Context, newUser console.CreateUser, maxNumberOfProjects int) (_ *console.User, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	regToken, err := system.API.Console.Service.CreateRegToken(ctx, maxNumberOfProjects)
 	if err != nil {
@@ -260,7 +265,9 @@ func (system *Satellite) AddUser(ctx context.Context, newUser console.CreateUser
 
 // AddProject adds project to a satellite and makes specified user an owner.
 func (system *Satellite) AddProject(ctx context.Context, ownerID uuid.UUID, name string) (_ *console.Project, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	ctx, err = system.UserContext(ctx, ownerID)
 	if err != nil {
@@ -277,7 +284,9 @@ func (system *Satellite) AddProject(ctx context.Context, ownerID uuid.UUID, name
 
 // UserContext creates context with user.
 func (system *Satellite) UserContext(ctx context.Context, userID uuid.UUID) (_ context.Context, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := system.API.Console.Service.GetUser(ctx, userID)
 	if err != nil {
@@ -329,7 +338,9 @@ func (system *Satellite) PrivateAddr() string { return system.API.Server.Private
 
 // newSatellites initializes satellites.
 func (planet *Planet) newSatellites(ctx context.Context, count int, databases satellitedbtest.SatelliteDatabases) (_ []*Satellite, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var satellites []*Satellite
 
@@ -357,7 +368,9 @@ func (planet *Planet) newSatellites(ctx context.Context, count int, databases sa
 }
 
 func (planet *Planet) newSatellite(ctx context.Context, prefix string, index int, log *zap.Logger, databases satellitedbtest.SatelliteDatabases) (_ *Satellite, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	storageDir := filepath.Join(planet.directory, prefix)
 	if err := os.MkdirAll(storageDir, 0700); err != nil {
@@ -640,7 +653,9 @@ func createNewSystem(name string, log *zap.Logger, config satellite.Config, peer
 }
 
 func (planet *Planet) newAPI(ctx context.Context, index int, identity *identity.FullIdentity, db satellite.DB, metabaseDB *metabase.DB, config satellite.Config, versionInfo version.Info) (_ *satellite.API, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	prefix := "satellite-api" + strconv.Itoa(index)
 	log := planet.log.Named(prefix)
@@ -664,7 +679,9 @@ func (planet *Planet) newAPI(ctx context.Context, index int, identity *identity.
 }
 
 func (planet *Planet) newAdmin(ctx context.Context, index int, identity *identity.FullIdentity, db satellite.DB, metabaseDB *metabase.DB, config satellite.Config, versionInfo version.Info) (_ *satellite.Admin, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	prefix := "satellite-admin" + strconv.Itoa(index)
 	log := planet.log.Named(prefix)
@@ -673,7 +690,9 @@ func (planet *Planet) newAdmin(ctx context.Context, index int, identity *identit
 }
 
 func (planet *Planet) newRepairer(ctx context.Context, index int, identity *identity.FullIdentity, db satellite.DB, metabaseDB *metabase.DB, config satellite.Config, versionInfo version.Info) (_ *satellite.Repairer, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	prefix := "satellite-repairer" + strconv.Itoa(index)
 	log := planet.log.Named(prefix)
@@ -699,7 +718,9 @@ func (cache rollupsWriteCacheCloser) Close() error {
 }
 
 func (planet *Planet) newGarbageCollection(ctx context.Context, index int, identity *identity.FullIdentity, db satellite.DB, metabaseDB *metabase.DB, config satellite.Config, versionInfo version.Info) (_ *satellite.GarbageCollection, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	prefix := "satellite-gc" + strconv.Itoa(index)
 	log := planet.log.Named(prefix)
@@ -713,7 +734,9 @@ func (planet *Planet) newGarbageCollection(ctx context.Context, index int, ident
 }
 
 func (planet *Planet) newGarbageCollectionBF(ctx context.Context, index int, identity *identity.FullIdentity, db satellite.DB, metabaseDB *metabase.DB, config satellite.Config, versionInfo version.Info) (_ *satellite.GarbageCollectionBF, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	prefix := "satellite-gc-bf" + strconv.Itoa(index)
 	log := planet.log.Named(prefix)

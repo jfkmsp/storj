@@ -6,8 +6,6 @@ package segmentloop
 import (
 	"sync"
 	"time"
-
-	"github.com/spacemonkeygo/monkit/v3"
 )
 
 var allObserverStatsCollectors = newObserverStatsCollectors()
@@ -30,7 +28,6 @@ func (list *observerStatsCollectors) GetStats(name string) *observerStats {
 	stats, ok := list.observer[name]
 	if !ok {
 		stats = newObserverStats(name)
-		mon.Chain(stats)
 		list.observer[name] = stats
 	}
 	return stats
@@ -40,15 +37,15 @@ func (list *observerStatsCollectors) GetStats(name string) *observerStats {
 type observerStats struct {
 	mu sync.Mutex
 
-	key    monkit.SeriesKey
+	key    interface{}
 	total  time.Duration
-	inline *monkit.DurationDist
-	remote *monkit.DurationDist
+	inline interface{}
+	remote interface{}
 }
 
 func newObserverStats(name string) *observerStats {
 	return &observerStats{
-		key:    monkit.NewSeriesKey("segment-observer").WithTag("name", name),
+		key:    nil,
 		total:  0,
 		inline: nil,
 		remote: nil,
@@ -59,21 +56,13 @@ func (stats *observerStats) Observe(observer *observerContext) {
 	stats.mu.Lock()
 	defer stats.mu.Unlock()
 
-	stats.total = observer.inline.Sum + observer.remote.Sum
 	stats.inline = observer.inline
 	stats.remote = observer.remote
 }
 
-func (stats *observerStats) Stats(cb func(key monkit.SeriesKey, field string, val float64)) {
+func (stats *observerStats) Stats(cb func(key interface{}, field string, val float64)) {
 	stats.mu.Lock()
 	defer stats.mu.Unlock()
 
 	cb(stats.key, "sum", stats.total.Seconds())
-
-	if stats.inline != nil {
-		stats.inline.Stats(cb)
-	}
-	if stats.remote != nil {
-		stats.remote.Stats(cb)
-	}
 }

@@ -8,6 +8,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
 	pgxerrcode "github.com/jackc/pgerrcode"
@@ -39,7 +43,9 @@ type ProjectAccounting struct {
 
 // SaveTallies saves the latest bucket info.
 func (db *ProjectAccounting) SaveTallies(ctx context.Context, intervalStart time.Time, bucketTallies map[metabase.BucketLocation]*accounting.BucketTally) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if len(bucketTallies) == 0 {
 		return nil
 	}
@@ -78,7 +84,9 @@ func (db *ProjectAccounting) SaveTallies(ctx context.Context, intervalStart time
 
 // GetTallies retrieves all tallies ordered by interval start (descending).
 func (db *ProjectAccounting) GetTallies(ctx context.Context) (tallies []accounting.BucketTally, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	dbxTallies, err := db.db.All_BucketStorageTally_OrderBy_Desc_IntervalStart(ctx)
 	if err != nil {
@@ -118,7 +126,9 @@ func (db *ProjectAccounting) GetTallies(ctx context.Context) (tallies []accounti
 
 // CreateStorageTally creates a record in the bucket_storage_tallies accounting table.
 func (db *ProjectAccounting) CreateStorageTally(ctx context.Context, tally accounting.BucketStorageTally) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = db.db.DB.ExecContext(ctx, db.db.Rebind(`
 		INSERT INTO bucket_storage_tallies (
@@ -145,7 +155,9 @@ func (db *ProjectAccounting) CreateStorageTally(ctx context.Context, tally accou
 
 // GetAllocatedBandwidthTotal returns the sum of GET bandwidth usage allocated for a projectID for a time frame.
 func (db *ProjectAccounting) GetAllocatedBandwidthTotal(ctx context.Context, projectID uuid.UUID, from time.Time) (_ int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var sum *int64
 	query := `SELECT SUM(allocated) FROM bucket_bandwidth_rollups WHERE project_id = ? AND action = ? AND interval_start >= ?;`
 	err = db.db.QueryRow(ctx, db.db.Rebind(query), projectID[:], pb.PieceAction_GET, from.UTC()).Scan(&sum)
@@ -158,7 +170,9 @@ func (db *ProjectAccounting) GetAllocatedBandwidthTotal(ctx context.Context, pro
 
 // GetProjectBandwidth returns the used bandwidth (settled or allocated) for the specified year, month and day.
 func (db *ProjectAccounting) GetProjectBandwidth(ctx context.Context, projectID uuid.UUID, year int, month time.Month, day int, asOfSystemInterval time.Duration) (_ int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var egress *int64
 
 	startOfMonth := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
@@ -190,7 +204,9 @@ func (db *ProjectAccounting) GetProjectBandwidth(ctx context.Context, projectID 
 
 // GetProjectDailyBandwidth returns project bandwidth (allocated and settled) for the specified day.
 func (db *ProjectAccounting) GetProjectDailyBandwidth(ctx context.Context, projectID uuid.UUID, year int, month time.Month, day int) (allocated int64, settled, dead int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	interval := time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
 
@@ -205,7 +221,9 @@ func (db *ProjectAccounting) GetProjectDailyBandwidth(ctx context.Context, proje
 
 // GetProjectDailyUsageByDateRange returns project daily allocated, settled bandwidth and storage usage by specific date range.
 func (db *ProjectAccounting) GetProjectDailyUsageByDateRange(ctx context.Context, projectID uuid.UUID, from, to time.Time, crdbInterval time.Duration) (_ *accounting.ProjectDailyUsage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	now := time.Now()
 	nowBeginningOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
@@ -365,7 +383,9 @@ func (db *ProjectAccounting) GetProjectDailyUsageByDateRange(ctx context.Context
 
 // DeleteProjectBandwidthBefore deletes project bandwidth rollups before the given time.
 func (db *ProjectAccounting) DeleteProjectBandwidthBefore(ctx context.Context, before time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = db.db.DB.ExecContext(ctx, db.db.Rebind("DELETE FROM project_bandwidth_daily_rollups WHERE interval_day < ?"), before)
 
@@ -374,7 +394,9 @@ func (db *ProjectAccounting) DeleteProjectBandwidthBefore(ctx context.Context, b
 
 // UpdateProjectUsageLimit updates project usage limit.
 func (db *ProjectAccounting) UpdateProjectUsageLimit(ctx context.Context, projectID uuid.UUID, limit memory.Size) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = db.db.Update_Project_By_Id(ctx,
 		dbx.Project_Id(projectID[:]),
@@ -388,7 +410,9 @@ func (db *ProjectAccounting) UpdateProjectUsageLimit(ctx context.Context, projec
 
 // UpdateProjectBandwidthLimit updates project bandwidth limit.
 func (db *ProjectAccounting) UpdateProjectBandwidthLimit(ctx context.Context, projectID uuid.UUID, limit memory.Size) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = db.db.Update_Project_By_Id(ctx,
 		dbx.Project_Id(projectID[:]),
@@ -402,7 +426,9 @@ func (db *ProjectAccounting) UpdateProjectBandwidthLimit(ctx context.Context, pr
 
 // UpdateProjectSegmentLimit updates project segment limit.
 func (db *ProjectAccounting) UpdateProjectSegmentLimit(ctx context.Context, projectID uuid.UUID, limit int64) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = db.db.Update_Project_By_Id(ctx,
 		dbx.Project_Id(projectID[:]),
@@ -416,7 +442,9 @@ func (db *ProjectAccounting) UpdateProjectSegmentLimit(ctx context.Context, proj
 
 // GetProjectStorageLimit returns project storage usage limit.
 func (db *ProjectAccounting) GetProjectStorageLimit(ctx context.Context, projectID uuid.UUID) (_ *int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	row, err := db.db.Get_Project_UsageLimit_By_Id(ctx,
 		dbx.Project_Id(projectID[:]),
@@ -430,7 +458,9 @@ func (db *ProjectAccounting) GetProjectStorageLimit(ctx context.Context, project
 
 // GetProjectBandwidthLimit returns project bandwidth usage limit.
 func (db *ProjectAccounting) GetProjectBandwidthLimit(ctx context.Context, projectID uuid.UUID) (_ *int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	row, err := db.db.Get_Project_BandwidthLimit_By_Id(ctx,
 		dbx.Project_Id(projectID[:]),
@@ -444,7 +474,9 @@ func (db *ProjectAccounting) GetProjectBandwidthLimit(ctx context.Context, proje
 
 // GetProjectObjectsSegments retrieves project objects and segments.
 func (db *ProjectAccounting) GetProjectObjectsSegments(ctx context.Context, projectID uuid.UUID) (objectsSegments *accounting.ProjectObjectsSegments, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	objectsSegments = new(accounting.ProjectObjectsSegments)
 
@@ -490,7 +522,9 @@ func (db *ProjectAccounting) GetProjectObjectsSegments(ctx context.Context, proj
 
 // GetProjectSegmentLimit returns project segment limit.
 func (db *ProjectAccounting) GetProjectSegmentLimit(ctx context.Context, projectID uuid.UUID) (_ *int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	row, err := db.db.Get_Project_SegmentLimit_By_Id(ctx,
 		dbx.Project_Id(projectID[:]),
@@ -504,7 +538,9 @@ func (db *ProjectAccounting) GetProjectSegmentLimit(ctx context.Context, project
 
 // GetProjectTotal retrieves project usage for a given period.
 func (db *ProjectAccounting) GetProjectTotal(ctx context.Context, projectID uuid.UUID, since, before time.Time) (usage *accounting.ProjectUsage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	since = timeTruncateDown(since)
 	bucketNames, err := db.getBucketsSinceAndBefore(ctx, projectID, since, before)
 	if err != nil {
@@ -611,7 +647,9 @@ func (db *ProjectAccounting) getTotalEgress(ctx context.Context, projectID uuid.
 
 // GetBucketUsageRollups retrieves summed usage rollups for every bucket of particular project for a given period.
 func (db *ProjectAccounting) GetBucketUsageRollups(ctx context.Context, projectID uuid.UUID, since, before time.Time) (_ []accounting.BucketUsageRollup, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	since = timeTruncateDown(since.UTC())
 	before = before.UTC()
 
@@ -635,7 +673,9 @@ func (db *ProjectAccounting) GetBucketUsageRollups(ctx context.Context, projectI
 
 // GetSingleBucketUsageRollup retrieves usage rollup for a single bucket of particular project for a given period.
 func (db *ProjectAccounting) GetSingleBucketUsageRollup(ctx context.Context, projectID uuid.UUID, bucket string, since, before time.Time) (_ *accounting.BucketUsageRollup, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	since = timeTruncateDown(since.UTC())
 	before = before.UTC()
 
@@ -789,7 +829,9 @@ func (db *ProjectAccounting) prefixMatch(expr string, prefix []byte) (string, []
 
 // GetBucketTotals retrieves bucket usage totals for period of time.
 func (db *ProjectAccounting) GetBucketTotals(ctx context.Context, projectID uuid.UUID, cursor accounting.BucketUsageCursor, before time.Time) (_ *accounting.BucketUsagePage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	bucketPrefix := []byte(cursor.Search)
 
 	if cursor.Limit > 50 {
@@ -942,7 +984,9 @@ func (db *ProjectAccounting) GetBucketTotals(ctx context.Context, projectID uuid
 
 // ArchiveRollupsBefore archives rollups older than a given time.
 func (db *ProjectAccounting) ArchiveRollupsBefore(ctx context.Context, before time.Time, batchSize int) (archivedCount int, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if batchSize <= 0 {
 		return 0, nil
@@ -980,7 +1024,9 @@ func (db *ProjectAccounting) ArchiveRollupsBefore(ctx context.Context, before ti
 }
 
 func (db *ProjectAccounting) archiveRollupsBeforeByAction(ctx context.Context, action int32, before time.Time, batchSize int) (archivedCount int, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	for {
 		var rowCount int
@@ -1009,7 +1055,9 @@ func (db *ProjectAccounting) archiveRollupsBeforeByAction(ctx context.Context, a
 
 // getBucketsSinceAndBefore lists distinct bucket names for a project within a specific timeframe.
 func (db *ProjectAccounting) getBucketsSinceAndBefore(ctx context.Context, projectID uuid.UUID, since, before time.Time) (_ []string, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	bucketsQuery := db.db.Rebind(`SELECT DISTINCT bucket_name
 		FROM bucket_storage_tallies
 		WHERE project_id = ?
@@ -1042,7 +1090,9 @@ func timeTruncateDown(t time.Time) time.Time {
 
 // GetProjectLimits returns current project limit for both storage and bandwidth.
 func (db *ProjectAccounting) GetProjectLimits(ctx context.Context, projectID uuid.UUID) (_ accounting.ProjectLimits, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	row, err := db.db.Get_Project_BandwidthLimit_Project_UsageLimit_Project_SegmentLimit_By_Id(ctx,
 		dbx.Project_Id(projectID[:]),
@@ -1060,7 +1110,9 @@ func (db *ProjectAccounting) GetProjectLimits(ctx context.Context, projectID uui
 
 // GetRollupsSince retrieves all archived rollup records since a given time.
 func (db *ProjectAccounting) GetRollupsSince(ctx context.Context, since time.Time) (bwRollups []orders.BucketBandwidthRollup, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	pageLimit := db.db.opts.ReadRollupBatchSize
 	if pageLimit <= 0 {
@@ -1098,7 +1150,9 @@ func (db *ProjectAccounting) GetRollupsSince(ctx context.Context, since time.Tim
 
 // GetArchivedRollupsSince retrieves all archived rollup records since a given time.
 func (db *ProjectAccounting) GetArchivedRollupsSince(ctx context.Context, since time.Time) (bwRollups []orders.BucketBandwidthRollup, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	pageLimit := db.db.opts.ReadRollupBatchSize
 	if pageLimit <= 0 {

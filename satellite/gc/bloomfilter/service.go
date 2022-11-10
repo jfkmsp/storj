@@ -6,10 +6,13 @@ package bloomfilter
 import (
 	"archive/zip"
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"strconv"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -24,8 +27,6 @@ import (
 
 // LATEST is the name of the file that contains the most recently completed bloomfilter generation prefix.
 const LATEST = "LATEST"
-
-var mon = monkit.Package()
 
 // Config contains configurable values for garbage collection.
 type Config struct {
@@ -70,8 +71,6 @@ func NewService(log *zap.Logger, config Config, overlay overlay.DB, loop *segmen
 
 // Run starts the gc loop service.
 func (service *Service) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
-
 	if !service.config.Enabled {
 		return nil
 	}
@@ -88,7 +87,9 @@ func (service *Service) Run(ctx context.Context) (err error) {
 
 // RunOnce runs service only once.
 func (service *Service) RunOnce(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	service.log.Debug("collecting bloom filters started")
 
@@ -123,7 +124,9 @@ func (service *Service) RunOnce(ctx context.Context) (err error) {
 
 // uploadBloomFilters stores a zipfile with multiple bloom filters in a bucket.
 func (service *Service) uploadBloomFilters(ctx context.Context, latestCreationDate time.Time, retainInfos map[storj.NodeID]*RetainInfo) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if len(retainInfos) == 0 {
 		return nil
@@ -213,7 +216,9 @@ func (service *Service) uploadBloomFilters(ctx context.Context, latestCreationDa
 
 // uploadPack uploads single zip pack with multiple bloom filters.
 func (service *Service) uploadPack(ctx context.Context, project *uplink.Project, prefix string, batchNumber int, expirationTime time.Time, infos []internalpb.RetainInfo) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if len(infos) == 0 {
 		return nil
@@ -262,7 +267,9 @@ func (service *Service) uploadPack(ctx context.Context, project *uplink.Project,
 // cleanup moves all objects from root location to unique prefix. Objects will be deleted
 // automatically when expires.
 func (service *Service) cleanup(ctx context.Context, project *uplink.Project, prefix string) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	errPrefix := "upload-error-" + time.Now().Format(time.RFC3339)
 	o := uplink.ListObjectsOptions{

@@ -7,6 +7,10 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/binary"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -141,7 +145,9 @@ func NewSignerGracefulExit(service *Service, rootPieceID storj.PieceID, orderCre
 
 // Sign signs an order limit for the specified node.
 func (signer *Signer) Sign(ctx context.Context, node storj.NodeURL, pieceNum int32) (_ *pb.AddressedOrderLimit, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if len(signer.EncryptedMetadata) == 0 {
 		encryptionKey := signer.Service.encryptionKeys.Default

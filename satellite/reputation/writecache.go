@@ -8,7 +8,12 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
 	"math/rand"
+	"os"
+
+	"runtime"
 	"sync"
 	"time"
 
@@ -121,7 +126,9 @@ type cachedNodeReputationInfo struct {
 // disqualified, or suspended as a result of this update, the caller is
 // responsible for updating the records in the overlay to match.
 func (cdb *CachingDB) Update(ctx context.Context, request UpdateRequest, auditTime time.Time) (info *Info, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	mutations, err := UpdateRequestToMutations(request, auditTime)
 	if err != nil {
@@ -137,7 +144,10 @@ func (cdb *CachingDB) Update(ctx context.Context, request UpdateRequest, auditTi
 // disqualified, or suspended as a result of these updates, the caller is
 // responsible for updating the records in the overlay to match.
 func (cdb *CachingDB) ApplyUpdates(ctx context.Context, nodeID storj.NodeID, updates Mutations, config Config, now time.Time) (info *Info, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	logger := cdb.log.With(zap.Stringer("node-id", nodeID))
 	doRequestSync := false
@@ -226,11 +236,16 @@ func (cdb *CachingDB) ApplyUpdates(ctx context.Context, nodeID storj.NodeID, upd
 			config.AuditWeight,
 		)
 
-		mon.FloatVal("cached_audit_reputation_alpha").Observe(cachedInfo.AuditReputationAlpha)
-		mon.FloatVal("cached_audit_reputation_beta").Observe(cachedInfo.AuditReputationBeta)
-		mon.FloatVal("cached_unknown_audit_reputation_alpha").Observe(cachedInfo.UnknownAuditReputationAlpha)
-		mon.FloatVal("cached_unknown_audit_reputation_beta").Observe(cachedInfo.UnknownAuditReputationBeta)
-		mon.FloatVal("cached_audit_online_score").Observe(cachedInfo.OnlineScore)
+		histFloatCounter, _ := meter.SyncFloat64().Histogram("cached_audit_reputation_alpha")
+		histFloatCounter.Record(ctx, cachedInfo.AuditReputationAlpha)
+		histFloatCounter, _ = meter.SyncFloat64().Histogram("cached_audit_reputation_beta")
+		histFloatCounter.Record(ctx, cachedInfo.AuditReputationBeta)
+		histFloatCounter, _ = meter.SyncFloat64().Histogram("cached_unknown_audit_reputation_alpha")
+		histFloatCounter.Record(ctx, cachedInfo.UnknownAuditReputationAlpha)
+		histFloatCounter, _ = meter.SyncFloat64().Histogram("cached_unknown_audit_reputation_beta")
+		histFloatCounter.Record(ctx, cachedInfo.UnknownAuditReputationBeta)
+		histFloatCounter, _ = meter.SyncFloat64().Histogram("cached_audit_online_score")
+		histFloatCounter.Record(ctx, cachedInfo.OnlineScore)
 
 		// The following code is all meant to keep the cache working
 		// similarly to the values in the database. However, the cache
@@ -345,7 +360,9 @@ func (cdb *CachingDB) ApplyUpdates(ctx context.Context, nodeID storj.NodeID, upd
 
 // UnsuspendNodeUnknownAudit unsuspends a storage node for unknown audits.
 func (cdb *CachingDB) UnsuspendNodeUnknownAudit(ctx context.Context, nodeID storj.NodeID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	err = cdb.backingStore.UnsuspendNodeUnknownAudit(ctx, nodeID)
 	if err != nil {
@@ -357,7 +374,9 @@ func (cdb *CachingDB) UnsuspendNodeUnknownAudit(ctx context.Context, nodeID stor
 
 // DisqualifyNode disqualifies a storage node.
 func (cdb *CachingDB) DisqualifyNode(ctx context.Context, nodeID storj.NodeID, disqualifiedAt time.Time, reason overlay.DisqualificationReason) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	err = cdb.backingStore.DisqualifyNode(ctx, nodeID, disqualifiedAt, reason)
 	if err != nil {
@@ -369,7 +388,9 @@ func (cdb *CachingDB) DisqualifyNode(ctx context.Context, nodeID storj.NodeID, d
 
 // SuspendNodeUnknownAudit suspends a storage node for unknown audits.
 func (cdb *CachingDB) SuspendNodeUnknownAudit(ctx context.Context, nodeID storj.NodeID, suspendedAt time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	err = cdb.backingStore.SuspendNodeUnknownAudit(ctx, nodeID, suspendedAt)
 	if err != nil {
@@ -384,7 +405,9 @@ func (cdb *CachingDB) SuspendNodeUnknownAudit(ctx context.Context, nodeID storj.
 // cached mutations and resetting the info attribute to match a snapshot of what
 // is in the backing store after the mutations.
 func (cdb *CachingDB) RequestSync(ctx context.Context, nodeID storj.NodeID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	req := syncRequest{
 		nodeID:   nodeID,
@@ -405,7 +428,9 @@ func (cdb *CachingDB) RequestSync(ctx context.Context, nodeID storj.NodeID) (err
 
 // FlushAll syncs all pending reputation mutations to the backing store.
 func (cdb *CachingDB) FlushAll(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var copyOfEntries []*cachedNodeReputationInfo
 	func() {
@@ -479,6 +504,9 @@ func (cdb *CachingDB) updateTimer(now time.Time, drainChannel bool) {
 // and calls f with the entry while holding the lock. If there is no entry in
 // the cache with the given nodeID, f is not called.
 func (cdb *CachingDB) getExistingEntry(nodeID storj.NodeID, f func(entryToSync *cachedNodeReputationInfo)) {
+	pc, _, _, _ := runtime.Caller(0)
+	_, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(context.Background(), runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var entryToSync *cachedNodeReputationInfo
 	func() {
 		cdb.lock.Lock()
@@ -487,7 +515,7 @@ func (cdb *CachingDB) getExistingEntry(nodeID storj.NodeID, f func(entryToSync *
 		entryToSync = cdb.pending[nodeID]
 	}()
 	if entryToSync == nil {
-		mon.Event("writecache-asked-for-unknown-node")
+		span.AddEvent("writecache-asked-for-unknown-node")
 		return
 	}
 
@@ -595,7 +623,9 @@ func nextTimeForSync(instanceOffset uint64, nodeID storj.NodeID, now time.Time, 
 //
 // syncEntry must be called with the entry already locked.
 func (cdb *CachingDB) syncEntry(ctx context.Context, entry *cachedNodeReputationInfo, now time.Time) {
-	defer mon.Task()(&ctx)(nil)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	entry.info, entry.syncError = cdb.backingStore.ApplyUpdates(ctx, entry.nodeID, entry.mutations, cdb.reputationConfig, now)
 
@@ -626,7 +656,9 @@ func (cdb *CachingDB) syncEntry(ctx context.Context, entry *cachedNodeReputation
 // returned. In this case, the returned value for 'info' might be nil, or it
 // might contain data cached longer than FlushInterval.
 func (cdb *CachingDB) Get(ctx context.Context, nodeID storj.NodeID) (info *Info, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	cdb.getEntry(ctx, nodeID, cdb.nowFunc(), func(entry *cachedNodeReputationInfo) {
 		if entry.syncError != nil {
@@ -654,7 +686,9 @@ func (cdb *CachingDB) Get(ctx context.Context, nodeID storj.NodeID) (info *Info,
 // error occurred long enough ago that it is time to try again, another attempt
 // to sync the entry will occur before the callback is made.
 func (cdb *CachingDB) getEntry(ctx context.Context, nodeID storj.NodeID, now time.Time, f func(entry *cachedNodeReputationInfo)) {
-	defer mon.Task()(&ctx)(nil)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var nodeEntry *cachedNodeReputationInfo
 

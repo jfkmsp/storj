@@ -5,9 +5,12 @@ package healthcheck
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 
 	"storj.io/common/storj"
@@ -17,8 +20,6 @@ import (
 var (
 	// Err defines sno service error.
 	Err = errs.Class("healthcheck")
-
-	mon = monkit.Package()
 )
 
 // Service is handling storage node estimation payouts logic.
@@ -54,7 +55,9 @@ type SatelliteHealthStatus struct {
 
 // GetHealth retrieves current health status based on DB records.
 func (s *Service) GetHealth(ctx context.Context) (h Health, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	stats, err := s.reputationDB.All(ctx)
 
 	h.AllHealthy = true

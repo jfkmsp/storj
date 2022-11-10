@@ -8,6 +8,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -53,7 +58,9 @@ func (reputations *reputations) Update(ctx context.Context, updateReq reputation
 // disqualified, or suspended as a result of these updates, the caller is
 // responsible for updating the records in the overlay to match.
 func (reputations *reputations) ApplyUpdates(ctx context.Context, nodeID storj.NodeID, updates reputation.Mutations, reputationConfig reputation.Config, now time.Time) (_ *reputation.Info, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	for {
 		// get existing reputation stats
@@ -97,7 +104,7 @@ func (reputations *reputations) ApplyUpdates(ctx context.Context, nodeID storj.N
 				// Update call happened between Get and Insert, we will try again so the audit is recorded
 				// correctly
 				if dbx.IsConstraintError(err) {
-					mon.Event("reputations_update_query_retry_create")
+					span.AddEvent("reputations_update_query_retry_create")
 					continue
 				}
 
@@ -135,7 +142,7 @@ func (reputations *reputations) ApplyUpdates(ctx context.Context, nodeID storj.N
 			// if update failed due to concurrent audit_history updates, we will try
 			// again to get the latest data and update it
 			if dbNode == nil {
-				mon.Event("reputations_update_query_retry_update")
+				span.AddEvent("reputations_update_query_retry_update")
 				continue
 			}
 		}
@@ -186,7 +193,9 @@ func (reputations *reputations) Get(ctx context.Context, nodeID storj.NodeID) (*
 
 // DisqualifyNode disqualifies a storage node.
 func (reputations *reputations) DisqualifyNode(ctx context.Context, nodeID storj.NodeID, disqualifiedAt time.Time, disqualificationReason overlay.DisqualificationReason) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	err = reputations.db.WithTx(ctx, func(ctx context.Context, tx *dbx.Tx) (err error) {
 		_, err = tx.Tx.ExecContext(ctx, "SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
@@ -225,7 +234,9 @@ func (reputations *reputations) DisqualifyNode(ctx context.Context, nodeID storj
 
 // SuspendNodeUnknownAudit suspends a storage node for unknown audits.
 func (reputations *reputations) SuspendNodeUnknownAudit(ctx context.Context, nodeID storj.NodeID, suspendedAt time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	err = reputations.db.WithTx(ctx, func(ctx context.Context, tx *dbx.Tx) (err error) {
 		_, err = tx.Tx.ExecContext(ctx, "SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
@@ -263,7 +274,9 @@ func (reputations *reputations) SuspendNodeUnknownAudit(ctx context.Context, nod
 
 // UnsuspendNodeUnknownAudit unsuspends a storage node for unknown audits.
 func (reputations *reputations) UnsuspendNodeUnknownAudit(ctx context.Context, nodeID storj.NodeID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	err = reputations.db.WithTx(ctx, func(ctx context.Context, tx *dbx.Tx) (err error) {
 		_, err = tx.Tx.ExecContext(ctx, "SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
@@ -420,6 +433,7 @@ func (reputations *reputations) populateUpdateFields(update updateNodeStats, his
 }
 
 func (reputations *reputations) populateUpdateNodeStats(dbNode *dbx.Reputation, updates reputation.Mutations, config reputation.Config, historyResponse *reputation.UpdateAuditHistoryResponse, now time.Time) updateNodeStats {
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
 	// there are four audit outcomes: success, failure, offline, and unknown
 	// if a node fails enough audits, it gets disqualified
 	// if a node gets enough "unknown" audits, it gets put into suspension
@@ -492,11 +506,17 @@ func (reputations *reputations) populateUpdateNodeStats(dbNode *dbx.Reputation, 
 	// offline results affect only the total count.
 	updatedTotalAuditCount := totalAuditCount + int64(updates.OfflineResults+updates.UnknownResults+updates.FailureResults+updates.PositiveResults)
 
-	mon.FloatVal("audit_reputation_alpha").Observe(auditAlpha)                //mon:locked
-	mon.FloatVal("audit_reputation_beta").Observe(auditBeta)                  //mon:locked
-	mon.FloatVal("unknown_audit_reputation_alpha").Observe(unknownAuditAlpha) //mon:locked
-	mon.FloatVal("unknown_audit_reputation_beta").Observe(unknownAuditBeta)   //mon:locked
-	mon.FloatVal("audit_online_score").Observe(historyResponse.NewScore)      //mon:locked
+	ctx := context.Background()
+	histCounter, _ := meter.SyncFloat64().Histogram("audit_reputation_alpha")
+	histCounter.Record(ctx, auditAlpha)
+	histCounter, _ = meter.SyncFloat64().Histogram("audit_reputation_beta")
+	histCounter.Record(ctx, auditBeta)
+	histCounter, _ = meter.SyncFloat64().Histogram("unknown_audit_reputation_alpha")
+	histCounter.Record(ctx, unknownAuditAlpha)
+	histCounter, _ = meter.SyncFloat64().Histogram("unknown_audit_reputation_beta")
+	histCounter.Record(ctx, unknownAuditBeta)
+	histCounter, _ = meter.SyncFloat64().Histogram("audit_online_score")
+	histCounter.Record(ctx, historyResponse.NewScore)
 
 	updateFields := updateNodeStats{
 		NodeID:                      dbNode.Id,
@@ -520,7 +540,8 @@ func (reputations *reputations) populateUpdateNodeStats(dbNode *dbx.Reputation, 
 	auditRep := auditAlpha / (auditAlpha + auditBeta)
 	if auditRep <= config.AuditDQ {
 		logger.Info("Disqualified", zap.String("DQ type", "audit failure"))
-		mon.Meter("bad_audit_dqs").Mark(1) //mon:locked
+		counter, _ := meter.SyncInt64().Counter("bad_audit_dqs")
+		counter.Add(context.Background(), 1)
 		updateFields.Disqualified = timeField{set: true, value: now}
 		updateFields.DisqualificationReason = intField{set: true, value: int(overlay.DisqualificationReasonAuditFailure)}
 	}
@@ -546,7 +567,8 @@ func (reputations *reputations) populateUpdateNodeStats(dbNode *dbx.Reputation, 
 			time.Since(*dbNode.UnknownAuditSuspended) > config.SuspensionGracePeriod &&
 			config.SuspensionDQEnabled {
 			logger.Info("Disqualified", zap.String("DQ type", "suspension grace period expired for unknown audits"))
-			mon.Meter("unknown_suspension_dqs").Mark(1) //mon:locked
+			counter, _ := meter.SyncInt64().Counter("unknown_suspension_dqs")
+			counter.Add(context.Background(), 1)
 			updateFields.Disqualified = timeField{set: true, value: now}
 			updateFields.DisqualificationReason = intField{set: true, value: int(overlay.DisqualificationReasonSuspension)}
 			updateFields.UnknownAuditSuspended = timeField{set: true, isNil: true}
@@ -595,7 +617,8 @@ func (reputations *reputations) populateUpdateNodeStats(dbNode *dbx.Reputation, 
 			if penalizeOfflineNode {
 				if config.AuditHistory.OfflineDQEnabled {
 					logger.Info("Disqualified", zap.String("DQ type", "node offline"))
-					mon.Meter("offline_dqs").Mark(1) //mon:locked
+					counter, _ := meter.SyncInt64().Counter("offline_dqs")
+					counter.Add(context.Background(), 1)
 					updateFields.Disqualified = timeField{set: true, value: now}
 					updateFields.DisqualificationReason = intField{set: true, value: int(overlay.DisqualificationReasonNodeOffline)}
 				}

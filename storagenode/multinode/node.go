@@ -5,6 +5,10 @@ package multinode
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 
 	"go.uber.org/zap"
 
@@ -52,7 +56,9 @@ func NewNodeEndpoint(log *zap.Logger, config operator.Config, apiKeys *apikeys.S
 
 // Version returns node current version.
 func (node *NodeEndpoint) Version(ctx context.Context, req *multinodepb.VersionRequest) (_ *multinodepb.VersionResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, node.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -65,7 +71,9 @@ func (node *NodeEndpoint) Version(ctx context.Context, req *multinodepb.VersionR
 
 // LastContact returns timestamp when node was last in contact with satellite.
 func (node *NodeEndpoint) LastContact(ctx context.Context, req *multinodepb.LastContactRequest) (_ *multinodepb.LastContactResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, node.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -78,7 +86,9 @@ func (node *NodeEndpoint) LastContact(ctx context.Context, req *multinodepb.Last
 
 // Reputation returns reputation for specific satellite.
 func (node *NodeEndpoint) Reputation(ctx context.Context, req *multinodepb.ReputationRequest) (_ *multinodepb.ReputationResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, node.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -130,7 +140,9 @@ func (node *NodeEndpoint) Reputation(ctx context.Context, req *multinodepb.Reput
 
 // TrustedSatellites returns list of trusted satellites node urls.
 func (node *NodeEndpoint) TrustedSatellites(ctx context.Context, req *multinodepb.TrustedSatellitesRequest) (_ *multinodepb.TrustedSatellitesResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, node.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -156,7 +168,9 @@ func (node *NodeEndpoint) TrustedSatellites(ctx context.Context, req *multinodep
 
 // Operator returns operators data.
 func (node *NodeEndpoint) Operator(ctx context.Context, req *multinodepb.OperatorRequest) (_ *multinodepb.OperatorResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if err = authenticate(ctx, node.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
 	}

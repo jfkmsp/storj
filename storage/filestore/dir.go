@@ -8,10 +8,13 @@ import (
 	"context"
 	"encoding/base32"
 	"errors"
+	"go.opentelemetry.io/otel"
 	"io"
 	"math"
 	"os"
 	"path/filepath"
+
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -152,7 +155,9 @@ func (dir *Dir) CreateTemporaryFile(ctx context.Context, prealloc int64) (_ *os.
 
 // DeleteTemporary deletes a temporary file.
 func (dir *Dir) DeleteTemporary(ctx context.Context, file *os.File) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	closeErr := file.Close()
 	return errs.Combine(closeErr, os.Remove(file.Name()))
 }
@@ -216,7 +221,9 @@ func (dir *Dir) blobToGarbagePath(ref storage.BlobRef) string {
 
 // Commit commits the temporary file to permanent storage.
 func (dir *Dir) Commit(ctx context.Context, file *os.File, ref storage.BlobRef, formatVersion storage.FormatVersion) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	position, seekErr := file.Seek(0, io.SeekCurrent)
 	truncErr := file.Truncate(position)
 
@@ -264,7 +271,9 @@ func (dir *Dir) Commit(ctx context.Context, file *os.File, ref storage.BlobRef, 
 // In cases where the storage format version of a blob is already known, OpenWithStorageFormat()
 // will generally be a better choice.
 func (dir *Dir) Open(ctx context.Context, ref storage.BlobRef) (_ *os.File, _ storage.FormatVersion, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	path, err := dir.blobToBasePath(ref)
 	if err != nil {
 		return nil, FormatV0, err
@@ -278,7 +287,7 @@ func (dir *Dir) Open(ctx context.Context, ref storage.BlobRef) (_ *os.File, _ st
 		if os.IsNotExist(err) {
 			// Check and monitor if the file is in the trash
 			if dir.fileConfirmedInTrash(ctx, ref, formatVer) {
-				monFileInTrash(ref.Namespace).Mark(1)
+				monFileInTrash(ref.Namespace).Add(ctx, 1)
 			}
 		} else {
 			return nil, FormatV0, Error.New("unable to open %q: %v", vPath, err)
@@ -290,7 +299,9 @@ func (dir *Dir) Open(ctx context.Context, ref storage.BlobRef) (_ *os.File, _ st
 // OpenWithStorageFormat opens an already-located blob file with a known storage format version,
 // which avoids the potential need to search through multiple storage formats to find the blob.
 func (dir *Dir) OpenWithStorageFormat(ctx context.Context, ref storage.BlobRef, formatVer storage.FormatVersion) (_ *os.File, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	path, err := dir.blobToBasePath(ref)
 	if err != nil {
 		return nil, err
@@ -303,7 +314,7 @@ func (dir *Dir) OpenWithStorageFormat(ctx context.Context, ref storage.BlobRef, 
 	if os.IsNotExist(err) {
 		// Check and monitor if the file is in the trash
 		if dir.fileConfirmedInTrash(ctx, ref, formatVer) {
-			monFileInTrash(ref.Namespace).Mark(1)
+			monFileInTrash(ref.Namespace).Add(ctx, 1)
 		}
 		return nil, err
 	}
@@ -315,7 +326,9 @@ func (dir *Dir) OpenWithStorageFormat(ctx context.Context, ref storage.BlobRef, 
 // In cases where the storage format version of a blob is already known, StatWithStorageFormat()
 // will generally be a better choice.
 func (dir *Dir) Stat(ctx context.Context, ref storage.BlobRef) (_ storage.BlobInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	path, err := dir.blobToBasePath(ref)
 	if err != nil {
 		return nil, err
@@ -337,7 +350,9 @@ func (dir *Dir) Stat(ctx context.Context, ref storage.BlobRef) (_ storage.BlobIn
 // version. This avoids the need for checking for the file in multiple different storage format
 // types.
 func (dir *Dir) StatWithStorageFormat(ctx context.Context, ref storage.BlobRef, formatVer storage.FormatVersion) (_ storage.BlobInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	path, err := dir.blobToBasePath(ref)
 	if err != nil {
 		return nil, err
@@ -355,7 +370,9 @@ func (dir *Dir) StatWithStorageFormat(ctx context.Context, ref storage.BlobRef, 
 
 // Trash moves the piece specified by ref to the trashdir for every format version.
 func (dir *Dir) Trash(ctx context.Context, ref storage.BlobRef) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return dir.iterateStorageFormatVersions(ctx, ref, dir.TrashWithStorageFormat)
 }
 
@@ -467,7 +484,9 @@ func (dir *Dir) RestoreTrash(ctx context.Context, namespace []byte) (keysRestore
 // file whose mtime is older than trashedBefore. The mtime is modified when
 // Trash is called.
 func (dir *Dir) EmptyTrash(ctx context.Context, namespace []byte, trashedBefore time.Time) (bytesEmptied int64, deletedKeys [][]byte, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	err = dir.walkNamespaceInPath(ctx, namespace, dir.trashdir(), func(blobInfo storage.BlobInfo) error {
 		fileInfo, err := blobInfo.Stat(ctx)
 		if err != nil {
@@ -504,7 +523,9 @@ func (dir *Dir) EmptyTrash(ctx context.Context, namespace []byte, trashedBefore 
 // f will be executed for every storage formate version regardless of the
 // result, and will aggregate errors into a single returned error.
 func (dir *Dir) iterateStorageFormatVersions(ctx context.Context, ref storage.BlobRef, f func(ctx context.Context, ref storage.BlobRef, i storage.FormatVersion) error) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var combinedErrors errs.Group
 	for i := MinFormatVersionSupported; i <= MaxFormatVersionSupported; i++ {
 		combinedErrors.Add(f(ctx, ref, i))
@@ -517,7 +538,9 @@ func (dir *Dir) iterateStorageFormatVersions(ctx context.Context, ref storage.Bl
 // It doesn't return an error if the blob is not found for any reason or it
 // cannot be deleted at this moment and it's delayed.
 func (dir *Dir) Delete(ctx context.Context, ref storage.BlobRef) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return dir.iterateStorageFormatVersions(ctx, ref, dir.DeleteWithStorageFormat)
 }
 
@@ -531,18 +554,24 @@ func (dir *Dir) Delete(ctx context.Context, ref storage.BlobRef) (err error) {
 //
 // It doesn't return an error if the piece isn't found for any reason.
 func (dir *Dir) DeleteWithStorageFormat(ctx context.Context, ref storage.BlobRef, formatVer storage.FormatVersion) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return dir.deleteWithStorageFormatInPath(ctx, dir.blobsdir(), ref, formatVer)
 }
 
 // DeleteNamespace deletes blobs folder for a specific namespace.
 func (dir *Dir) DeleteNamespace(ctx context.Context, ref []byte) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return dir.deleteNamespace(ctx, dir.blobsdir(), ref)
 }
 
 func (dir *Dir) deleteWithStorageFormatInPath(ctx context.Context, path string, ref storage.BlobRef, formatVer storage.FormatVersion) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// Ensure garbage dir exists so that we know any os.IsNotExist errors below
 	// are not from a missing garbage dir
@@ -589,7 +618,9 @@ func (dir *Dir) deleteWithStorageFormatInPath(ctx context.Context, path string, 
 		dir.mu.Lock()
 		dir.deleteQueue = append(dir.deleteQueue, garbagePath)
 		dir.mu.Unlock()
-		mon.Event("delete_deferred_to_queue")
+		_, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(context.Background(), "delete_deferred_to_queue")
+		span.AddEvent("delete_deferred_to_queue")
+		span.End()
 	}
 
 	// ignore is-busy errors, they are still in the queue but no need to notify
@@ -601,7 +632,9 @@ func (dir *Dir) deleteWithStorageFormatInPath(ctx context.Context, path string, 
 
 // deleteNamespace deletes folder with everything inside.
 func (dir *Dir) deleteNamespace(ctx context.Context, path string, ref []byte) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	namespace := pathEncoding.EncodeToString(ref)
 	folderPath := filepath.Join(path, namespace)
@@ -612,7 +645,9 @@ func (dir *Dir) deleteNamespace(ctx context.Context, path string, ref []byte) (e
 
 // GarbageCollect collects files that are pending deletion.
 func (dir *Dir) GarbageCollect(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	offset := int(math.MaxInt32)
 	// limited deletion loop to avoid blocking `Delete` for too long
 	for offset >= 0 {
@@ -647,12 +682,16 @@ const nameBatchSize = 1024
 // ListNamespaces finds all known namespace IDs in use in local storage. They are not
 // guaranteed to contain any blobs.
 func (dir *Dir) ListNamespaces(ctx context.Context) (ids [][]byte, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return dir.listNamespacesInPath(ctx, dir.blobsdir())
 }
 
 func (dir *Dir) listNamespacesInPath(ctx context.Context, path string) (ids [][]byte, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	openDir, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -686,12 +725,16 @@ func (dir *Dir) listNamespacesInPath(ctx context.Context, path string) (ids [][]
 // iterating and return the error immediately. The ctx parameter is intended specifically to allow
 // canceling iteration early.
 func (dir *Dir) WalkNamespace(ctx context.Context, namespace []byte, walkFunc func(storage.BlobInfo) error) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return dir.walkNamespaceInPath(ctx, namespace, dir.blobsdir(), walkFunc)
 }
 
 func (dir *Dir) walkNamespaceInPath(ctx context.Context, namespace []byte, path string, walkFunc func(storage.BlobInfo) error) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	namespaceDir := pathEncoding.EncodeToString(namespace)
 	nsDir := filepath.Join(path, namespaceDir)
 	openDir, err := os.Open(nsDir)
@@ -813,7 +856,9 @@ func walkNamespaceWithPrefix(ctx context.Context, log *zap.Logger, namespace []b
 
 // removeAllContent deletes everything in the folder.
 func removeAllContent(ctx context.Context, path string) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	dir, err := os.Open(path)
 	if err != nil {
 		return err

@@ -5,7 +5,11 @@ package controllers
 
 import (
 	"encoding/json"
+	"go.opentelemetry.io/otel"
 	"net/http"
+	"os"
+
+	"runtime"
 	"strconv"
 
 	"github.com/zeebo/errs"
@@ -41,7 +45,9 @@ func NewOperators(log *zap.Logger, service *operators.Service) *Operators {
 func (controller *Operators) ListPaginated(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Add("Content-Type", "application/json")
 

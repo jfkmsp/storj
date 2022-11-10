@@ -7,19 +7,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"go.opentelemetry.io/otel"
 	"net/http"
 	"net/smtp"
 	"net/url"
+	"os"
+
+	"runtime"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
-)
-
-var (
-	mon = monkit.Package()
 )
 
 // Auth is XOAUTH2 implementation of smtp.Auth interface.
@@ -32,7 +31,9 @@ type Auth struct {
 // Start returns proto and auth credentials for first auth msg.
 func (auth *Auth) Start(server *smtp.ServerInfo) (proto string, toServer []byte, err error) {
 	ctx := context.TODO()
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if !server.TLS {
 		return "", nil, errs.New("unencrypted connection")
 	}
@@ -87,7 +88,9 @@ func NewTokenStore(creds Credentials, token Token) *TokenStore {
 
 // Token retrieves token in a thread safe way and refreshes it if needed.
 func (s *TokenStore) Token(ctx context.Context) (_ *Token, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -107,7 +110,9 @@ func (s *TokenStore) Token(ctx context.Context) (_ *Token, err error) {
 
 // RefreshToken is a helper method that refreshes token with given credentials and OUATH2 refresh token.
 func RefreshToken(ctx context.Context, creds Credentials, refreshToken string) (_ *Token, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	values := url.Values{
 		"grant_type":    {"refresh_token"},

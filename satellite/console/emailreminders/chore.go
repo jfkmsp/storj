@@ -5,10 +5,14 @@ package emailreminders
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
+	"os"
+
+	"runtime"
 	"strings"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"go.uber.org/zap"
 
 	"storj.io/common/sync2"
@@ -18,8 +22,6 @@ import (
 	"storj.io/storj/satellite/console/consoleweb/consoleapi"
 	"storj.io/storj/satellite/mailservice"
 )
-
-var mon = monkit.Package()
 
 // Config contains configurations for email reminders.
 type Config struct {
@@ -63,9 +65,11 @@ func NewChore(log *zap.Logger, tokens *consoleauth.Service, usersDB console.User
 
 // Run starts the chore.
 func (chore *Chore) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
 	return chore.Loop.Run(ctx, func(ctx context.Context) (err error) {
-		defer mon.Task()(&ctx)(&err)
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		defer span.End()
 
 		now := time.Now()
 
@@ -78,7 +82,8 @@ func (chore *Chore) Run(ctx context.Context) (err error) {
 			chore.log.Error("error getting users in need of reminder", zap.Error(err))
 			return nil
 		}
-		mon.IntVal("unverified_needing_reminder").Observe(int64(len(users)))
+		histCounter, _ := meter.SyncInt64().Histogram("unverified_needing_reminder")
+		histCounter.Record(ctx, int64(len(users)))
 
 		for _, u := range users {
 			token, err := chore.tokens.CreateToken(ctx, u.ID, u.Email)

@@ -10,8 +10,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"go.opentelemetry.io/otel"
 	"math/rand"
+	"os"
 	"reflect"
+
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -929,7 +933,9 @@ func (obj *pgxImpl) Create_Node(ctx context.Context,
 	node_public_address Node_PublicAddress_Field,
 	node_api_secret Node_ApiSecret_Field) (
 	node *Node, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	__id_val := node_id.value()
 	__name_val := node_name.value()
 	__public_address_val := node_public_address.value()
@@ -955,7 +961,9 @@ func (obj *pgxImpl) Create_Node(ctx context.Context,
 func (obj *pgxImpl) Get_Node_By_Id(ctx context.Context,
 	node_id Node_Id_Field) (
 	node *Node, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT nodes.id, nodes.name, nodes.public_address, nodes.api_secret FROM nodes WHERE nodes.id = ?")
 
@@ -976,7 +984,9 @@ func (obj *pgxImpl) Get_Node_By_Id(ctx context.Context,
 
 func (obj *pgxImpl) Count_Node(ctx context.Context) (
 	count int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT COUNT(*) FROM nodes")
 
@@ -996,7 +1006,9 @@ func (obj *pgxImpl) Count_Node(ctx context.Context) (
 
 func (obj *pgxImpl) All_Node(ctx context.Context) (
 	rows []*Node, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT nodes.id, nodes.name, nodes.public_address, nodes.api_secret FROM nodes")
 
@@ -1029,7 +1041,9 @@ func (obj *pgxImpl) All_Node(ctx context.Context) (
 func (obj *pgxImpl) Limited_Node(ctx context.Context,
 	limit int, offset int64) (
 	rows []*Node, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT nodes.id, nodes.name, nodes.public_address, nodes.api_secret FROM nodes LIMIT ? OFFSET ?")
 
@@ -1065,7 +1079,9 @@ func (obj *pgxImpl) Update_Node_By_Id(ctx context.Context,
 	node_id Node_Id_Field,
 	update Node_Update_Fields) (
 	node *Node, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE nodes SET "), __sets, __sqlbundle_Literal(" WHERE nodes.id = ? RETURNING nodes.id, nodes.name, nodes.public_address, nodes.api_secret")}}
@@ -1106,7 +1122,9 @@ func (obj *pgxImpl) UpdateNoReturn_Node_By_Id(ctx context.Context,
 	node_id Node_Id_Field,
 	update Node_Update_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE nodes SET "), __sets, __sqlbundle_Literal(" WHERE nodes.id = ?")}}
@@ -1142,7 +1160,9 @@ func (obj *pgxImpl) UpdateNoReturn_Node_By_Id(ctx context.Context,
 func (obj *pgxImpl) Delete_Node_By_Id(ctx context.Context,
 	node_id Node_Id_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM nodes WHERE nodes.id = ?")
 
@@ -1177,7 +1197,9 @@ func (impl pgxImpl) isConstraintError(err error) (
 }
 
 func (obj *pgxImpl) deleteAll(ctx context.Context) (count int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __res sql.Result
 	var __count int64
 	__res, err = obj.driver.ExecContext(ctx, "DELETE FROM nodes;")
@@ -1201,7 +1223,9 @@ func (obj *sqlite3Impl) Create_Node(ctx context.Context,
 	node_public_address Node_PublicAddress_Field,
 	node_api_secret Node_ApiSecret_Field) (
 	node *Node, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	__id_val := node_id.value()
 	__name_val := node_name.value()
 	__public_address_val := node_public_address.value()
@@ -1230,7 +1254,9 @@ func (obj *sqlite3Impl) Create_Node(ctx context.Context,
 func (obj *sqlite3Impl) Get_Node_By_Id(ctx context.Context,
 	node_id Node_Id_Field) (
 	node *Node, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT nodes.id, nodes.name, nodes.public_address, nodes.api_secret FROM nodes WHERE nodes.id = ?")
 
@@ -1251,7 +1277,9 @@ func (obj *sqlite3Impl) Get_Node_By_Id(ctx context.Context,
 
 func (obj *sqlite3Impl) Count_Node(ctx context.Context) (
 	count int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT COUNT(*) FROM nodes")
 
@@ -1271,7 +1299,9 @@ func (obj *sqlite3Impl) Count_Node(ctx context.Context) (
 
 func (obj *sqlite3Impl) All_Node(ctx context.Context) (
 	rows []*Node, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT nodes.id, nodes.name, nodes.public_address, nodes.api_secret FROM nodes")
 
@@ -1304,7 +1334,9 @@ func (obj *sqlite3Impl) All_Node(ctx context.Context) (
 func (obj *sqlite3Impl) Limited_Node(ctx context.Context,
 	limit int, offset int64) (
 	rows []*Node, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT nodes.id, nodes.name, nodes.public_address, nodes.api_secret FROM nodes LIMIT ? OFFSET ?")
 
@@ -1340,7 +1372,9 @@ func (obj *sqlite3Impl) Update_Node_By_Id(ctx context.Context,
 	node_id Node_Id_Field,
 	update Node_Update_Fields) (
 	node *Node, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE nodes SET "), __sets, __sqlbundle_Literal(" WHERE nodes.id = ?")}}
@@ -1391,7 +1425,9 @@ func (obj *sqlite3Impl) UpdateNoReturn_Node_By_Id(ctx context.Context,
 	node_id Node_Id_Field,
 	update Node_Update_Fields) (
 	err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __sets = &__sqlbundle_Hole{}
 
 	var __embed_stmt = __sqlbundle_Literals{Join: "", SQLs: []__sqlbundle_SQL{__sqlbundle_Literal("UPDATE nodes SET "), __sets, __sqlbundle_Literal(" WHERE nodes.id = ?")}}
@@ -1427,7 +1463,9 @@ func (obj *sqlite3Impl) UpdateNoReturn_Node_By_Id(ctx context.Context,
 func (obj *sqlite3Impl) Delete_Node_By_Id(ctx context.Context,
 	node_id Node_Id_Field) (
 	deleted bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("DELETE FROM nodes WHERE nodes.id = ?")
 
@@ -1454,7 +1492,9 @@ func (obj *sqlite3Impl) Delete_Node_By_Id(ctx context.Context,
 func (obj *sqlite3Impl) getLastNode(ctx context.Context,
 	pk int64) (
 	node *Node, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var __embed_stmt = __sqlbundle_Literal("SELECT nodes.id, nodes.name, nodes.public_address, nodes.api_secret FROM nodes WHERE _rowid_ = ?")
 
@@ -1486,7 +1526,9 @@ func (impl sqlite3Impl) isConstraintError(err error) (
 }
 
 func (obj *sqlite3Impl) deleteAll(ctx context.Context) (count int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var __res sql.Result
 	var __count int64
 	__res, err = obj.driver.ExecContext(ctx, "DELETE FROM nodes;")

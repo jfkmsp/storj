@@ -7,14 +7,19 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"math"
 	"net/http"
 	"net/mail"
+	"os"
+
+	"runtime"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/spf13/pflag"
 	"github.com/stripe/stripe-go/v72"
 	"github.com/zeebo/errs"
@@ -39,8 +44,6 @@ import (
 	"storj.io/storj/satellite/payments/billing"
 	"storj.io/storj/satellite/rewards"
 )
-
-var mon = monkit.Package()
 
 const (
 	// maxLimit specifies the limit for all paged queries.
@@ -302,7 +305,9 @@ func (s *Service) Payments() Payments {
 
 // SetupAccount creates payment account for authorized user.
 func (payment Payments) SetupAccount(ctx context.Context) (_ payments.CouponType, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := payment.service.getUserAndAuditLog(ctx, "setup payment account")
 	if err != nil {
@@ -314,7 +319,9 @@ func (payment Payments) SetupAccount(ctx context.Context) (_ payments.CouponType
 
 // AccountBalance return account balance.
 func (payment Payments) AccountBalance(ctx context.Context) (balance payments.Balance, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := payment.service.getUserAndAuditLog(ctx, "get account balance")
 	if err != nil {
@@ -326,7 +333,9 @@ func (payment Payments) AccountBalance(ctx context.Context) (balance payments.Ba
 
 // AddCreditCard is used to save new credit card and attach it to payment account.
 func (payment Payments) AddCreditCard(ctx context.Context, creditCardToken string) (err error) {
-	defer mon.Task()(&ctx, creditCardToken)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("creditCardToken", creditCardToken)))
+	defer span.End()
 
 	user, err := payment.service.getUserAndAuditLog(ctx, "add credit card")
 	if err != nil {
@@ -380,7 +389,9 @@ func (payment Payments) AddCreditCard(ctx context.Context, creditCardToken strin
 
 // MakeCreditCardDefault makes a credit card default payment method.
 func (payment Payments) MakeCreditCardDefault(ctx context.Context, cardID string) (err error) {
-	defer mon.Task()(&ctx, cardID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("cardID", cardID)))
+	defer span.End()
 
 	user, err := payment.service.getUserAndAuditLog(ctx, "make credit card default")
 	if err != nil {
@@ -392,7 +403,9 @@ func (payment Payments) MakeCreditCardDefault(ctx context.Context, cardID string
 
 // ProjectsCharges returns how much money current user will be charged for each project which he owns.
 func (payment Payments) ProjectsCharges(ctx context.Context, since, before time.Time) (_ []payments.ProjectCharge, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := payment.service.getUserAndAuditLog(ctx, "project charges")
 	if err != nil {
@@ -404,7 +417,9 @@ func (payment Payments) ProjectsCharges(ctx context.Context, since, before time.
 
 // ListCreditCards returns a list of credit cards for a given payment account.
 func (payment Payments) ListCreditCards(ctx context.Context) (_ []payments.CreditCard, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := payment.service.getUserAndAuditLog(ctx, "list credit cards")
 	if err != nil {
@@ -416,7 +431,9 @@ func (payment Payments) ListCreditCards(ctx context.Context) (_ []payments.Credi
 
 // RemoveCreditCard is used to detach a credit card from payment account.
 func (payment Payments) RemoveCreditCard(ctx context.Context, cardID string) (err error) {
-	defer mon.Task()(&ctx, cardID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("cardID", cardID)))
+	defer span.End()
 
 	user, err := payment.service.getUserAndAuditLog(ctx, "remove credit card")
 	if err != nil {
@@ -428,7 +445,9 @@ func (payment Payments) RemoveCreditCard(ctx context.Context, cardID string) (er
 
 // BillingHistory returns a list of billing history items for payment account.
 func (payment Payments) BillingHistory(ctx context.Context) (billingHistory []*BillingHistoryItem, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := payment.service.getUserAndAuditLog(ctx, "get billing history")
 	if err != nil {
@@ -535,7 +554,9 @@ func (payment Payments) BillingHistory(ctx context.Context) (billingHistory []*B
 
 // checkOutstandingInvoice returns if the payment account has any unpaid/outstanding invoices or/and invoice items.
 func (payment Payments) checkOutstandingInvoice(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := payment.service.getUserAndAuditLog(ctx, "get outstanding invoices")
 	if err != nil {
@@ -567,7 +588,9 @@ func (payment Payments) checkOutstandingInvoice(ctx context.Context) (err error)
 // checkProjectInvoicingStatus returns error if for the given project there are outstanding project records and/or usage
 // which have not been applied/invoiced yet (meaning sent over to stripe).
 func (payment Payments) checkProjectInvoicingStatus(ctx context.Context, projectID uuid.UUID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = payment.service.getUserAndAuditLog(ctx, "project invoicing status")
 	if err != nil {
@@ -579,7 +602,9 @@ func (payment Payments) checkProjectInvoicingStatus(ctx context.Context, project
 
 // checkProjectUsageStatus returns error if for the given project there is some usage for current or previous month.
 func (payment Payments) checkProjectUsageStatus(ctx context.Context, projectID uuid.UUID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = payment.service.getUserAndAuditLog(ctx, "project usage status")
 	if err != nil {
@@ -592,7 +617,9 @@ func (payment Payments) checkProjectUsageStatus(ctx context.Context, projectID u
 // ApplyCouponCode applies a coupon code to a Stripe customer
 // and returns the coupon corresponding to the code.
 func (payment Payments) ApplyCouponCode(ctx context.Context, couponCode string) (coupon *payments.Coupon, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := payment.service.getUserAndAuditLog(ctx, "apply coupon code")
 	if err != nil {
@@ -609,7 +636,9 @@ func (payment Payments) ApplyCouponCode(ctx context.Context, couponCode string) 
 
 // GetCoupon returns the coupon applied to the user's account.
 func (payment Payments) GetCoupon(ctx context.Context) (coupon *payments.Coupon, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := payment.service.getUserAndAuditLog(ctx, "get coupon")
 	if err != nil {
@@ -648,21 +677,23 @@ func (s *Service) checkRegistrationSecret(ctx context.Context, tokenSecret Regis
 
 // CreateUser gets password hash value and creates new inactive User.
 func (s *Service) CreateUser(ctx context.Context, user CreateUser, tokenSecret RegistrationSecret) (u *User, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var captchaScore *float64
 
-	mon.Counter("create_user_attempt").Inc(1) //mon:locked
+	span.AddEvent("create_user_attempt")
 
 	if s.config.Captcha.Registration.Recaptcha.Enabled || s.config.Captcha.Registration.Hcaptcha.Enabled {
 		valid, score, err := s.registrationCaptchaHandler.Verify(ctx, user.CaptchaResponse, user.IP)
 		if err != nil {
-			mon.Counter("create_user_captcha_error").Inc(1) //mon:locked
+			span.AddEvent("create_user_captcha_error")
 			s.log.Error("captcha authorization failed", zap.Error(err))
 			return nil, ErrCaptcha.Wrap(err)
 		}
 		if !valid {
-			mon.Counter("create_user_captcha_unsuccessful").Inc(1) //mon:locked
+			span.AddEvent("create_user_captcha_unsuccessful")
 			return nil, ErrCaptcha.New("captcha validation unsuccessful")
 		}
 		captchaScore = score
@@ -683,10 +714,10 @@ func (s *Service) CreateUser(ctx context.Context, user CreateUser, tokenSecret R
 		return nil, Error.Wrap(err)
 	}
 	if verified != nil {
-		mon.Counter("create_user_duplicate_verified").Inc(1) //mon:locked
+		span.AddEvent("create_user_duplicate_verified")
 		return nil, ErrEmailUsed.New(emailUsedErrMsg)
 	} else if len(unverified) != 0 {
-		mon.Counter("create_user_duplicate_unverified").Inc(1) //mon:locked
+		span.AddEvent("create_user_duplicate_unverified")
 		return nil, ErrEmailUsed.New(emailUsedErrMsg)
 	}
 
@@ -755,7 +786,7 @@ func (s *Service) CreateUser(ctx context.Context, user CreateUser, tokenSecret R
 	}
 
 	s.auditLog(ctx, "create user", nil, user.Email)
-	mon.Counter("create_user_success").Inc(1) //mon:locked
+	span.AddEvent("create_user_success")
 
 	return u, nil
 }
@@ -769,14 +800,18 @@ func (s *Service) TestSwapCaptchaHandler(h CaptchaHandler) {
 
 // GenerateActivationToken - is a method for generating activation token.
 func (s *Service) GenerateActivationToken(ctx context.Context, id uuid.UUID, email string) (token string, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return s.tokens.CreateToken(ctx, id, email)
 }
 
 // GeneratePasswordRecoveryToken - is a method for generating password recovery token.
 func (s *Service) GeneratePasswordRecoveryToken(ctx context.Context, id uuid.UUID) (token string, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	resetPasswordToken, err := s.store.ResetPasswordTokens().GetByOwnerID(ctx, id)
 	if err == nil {
@@ -798,7 +833,9 @@ func (s *Service) GeneratePasswordRecoveryToken(ctx context.Context, id uuid.UUI
 
 // GenerateSessionToken creates a new session and returns the string representation of its token.
 func (s *Service) GenerateSessionToken(ctx context.Context, userID uuid.UUID, email, ip, userAgent string) (_ *TokenInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	sessionID, err := uuid.New()
 	if err != nil {
@@ -836,7 +873,9 @@ func (s *Service) GenerateSessionToken(ctx context.Context, userID uuid.UUID, em
 
 // ActivateAccount - is a method for activating user account after registration.
 func (s *Service) ActivateAccount(ctx context.Context, activationToken string) (user *User, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	parsedActivationToken, err := consoleauth.FromBase64URLString(activationToken)
 	if err != nil {
@@ -886,7 +925,9 @@ func (s *Service) ActivateAccount(ctx context.Context, activationToken string) (
 
 // ResetPassword - is a method for resetting user password.
 func (s *Service) ResetPassword(ctx context.Context, resetPasswordToken, password string, passcode string, recoveryCode string, t time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	secret, err := ResetPasswordSecretFromBase64(resetPasswordToken)
 	if err != nil {
@@ -972,7 +1013,9 @@ func (s *Service) ResetPassword(ctx context.Context, resetPasswordToken, passwor
 
 // RevokeResetPasswordToken - is a method to revoke reset password token.
 func (s *Service) RevokeResetPasswordToken(ctx context.Context, resetPasswordToken string) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	secret, err := ResetPasswordSecretFromBase64(resetPasswordToken)
 	if err != nil {
@@ -984,18 +1027,20 @@ func (s *Service) RevokeResetPasswordToken(ctx context.Context, resetPasswordTok
 
 // Token authenticates User by credentials and returns session token.
 func (s *Service) Token(ctx context.Context, request AuthUser) (response *TokenInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
-	mon.Counter("login_attempt").Inc(1) //mon:locked
+	span.AddEvent("login_attempt")
 
 	if s.config.Captcha.Login.Recaptcha.Enabled || s.config.Captcha.Login.Hcaptcha.Enabled {
 		valid, _, err := s.loginCaptchaHandler.Verify(ctx, request.CaptchaResponse, request.IP)
 		if err != nil {
-			mon.Counter("login_user_captcha_error").Inc(1) //mon:locked
+			span.AddEvent("login_user_captcha_error")
 			return nil, ErrCaptcha.Wrap(err)
 		}
 		if !valid {
-			mon.Counter("login_user_captcha_unsuccessful").Inc(1) //mon:locked
+			span.AddEvent("login_user_captcha_unsuccessful")
 			return nil, ErrCaptcha.New("captcha validation unsuccessful")
 		}
 	}
@@ -1003,10 +1048,10 @@ func (s *Service) Token(ctx context.Context, request AuthUser) (response *TokenI
 	user, unverified, err := s.store.Users().GetByEmailWithUnverified(ctx, request.Email)
 	if user == nil {
 		if len(unverified) > 0 {
-			mon.Counter("login_email_unverified").Inc(1) //mon:locked
+			span.AddEvent("login_email_unverified")
 			s.auditLog(ctx, "login: failed email unverified", nil, request.Email)
 		} else {
-			mon.Counter("login_email_invalid").Inc(1) //mon:locked
+			span.AddEvent("login_email_invalid")
 			s.auditLog(ctx, "login: failed invalid email", nil, request.Email)
 		}
 		return nil, ErrLoginCredentials.New(credentialsErrMsg)
@@ -1015,7 +1060,7 @@ func (s *Service) Token(ctx context.Context, request AuthUser) (response *TokenI
 	now := time.Now()
 
 	if user.LoginLockoutExpiration.After(now) {
-		mon.Counter("login_locked_out").Inc(1) //mon:locked
+		span.AddEvent("login_locked_out")
 		s.auditLog(ctx, "login: failed account locked out", &user.ID, request.Email)
 		return nil, ErrLoginCredentials.New(credentialsErrMsg)
 	}
@@ -1026,16 +1071,16 @@ func (s *Service) Token(ctx context.Context, request AuthUser) (response *TokenI
 			return err
 		}
 
-		mon.Counter("login_failed").Inc(1)                                          //mon:locked
-		mon.IntVal("login_user_failed_count").Observe(int64(user.FailedLoginCount)) //mon:locked
+		span.AddEvent("login_failed")
+		span.AddEvent("login_user_failed_count", trace.WithAttributes(attribute.Int("FailedLoginCount", user.FailedLoginCount)))
 
 		if user.FailedLoginCount == s.config.LoginAttemptsWithoutPenalty {
-			mon.Counter("login_lockout_initiated").Inc(1) //mon:locked
+			span.AddEvent("login_lockout_initiated")
 			s.auditLog(ctx, "login: failed login count reached maximum attempts", &user.ID, request.Email)
 		}
 
 		if user.FailedLoginCount > s.config.LoginAttemptsWithoutPenalty {
-			mon.Counter("login_lockout_reinitiated").Inc(1) //mon:locked
+			span.AddEvent("login_lockout_reinitiated")
 			s.auditLog(ctx, "login: failed locked account", &user.ID, request.Email)
 		}
 
@@ -1048,14 +1093,14 @@ func (s *Service) Token(ctx context.Context, request AuthUser) (response *TokenI
 		if err != nil {
 			return nil, err
 		}
-		mon.Counter("login_invalid_password").Inc(1) //mon:locked
+		span.AddEvent("login_invalid_password")
 		s.auditLog(ctx, "login: failed password invalid", &user.ID, user.Email)
 		return nil, ErrLoginPassword.New(credentialsErrMsg)
 	}
 
 	if user.MFAEnabled {
 		if request.MFARecoveryCode != "" && request.MFAPasscode != "" {
-			mon.Counter("login_mfa_conflict").Inc(1) //mon:locked
+			span.AddEvent("login_mfa_conflict")
 			s.auditLog(ctx, "login: failed mfa conflict", &user.ID, user.Email)
 			return nil, ErrMFAConflict.New(mfaConflictErrMsg)
 		}
@@ -1075,12 +1120,12 @@ func (s *Service) Token(ctx context.Context, request AuthUser) (response *TokenI
 				if err != nil {
 					return nil, err
 				}
-				mon.Counter("login_mfa_recovery_failure").Inc(1) //mon:locked
+				span.AddEvent("login_mfa_recovery_failure")
 				s.auditLog(ctx, "login: failed mfa recovery", &user.ID, user.Email)
 				return nil, ErrMFARecoveryCode.New(mfaRecoveryInvalidErrMsg)
 			}
 
-			mon.Counter("login_mfa_recovery_success").Inc(1) //mon:locked
+			span.AddEvent("login_mfa_recovery_success")
 
 			user.MFARecoveryCodes = append(user.MFARecoveryCodes[:codeIndex], user.MFARecoveryCodes[codeIndex+1:]...)
 
@@ -1105,13 +1150,13 @@ func (s *Service) Token(ctx context.Context, request AuthUser) (response *TokenI
 				if err != nil {
 					return nil, err
 				}
-				mon.Counter("login_mfa_passcode_failure").Inc(1) //mon:locked
+				span.AddEvent("login_mfa_passcode_failure")
 				s.auditLog(ctx, "login: failed mfa passcode invalid", &user.ID, user.Email)
 				return nil, ErrMFAPasscode.New(mfaPasscodeInvalidErrMsg)
 			}
-			mon.Counter("login_mfa_passcode_success").Inc(1) //mon:locked
+			span.AddEvent("login_mfa_passcode_success")
 		} else {
-			mon.Counter("login_mfa_missing").Inc(1) //mon:locked
+			span.AddEvent("login_mfa_missing")
 			s.auditLog(ctx, "login: failed mfa missing", &user.ID, user.Email)
 			return nil, ErrMFAMissing.New(mfaRequiredErrMsg)
 		}
@@ -1134,14 +1179,16 @@ func (s *Service) Token(ctx context.Context, request AuthUser) (response *TokenI
 		return nil, err
 	}
 
-	mon.Counter("login_success").Inc(1) //mon:locked
+	span.AddEvent("login_success")
 
 	return response, nil
 }
 
 // UpdateUsersFailedLoginState updates User's failed login state.
 func (s *Service) UpdateUsersFailedLoginState(ctx context.Context, user *User) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var failedLoginPenalty *float64
 	if user.FailedLoginCount >= s.config.LoginAttemptsWithoutPenalty-1 {
@@ -1169,7 +1216,9 @@ func (s *Service) UpdateUsersFailedLoginState(ctx context.Context, user *User) (
 
 // GetUser returns User by id.
 func (s *Service) GetUser(ctx context.Context, id uuid.UUID) (u *User, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.store.Users().Get(ctx, id)
 	if err != nil {
@@ -1182,7 +1231,9 @@ func (s *Service) GetUser(ctx context.Context, id uuid.UUID) (u *User, err error
 // GenGetUser returns ResponseUser by request context for generated api.
 func (s *Service) GenGetUser(ctx context.Context) (*ResponseUser, api.HTTPError) {
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "get user")
 	if err != nil {
@@ -1215,7 +1266,9 @@ func (s *Service) GenGetUser(ctx context.Context) (*ResponseUser, api.HTTPError)
 
 // GetUserID returns the User ID from the session.
 func (s *Service) GetUserID(ctx context.Context) (id uuid.UUID, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "get user ID")
 	if err != nil {
@@ -1226,7 +1279,9 @@ func (s *Service) GetUserID(ctx context.Context) (id uuid.UUID, err error) {
 
 // GetUserByEmailWithUnverified returns Users by email.
 func (s *Service) GetUserByEmailWithUnverified(ctx context.Context, email string) (verified *User, unverified []User, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	verified, unverified, err = s.store.Users().GetByEmailWithUnverified(ctx, email)
 	if err != nil {
@@ -1242,7 +1297,9 @@ func (s *Service) GetUserByEmailWithUnverified(ctx context.Context, email string
 
 // UpdateAccount updates User.
 func (s *Service) UpdateAccount(ctx context.Context, fullName string, shortName string) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	user, err := s.getUserAndAuditLog(ctx, "update account")
 	if err != nil {
 		return Error.Wrap(err)
@@ -1270,7 +1327,9 @@ func (s *Service) UpdateAccount(ctx context.Context, fullName string, shortName 
 
 // ChangeEmail updates email for a given user.
 func (s *Service) ChangeEmail(ctx context.Context, newEmail string) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	user, err := s.getUserAndAuditLog(ctx, "change email")
 	if err != nil {
 		return Error.Wrap(err)
@@ -1301,7 +1360,9 @@ func (s *Service) ChangeEmail(ctx context.Context, newEmail string) (err error) 
 
 // ChangePassword updates password for a given user.
 func (s *Service) ChangePassword(ctx context.Context, pass, newPass string) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	user, err := s.getUserAndAuditLog(ctx, "change password")
 	if err != nil {
 		return Error.Wrap(err)
@@ -1339,7 +1400,9 @@ func (s *Service) ChangePassword(ctx context.Context, pass, newPass string) (err
 
 // DeleteAccount deletes User.
 func (s *Service) DeleteAccount(ctx context.Context, password string) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	user, err := s.getUserAndAuditLog(ctx, "delete account")
 	if err != nil {
 		return Error.Wrap(err)
@@ -1365,7 +1428,9 @@ func (s *Service) DeleteAccount(ctx context.Context, password string) (err error
 
 // GetProject is a method for querying project by id.
 func (s *Service) GetProject(ctx context.Context, projectID uuid.UUID) (p *Project, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	user, err := s.getUserAndAuditLog(ctx, "get project", zap.String("projectID", projectID.String()))
 	if err != nil {
 		return nil, Error.Wrap(err)
@@ -1385,7 +1450,9 @@ func (s *Service) GetProject(ctx context.Context, projectID uuid.UUID) (p *Proje
 
 // GetSalt is a method for querying project salt by id.
 func (s *Service) GetSalt(ctx context.Context, projectID uuid.UUID) (salt []byte, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	user, err := s.getUserAndAuditLog(ctx, "get project salt", zap.String("projectID", projectID.String()))
 	if err != nil {
 		return nil, Error.Wrap(err)
@@ -1400,7 +1467,9 @@ func (s *Service) GetSalt(ctx context.Context, projectID uuid.UUID) (salt []byte
 
 // GetUsersProjects is a method for querying all projects.
 func (s *Service) GetUsersProjects(ctx context.Context) (ps []Project, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	user, err := s.getUserAndAuditLog(ctx, "get users projects")
 	if err != nil {
 		return nil, Error.Wrap(err)
@@ -1417,7 +1486,9 @@ func (s *Service) GetUsersProjects(ctx context.Context) (ps []Project, err error
 // GenGetUsersProjects is a method for querying all projects for generated api.
 func (s *Service) GenGetUsersProjects(ctx context.Context) (ps []Project, httpErr api.HTTPError) {
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "get users projects")
 	if err != nil {
@@ -1440,7 +1511,9 @@ func (s *Service) GenGetUsersProjects(ctx context.Context) (ps []Project, httpEr
 
 // GetUsersOwnedProjectsPage is a method for querying paged projects.
 func (s *Service) GetUsersOwnedProjectsPage(ctx context.Context, cursor ProjectsCursor) (_ ProjectsPage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	user, err := s.getUserAndAuditLog(ctx, "get user's owned projects page")
 	if err != nil {
 		return ProjectsPage{}, Error.Wrap(err)
@@ -1456,7 +1529,9 @@ func (s *Service) GetUsersOwnedProjectsPage(ctx context.Context, cursor Projects
 
 // CreateProject is a method for creating new project.
 func (s *Service) CreateProject(ctx context.Context, projectInfo ProjectInfo) (p *Project, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	user, err := s.getUserAndAuditLog(ctx, "create project")
 	if err != nil {
 		return nil, Error.Wrap(err)
@@ -1513,7 +1588,9 @@ func (s *Service) CreateProject(ctx context.Context, projectInfo ProjectInfo) (p
 // GenCreateProject is a method for creating new project for generated api.
 func (s *Service) GenCreateProject(ctx context.Context, projectInfo ProjectInfo) (p *Project, httpError api.HTTPError) {
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "create project")
 	if err != nil {
@@ -1581,7 +1658,9 @@ func (s *Service) GenCreateProject(ctx context.Context, projectInfo ProjectInfo)
 
 // DeleteProject is a method for deleting project by id.
 func (s *Service) DeleteProject(ctx context.Context, projectID uuid.UUID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "delete project", zap.String("projectID", projectID.String()))
 	if err != nil {
@@ -1609,7 +1688,9 @@ func (s *Service) DeleteProject(ctx context.Context, projectID uuid.UUID) (err e
 // GenDeleteProject is a method for deleting project by id for generated API.
 func (s *Service) GenDeleteProject(ctx context.Context, projectID uuid.UUID) (httpError api.HTTPError) {
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "delete project", zap.String("projectID", projectID.String()))
 	if err != nil {
@@ -1648,7 +1729,9 @@ func (s *Service) GenDeleteProject(ctx context.Context, projectID uuid.UUID) (ht
 
 // UpdateProject is a method for updating project name and description by id.
 func (s *Service) UpdateProject(ctx context.Context, projectID uuid.UUID, updatedProject ProjectInfo) (p *Project, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "update project name and description", zap.String("projectID", projectID.String()))
 	if err != nil {
@@ -1720,7 +1803,9 @@ func (s *Service) UpdateProject(ctx context.Context, projectID uuid.UUID, update
 // GenUpdateProject is a method for updating project name and description by id for generated api.
 func (s *Service) GenUpdateProject(ctx context.Context, projectID uuid.UUID, projectInfo ProjectInfo) (p *Project, httpError api.HTTPError) {
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "update project name and description", zap.String("projectID", projectID.String()))
 	if err != nil {
@@ -1831,7 +1916,9 @@ func (s *Service) GenUpdateProject(ctx context.Context, projectID uuid.UUID, pro
 // AddProjectMembers adds users by email to given project.
 // Email addresses not belonging to a user are ignored.
 func (s *Service) AddProjectMembers(ctx context.Context, projectID uuid.UUID, emails []string) (users []*User, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	user, err := s.getUserAndAuditLog(ctx, "add project members", zap.String("projectID", projectID.String()), zap.Strings("emails", emails))
 	if err != nil {
 		return nil, Error.Wrap(err)
@@ -1870,7 +1957,9 @@ func (s *Service) AddProjectMembers(ctx context.Context, projectID uuid.UUID, em
 
 // DeleteProjectMembers removes users by email from given project.
 func (s *Service) DeleteProjectMembers(ctx context.Context, projectID uuid.UUID, emails []string) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	user, err := s.getUserAndAuditLog(ctx, "delete project members", zap.String("projectID", projectID.String()), zap.Strings("emails", emails))
 	if err != nil {
 		return Error.Wrap(err)
@@ -1921,7 +2010,9 @@ func (s *Service) DeleteProjectMembers(ctx context.Context, projectID uuid.UUID,
 
 // GetProjectMembers returns ProjectMembers for given Project.
 func (s *Service) GetProjectMembers(ctx context.Context, projectID uuid.UUID, cursor ProjectMembersCursor) (pmp *ProjectMembersPage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "get project members", zap.String("projectID", projectID.String()))
 	if err != nil {
@@ -1947,7 +2038,9 @@ func (s *Service) GetProjectMembers(ctx context.Context, projectID uuid.UUID, cu
 
 // CreateAPIKey creates new api key.
 func (s *Service) CreateAPIKey(ctx context.Context, projectID uuid.UUID, name string) (_ *APIKeyInfo, _ *macaroon.APIKey, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "create api key", zap.String("projectID", projectID.String()))
 	if err != nil {
@@ -1993,7 +2086,9 @@ func (s *Service) CreateAPIKey(ctx context.Context, projectID uuid.UUID, name st
 // GenCreateAPIKey creates new api key for generated api.
 func (s *Service) GenCreateAPIKey(ctx context.Context, requestInfo CreateAPIKeyRequest) (*CreateAPIKeyResponse, api.HTTPError) {
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "create api key", zap.String("projectID", requestInfo.ProjectID))
 	if err != nil {
@@ -2117,7 +2212,9 @@ func (s *Service) GenGetAPIKeys(ctx context.Context, projectID uuid.UUID, search
 
 // GetAPIKeyInfoByName retrieves an api key by its name and project id.
 func (s *Service) GetAPIKeyInfoByName(ctx context.Context, projectID uuid.UUID, name string) (_ *APIKeyInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "get api key info",
 		zap.String("projectID", projectID.String()),
@@ -2141,7 +2238,9 @@ func (s *Service) GetAPIKeyInfoByName(ctx context.Context, projectID uuid.UUID, 
 
 // GetAPIKeyInfo retrieves api key by id.
 func (s *Service) GetAPIKeyInfo(ctx context.Context, id uuid.UUID) (_ *APIKeyInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "get api key info", zap.String("apiKeyID", id.String()))
 	if err != nil {
@@ -2163,7 +2262,9 @@ func (s *Service) GetAPIKeyInfo(ctx context.Context, id uuid.UUID) (_ *APIKeyInf
 
 // DeleteAPIKeys deletes api key by id.
 func (s *Service) DeleteAPIKeys(ctx context.Context, ids []uuid.UUID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	idStrings := make([]string, 0, len(ids))
 	for _, id := range ids {
@@ -2210,7 +2311,9 @@ func (s *Service) DeleteAPIKeys(ctx context.Context, ids []uuid.UUID) (err error
 
 // DeleteAPIKeyByNameAndProjectID deletes api key by name and project ID.
 func (s *Service) DeleteAPIKeyByNameAndProjectID(ctx context.Context, name string, projectID uuid.UUID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "delete api key by name and project ID", zap.String("apiKeyName", name), zap.String("projectID", projectID.String()))
 	if err != nil {
@@ -2237,7 +2340,9 @@ func (s *Service) DeleteAPIKeyByNameAndProjectID(ctx context.Context, name strin
 
 // GetAPIKeys returns paged api key list for given Project.
 func (s *Service) GetAPIKeys(ctx context.Context, projectID uuid.UUID, cursor APIKeyCursor) (page *APIKeyPage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "get api keys", zap.String("projectID", projectID.String()))
 	if err != nil {
@@ -2263,7 +2368,9 @@ func (s *Service) GetAPIKeys(ctx context.Context, projectID uuid.UUID, cursor AP
 
 // CreateRESTKey creates a satellite rest key.
 func (s *Service) CreateRESTKey(ctx context.Context, expiration time.Duration) (apiKey string, expiresAt time.Time, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "create rest key")
 	if err != nil {
@@ -2279,7 +2386,9 @@ func (s *Service) CreateRESTKey(ctx context.Context, expiration time.Duration) (
 
 // RevokeRESTKey revokes a satellite REST key.
 func (s *Service) RevokeRESTKey(ctx context.Context, apiKey string) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = s.getUserAndAuditLog(ctx, "revoke rest key")
 	if err != nil {
@@ -2295,7 +2404,9 @@ func (s *Service) RevokeRESTKey(ctx context.Context, apiKey string) (err error) 
 
 // GetProjectUsage retrieves project usage for a given period.
 func (s *Service) GetProjectUsage(ctx context.Context, projectID uuid.UUID, since, before time.Time) (_ *accounting.ProjectUsage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "get project usage", zap.String("projectID", projectID.String()))
 	if err != nil {
@@ -2317,7 +2428,9 @@ func (s *Service) GetProjectUsage(ctx context.Context, projectID uuid.UUID, sinc
 
 // GetBucketTotals retrieves paged bucket total usages since project creation.
 func (s *Service) GetBucketTotals(ctx context.Context, projectID uuid.UUID, cursor accounting.BucketUsageCursor, before time.Time) (_ *accounting.BucketUsagePage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "get bucket totals", zap.String("projectID", projectID.String()))
 	if err != nil {
@@ -2339,7 +2452,9 @@ func (s *Service) GetBucketTotals(ctx context.Context, projectID uuid.UUID, curs
 
 // GetAllBucketNames retrieves all bucket names of a specific project.
 func (s *Service) GetAllBucketNames(ctx context.Context, projectID uuid.UUID) (_ []string, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "get all bucket names", zap.String("projectID", projectID.String()))
 	if err != nil {
@@ -2374,7 +2489,9 @@ func (s *Service) GetAllBucketNames(ctx context.Context, projectID uuid.UUID) (_
 
 // GetBucketUsageRollups retrieves summed usage rollups for every bucket of particular project for a given period.
 func (s *Service) GetBucketUsageRollups(ctx context.Context, projectID uuid.UUID, since, before time.Time) (_ []accounting.BucketUsageRollup, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "get bucket usage rollups", zap.String("projectID", projectID.String()))
 	if err != nil {
@@ -2397,7 +2514,9 @@ func (s *Service) GetBucketUsageRollups(ctx context.Context, projectID uuid.UUID
 // GenGetBucketUsageRollups retrieves summed usage rollups for every bucket of particular project for a given period for generated api.
 func (s *Service) GenGetBucketUsageRollups(ctx context.Context, projectID uuid.UUID, since, before time.Time) (rollups []accounting.BucketUsageRollup, httpError api.HTTPError) {
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "get bucket usage rollups", zap.String("projectID", projectID.String()))
 	if err != nil {
@@ -2429,7 +2548,9 @@ func (s *Service) GenGetBucketUsageRollups(ctx context.Context, projectID uuid.U
 // GenGetSingleBucketUsageRollup retrieves usage rollup for single bucket of particular project for a given period for generated api.
 func (s *Service) GenGetSingleBucketUsageRollup(ctx context.Context, projectID uuid.UUID, bucket string, since, before time.Time) (rollup *accounting.BucketUsageRollup, httpError api.HTTPError) {
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "get single bucket usage rollup", zap.String("projectID", projectID.String()))
 	if err != nil {
@@ -2460,7 +2581,9 @@ func (s *Service) GenGetSingleBucketUsageRollup(ctx context.Context, projectID u
 
 // GetDailyProjectUsage returns daily usage by project ID.
 func (s *Service) GetDailyProjectUsage(ctx context.Context, projectID uuid.UUID, from, to time.Time) (_ *accounting.ProjectDailyUsage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "get daily usage by project ID")
 	if err != nil {
@@ -2485,7 +2608,9 @@ func (s *Service) GetDailyProjectUsage(ctx context.Context, projectID uuid.UUID,
 // Among others,it can return one of the following errors returned by
 // storj.io/storj/satellite/accounting.Service, wrapped Error.
 func (s *Service) GetProjectUsageLimits(ctx context.Context, projectID uuid.UUID) (_ *ProjectUsageLimits, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "get project usage limits", zap.String("projectID", projectID.String()))
 	if err != nil {
@@ -2519,7 +2644,9 @@ func (s *Service) GetProjectUsageLimits(ctx context.Context, projectID uuid.UUID
 
 // GetTotalUsageLimits returns total limits and current usage for all the projects.
 func (s *Service) GetTotalUsageLimits(ctx context.Context) (_ *ProjectUsageLimits, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := s.getUserAndAuditLog(ctx, "get total usage and limits for all the projects")
 	if err != nil {
@@ -2557,7 +2684,9 @@ func (s *Service) GetTotalUsageLimits(ctx context.Context) (_ *ProjectUsageLimit
 }
 
 func (s *Service) getProjectUsageLimits(ctx context.Context, projectID uuid.UUID) (_ *ProjectUsageLimits, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	storageLimit, err := s.projectUsage.GetProjectStorageLimit(ctx, projectID)
 	if err != nil {
@@ -2587,7 +2716,9 @@ func (s *Service) getProjectUsageLimits(ctx context.Context, projectID uuid.UUID
 
 // TokenAuth returns an authenticated context by session token.
 func (s *Service) TokenAuth(ctx context.Context, token consoleauth.Token, authTime time.Time) (_ context.Context, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	valid, err := s.tokens.ValidateToken(token)
 	if err != nil {
@@ -2621,7 +2752,9 @@ func (s *Service) TokenAuth(ctx context.Context, token consoleauth.Token, authTi
 
 // KeyAuth returns an authenticated context by api key.
 func (s *Service) KeyAuth(ctx context.Context, apikey string, authTime time.Time) (_ context.Context, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	ctx = consoleauth.WithAPIKey(ctx, []byte(apikey))
 
@@ -2641,7 +2774,9 @@ func (s *Service) KeyAuth(ctx context.Context, apikey string, authTime time.Time
 // checkProjectCanBeDeleted ensures that all data, api-keys and buckets are deleted and usage has been accounted.
 // no error means the project status is clean.
 func (s *Service) checkProjectCanBeDeleted(ctx context.Context, user *User, projectID uuid.UUID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	buckets, err := s.buckets.CountBuckets(ctx, projectID)
 	if err != nil {
@@ -2676,7 +2811,9 @@ func (s *Service) checkProjectCanBeDeleted(ctx context.Context, user *User, proj
 
 // checkProjectLimit is used to check if user is able to create a new project.
 func (s *Service) checkProjectLimit(ctx context.Context, userID uuid.UUID) (currentProjects int, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	limit, err := s.store.Users().GetProjectLimit(ctx, userID)
 	if err != nil {
@@ -2697,7 +2834,9 @@ func (s *Service) checkProjectLimit(ctx context.Context, userID uuid.UUID) (curr
 
 // getUserProjectLimits is a method to get the users storage and bandwidth limits for new projects.
 func (s *Service) getUserProjectLimits(ctx context.Context, userID uuid.UUID) (_ *UserProjectLimits, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	result, err := s.store.Users().GetUserProjectLimits(ctx, userID)
 	if err != nil {
@@ -2713,7 +2852,9 @@ func (s *Service) getUserProjectLimits(ctx context.Context, userID uuid.UUID) (_
 
 // CreateRegToken creates new registration token. Needed for testing.
 func (s *Service) CreateRegToken(ctx context.Context, projLimit int) (_ *RegistrationToken, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	result, err := s.store.RegistrationTokens().Create(ctx, projLimit)
 	if err != nil {
 		return nil, Error.Wrap(err)
@@ -2724,7 +2865,9 @@ func (s *Service) CreateRegToken(ctx context.Context, projLimit int) (_ *Registr
 
 // authorize returns an authorized context by user ID.
 func (s *Service) authorize(ctx context.Context, userID uuid.UUID, expiration time.Time, authTime time.Time) (_ context.Context, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if !expiration.IsZero() && expiration.Before(authTime) {
 		return nil, ErrTokenExpiration.New("authorization failed. expiration reached.")
 	}
@@ -2748,7 +2891,9 @@ type isProjectMember struct {
 
 // isProjectOwner checks if the user is an owner of a project.
 func (s *Service) isProjectOwner(ctx context.Context, userID uuid.UUID, projectID uuid.UUID) (isOwner bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	project, err := s.store.Projects().Get(ctx, projectID)
 	if err != nil {
 		return false, err
@@ -2763,7 +2908,9 @@ func (s *Service) isProjectOwner(ctx context.Context, userID uuid.UUID, projectI
 
 // isProjectMember checks if the user is a member of given project.
 func (s *Service) isProjectMember(ctx context.Context, userID uuid.UUID, projectID uuid.UUID) (_ isProjectMember, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	project, err := s.store.Projects().Get(ctx, projectID)
 	if err != nil {
 		return isProjectMember{}, Error.Wrap(err)
@@ -2819,7 +2966,9 @@ var ErrWalletNotClaimed = errs.Class("wallet is not claimed")
 // ClaimWallet requests a new wallet for the users to be used for payments. If wallet is already claimed,
 // it will return with the info without error.
 func (payment Payments) ClaimWallet(ctx context.Context) (_ WalletInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := payment.service.getUserAndAuditLog(ctx, "claim wallet")
 	if err != nil {
@@ -2841,7 +2990,9 @@ func (payment Payments) ClaimWallet(ctx context.Context) (_ WalletInfo, err erro
 
 // GetWallet returns with the assigned wallet, or with ErrWalletNotClaimed if not yet claimed.
 func (payment Payments) GetWallet(ctx context.Context) (_ WalletInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := GetUser(ctx)
 	if err != nil {
@@ -2863,7 +3014,9 @@ func (payment Payments) GetWallet(ctx context.Context) (_ WalletInfo, err error)
 
 // WalletPayments returns with all the native blockchain payments for a user's wallet.
 func (payment Payments) WalletPayments(ctx context.Context) (_ WalletPayments, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	user, err := GetUser(ctx)
 	if err != nil {
@@ -2924,14 +3077,18 @@ func findMembershipByProjectID(memberships []ProjectMember, projectID uuid.UUID)
 
 // DeleteSession removes the session from the database.
 func (s *Service) DeleteSession(ctx context.Context, sessionID uuid.UUID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return Error.Wrap(s.store.WebappSessions().DeleteBySessionID(ctx, sessionID))
 }
 
 // RefreshSession resets the expiration time of the session.
 func (s *Service) RefreshSession(ctx context.Context, sessionID uuid.UUID) (expiresAt time.Time, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = s.getUserAndAuditLog(ctx, "refresh session")
 	if err != nil {
@@ -2951,7 +3108,9 @@ func (s *Service) RefreshSession(ctx context.Context, sessionID uuid.UUID) (expi
 // VerifyForgotPasswordCaptcha returns whether the given captcha response for the forgot password page is valid.
 // It will return true without error if the captcha handler has not been set.
 func (s *Service) VerifyForgotPasswordCaptcha(ctx context.Context, responseToken, userIP string) (valid bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if s.loginCaptchaHandler != nil {
 		valid, _, err = s.loginCaptchaHandler.Verify(ctx, responseToken, userIP)

@@ -6,16 +6,18 @@ package testplanet
 import (
 	"context"
 	"errors"
+	"go.opentelemetry.io/otel"
 	"io"
 	"net"
 	"os"
 	"path/filepath"
+
+	"runtime"
 	"runtime/pprof"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -31,8 +33,6 @@ import (
 	"storj.io/storj/satellite/satellitedb/satellitedbtest"
 	"storj.io/storj/versioncontrol"
 )
-
-var mon = monkit.Package()
 
 const defaultInterval = 15 * time.Second
 
@@ -211,7 +211,9 @@ func (planet *Planet) createPeers(ctx context.Context, satelliteDatabases satell
 
 // Start starts all the nodes.
 func (planet *Planet) Start(ctx context.Context) {
-	defer mon.Task()(&ctx)(nil)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	ctx, cancel := context.WithCancel(ctx)
 	planet.cancel = cancel
@@ -268,7 +270,9 @@ func (planet *Planet) StopPeer(peer Peer) error {
 
 // StopNodeAndUpdate stops storage node and updates satellite overlay.
 func (planet *Planet) StopNodeAndUpdate(ctx context.Context, node *StorageNode) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	err = planet.StopPeer(node)
 	if err != nil {

@@ -7,6 +7,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+	"os"
+
+	"runtime"
 	"time"
 
 	"storj.io/common/uuid"
@@ -31,7 +37,9 @@ func (customers *customers) Raw() *dbx.DB {
 
 // Insert inserts a stripe customer into the database.
 func (customers *customers) Insert(ctx context.Context, userID uuid.UUID, customerID string) (err error) {
-	defer mon.Task()(&ctx, userID, customerID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("userID", userID.String())), trace.WithAttributes(attribute.String("customerID", customerID)))
+	defer span.End()
 
 	_, err = customers.db.Create_StripeCustomer(
 		ctx,
@@ -44,7 +52,9 @@ func (customers *customers) Insert(ctx context.Context, userID uuid.UUID, custom
 
 // GetCustomerID returns stripe customers id.
 func (customers *customers) GetCustomerID(ctx context.Context, userID uuid.UUID) (_ string, err error) {
-	defer mon.Task()(&ctx, userID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("userID", userID.String())))
+	defer span.End()
 
 	idRow, err := customers.db.Get_StripeCustomer_CustomerId_By_UserId(ctx, dbx.StripeCustomer_UserId(userID[:]))
 	if err != nil {
@@ -60,7 +70,9 @@ func (customers *customers) GetCustomerID(ctx context.Context, userID uuid.UUID)
 
 // List returns paginated customers id list, with customers created before specified date.
 func (customers *customers) List(ctx context.Context, offset int64, limit int, before time.Time) (_ stripecoinpayments.CustomersPage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var page stripecoinpayments.CustomersPage
 

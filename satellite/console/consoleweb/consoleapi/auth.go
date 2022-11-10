@@ -6,8 +6,12 @@ package consoleapi
 import (
 	"encoding/json"
 	"errors"
+	"go.opentelemetry.io/otel"
 	"net/http"
+	"os"
+
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -84,7 +88,9 @@ func NewAuth(log *zap.Logger, service *console.Service, mailService *mailservice
 func (a *Auth) Token(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	tokenRequest := console.AuthUser{}
 	err = json.NewDecoder(r.Body).Decode(&tokenRequest)
@@ -127,7 +133,9 @@ func (a *Auth) Token(w http.ResponseWriter, r *http.Request) {
 // Logout removes auth cookie.
 func (a *Auth) Logout(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	defer mon.Task()(&ctx)(nil)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -163,7 +171,9 @@ func replaceURLCharacters(s string) string {
 func (a *Auth) Register(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	origin := r.Header.Get("Origin")
 	if supportedCORSOrigins[origin] {
@@ -379,7 +389,9 @@ func loadSession(req *http.Request) string {
 func (a *Auth) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var updatedInfo struct {
 		FullName  string `json:"fullName"`
@@ -401,7 +413,9 @@ func (a *Auth) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 func (a *Auth) GetAccount(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var user struct {
 		ID                   uuid.UUID `json:"id"`
@@ -454,7 +468,10 @@ func (a *Auth) GetAccount(w http.ResponseWriter, r *http.Request) {
 // DeleteAccount authorizes user and deletes account by password.
 func (a *Auth) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	defer mon.Task()(&ctx)(&errNotImplemented)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	span.RecordError(errNotImplemented)
+	defer span.End()
 
 	// We do not want to allow account deletion via API currently.
 	a.serveJSONError(w, errNotImplemented)
@@ -464,7 +481,9 @@ func (a *Auth) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 func (a *Auth) ChangeEmail(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var emailChange struct {
 		NewEmail string `json:"newEmail"`
@@ -487,7 +506,9 @@ func (a *Auth) ChangeEmail(w http.ResponseWriter, r *http.Request) {
 func (a *Auth) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var passwordChange struct {
 		CurrentPassword string `json:"password"`
@@ -511,7 +532,9 @@ func (a *Auth) ChangePassword(w http.ResponseWriter, r *http.Request) {
 func (a *Auth) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var forgotPassword struct {
 		Email           string `json:"email"`
@@ -603,7 +626,9 @@ func (a *Auth) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 func (a *Auth) ResendEmail(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	params := mux.Vars(r)
 	email, ok := params["email"]
@@ -678,7 +703,9 @@ func (a *Auth) ResendEmail(w http.ResponseWriter, r *http.Request) {
 func (a *Auth) EnableUserMFA(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var data struct {
 		Passcode string `json:"passcode"`
@@ -700,7 +727,9 @@ func (a *Auth) EnableUserMFA(w http.ResponseWriter, r *http.Request) {
 func (a *Auth) DisableUserMFA(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var data struct {
 		Passcode     string `json:"passcode"`
@@ -723,7 +752,9 @@ func (a *Auth) DisableUserMFA(w http.ResponseWriter, r *http.Request) {
 func (a *Auth) GenerateMFASecretKey(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	key, err := a.service.ResetMFASecretKey(ctx)
 	if err != nil {
@@ -743,7 +774,9 @@ func (a *Auth) GenerateMFASecretKey(w http.ResponseWriter, r *http.Request) {
 func (a *Auth) GenerateMFARecoveryCodes(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	codes, err := a.service.ResetMFARecoveryCodes(ctx)
 	if err != nil {
@@ -763,7 +796,9 @@ func (a *Auth) GenerateMFARecoveryCodes(w http.ResponseWriter, r *http.Request) 
 func (a *Auth) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var resetPassword struct {
 		RecoveryToken   string `json:"token"`
@@ -806,7 +841,9 @@ func (a *Auth) ResetPassword(w http.ResponseWriter, r *http.Request) {
 func (a *Auth) RefreshSession(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	tokenInfo, err := a.cookieAuth.GetToken(r)
 	if err != nil {

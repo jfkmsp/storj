@@ -5,6 +5,10 @@ package certificate
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 
 	"go.uber.org/zap"
 
@@ -48,7 +52,9 @@ func NewEndpoint(log *zap.Logger, ca *identity.FullCertificateAuthority, authori
 // Sign signs the CA certificate of the remote peer's identity with the `certs.ca` certificate.
 // Returns a certificate chain consisting of the remote peer's CA followed by the CA chain.
 func (endpoint Endpoint) Sign(ctx context.Context, req *certificatepb.SigningRequest) (_ *certificatepb.SigningResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	peer, err := rpcpeer.FromContext(ctx)
 	if err != nil {
 		msg := "error getting peer from context"

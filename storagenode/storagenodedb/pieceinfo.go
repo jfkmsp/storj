@@ -5,7 +5,10 @@ package storagenodedb
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
 	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -29,7 +32,9 @@ type v0PieceInfoDB struct {
 
 // Add inserts piece information into the database.
 func (db *v0PieceInfoDB) Add(ctx context.Context, info *pieces.Info) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	orderLimit, err := pb.Marshal(info.OrderLimit)
 	if err != nil {
@@ -91,7 +96,9 @@ func (db *v0PieceInfoDB) getAllPiecesOwnedBy(ctx context.Context, blobStore stor
 // If blobStore is nil, the .Stat() and .FullPath() methods of the provided StoredPieceAccess
 // instances will not work, but otherwise everything should be ok.
 func (db *v0PieceInfoDB) WalkSatelliteV0Pieces(ctx context.Context, blobStore storage.Blobs, satelliteID storj.NodeID, walkFunc func(pieces.StoredPieceAccess) error) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// TODO: is it worth paging this query? we hope that SNs will not yet have too many V0 pieces.
 	pieceInfos, err := db.getAllPiecesOwnedBy(ctx, blobStore, satelliteID)
@@ -113,7 +120,9 @@ func (db *v0PieceInfoDB) WalkSatelliteV0Pieces(ctx context.Context, blobStore st
 
 // Get gets piece information by satellite id and piece id.
 func (db *v0PieceInfoDB) Get(ctx context.Context, satelliteID storj.NodeID, pieceID storj.PieceID) (_ *pieces.Info, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	info := &pieces.Info{}
 	info.SatelliteID = satelliteID
 	info.PieceID = pieceID
@@ -152,7 +161,9 @@ func (db *v0PieceInfoDB) Get(ctx context.Context, satelliteID storj.NodeID, piec
 
 // Delete deletes piece information.
 func (db *v0PieceInfoDB) Delete(ctx context.Context, satelliteID storj.NodeID, pieceID storj.PieceID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = db.ExecContext(ctx, `
 		DELETE FROM pieceinfo_
@@ -165,7 +176,9 @@ func (db *v0PieceInfoDB) Delete(ctx context.Context, satelliteID storj.NodeID, p
 
 // DeleteFailed marks piece as a failed deletion.
 func (db *v0PieceInfoDB) DeleteFailed(ctx context.Context, satelliteID storj.NodeID, pieceID storj.PieceID, now time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = db.ExecContext(ctx, `
 		UPDATE pieceinfo_
@@ -179,7 +192,9 @@ func (db *v0PieceInfoDB) DeleteFailed(ctx context.Context, satelliteID storj.Nod
 
 // GetExpired gets ExpiredInfo records for pieces that are expired.
 func (db *v0PieceInfoDB) GetExpired(ctx context.Context, expiredAt time.Time, limit int64) (infos []pieces.ExpiredInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	rows, err := db.QueryContext(ctx, `
 		SELECT satellite_id, piece_id

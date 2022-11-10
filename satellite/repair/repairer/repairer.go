@@ -5,9 +5,13 @@ package repairer
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 	"golang.org/x/sync/semaphore"
@@ -21,7 +25,6 @@ import (
 // Error is a standard error class for this package.
 var (
 	Error = errs.Class("repairer")
-	mon   = monkit.Package()
 )
 
 // Config contains configurable values for repairer.
@@ -83,8 +86,6 @@ func (service *Service) WaitForPendingRepairs() {
 
 // Run runs the repairer service.
 func (service *Service) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
-
 	// Wait for all repairs to complete
 	defer service.WaitForPendingRepairs()
 
@@ -108,7 +109,9 @@ func (service *Service) processWhileQueueHasItems(ctx context.Context) error {
 
 // process picks items from repair queue and spawns a repair worker.
 func (service *Service) process(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// wait until we are allowed to spawn a new job
 	if err := service.JobLimiter.Acquire(ctx, 1); err != nil {
@@ -150,7 +153,10 @@ func (service *Service) process(ctx context.Context) (err error) {
 }
 
 func (service *Service) worker(ctx context.Context, seg *queue.InjuredSegment) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	workerStartTime := service.nowFn().UTC()
 
@@ -175,13 +181,15 @@ func (service *Service) worker(ctx context.Context, seg *queue.InjuredSegment) (
 
 	repairedTime := service.nowFn().UTC()
 	timeForRepair := repairedTime.Sub(workerStartTime)
-	mon.FloatVal("time_for_repair").Observe(timeForRepair.Seconds()) //mon:locked
+	histCounter, _ := meter.SyncFloat64().Histogram("time_for_repair")
+	histCounter.Record(ctx, timeForRepair.Seconds())
 
 	insertedTime := seg.InsertedAt
 	// do not send metrics if segment was added before the InsertedTime field was added
 	if !insertedTime.IsZero() {
 		timeSinceQueued := workerStartTime.Sub(insertedTime)
-		mon.FloatVal("time_since_checker_queue").Observe(timeSinceQueued.Seconds()) //mon:locked
+		histCounter, _ := meter.SyncFloat64().Histogram("time_since_checker_queue")
+		histCounter.Record(ctx, timeSinceQueued.Seconds())
 	}
 
 	return nil

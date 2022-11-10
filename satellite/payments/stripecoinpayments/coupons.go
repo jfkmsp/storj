@@ -5,6 +5,12 @@ package stripecoinpayments
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/stripe/stripe-go/v72"
@@ -25,7 +31,11 @@ type coupons struct {
 
 // ApplyCouponCode attempts to apply a coupon code to the user via Stripe.
 func (coupons *coupons) ApplyCouponCode(ctx context.Context, userID uuid.UUID, couponCode string) (_ *payments.Coupon, err error) {
-	defer mon.Task()(&ctx, userID, couponCode)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(),
+		trace.WithAttributes(attribute.String("userID", userID.String())),
+		trace.WithAttributes(attribute.String("couponCode", couponCode)))
+	defer span.End()
 
 	promoCodeIter := coupons.service.stripeClient.PromoCodes().List(&stripe.PromotionCodeListParams{
 		Code: stripe.String(couponCode),
@@ -59,7 +69,10 @@ func (coupons *coupons) ApplyCouponCode(ctx context.Context, userID uuid.UUID, c
 
 // GetByUserID returns the coupon applied to the user.
 func (coupons *coupons) GetByUserID(ctx context.Context, userID uuid.UUID) (_ *payments.Coupon, err error) {
-	defer mon.Task()(&ctx, userID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(),
+		trace.WithAttributes(attribute.String("userID", userID.String())))
+	defer span.End()
 
 	customerID, err := coupons.service.db.Customers().GetCustomerID(ctx, userID)
 	if err != nil {

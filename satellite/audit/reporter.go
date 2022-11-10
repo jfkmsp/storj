@@ -5,6 +5,10 @@ package audit
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
@@ -59,7 +63,9 @@ func NewReporter(log *zap.Logger, reputations *reputation.Service, containment C
 // nil for both return values, otherwise it returns the report with the fields
 // set to the values which have been saved and the error.
 func (reporter *reporter) RecordAudits(ctx context.Context, req Report) (_ Report, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	successes := req.Successes
 	fails := req.Fails
@@ -114,7 +120,9 @@ func (reporter *reporter) RecordAudits(ctx context.Context, req Report) (_ Repor
 }
 
 func (reporter *reporter) recordAuditStatus(ctx context.Context, nodeIDs storj.NodeIDList, nodesReputation map[storj.NodeID]overlay.ReputationStatus, auditOutcome reputation.AuditType) (failed storj.NodeIDList, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if len(nodeIDs) == 0 {
 		return nil, nil
@@ -132,7 +140,9 @@ func (reporter *reporter) recordAuditStatus(ctx context.Context, nodeIDs storj.N
 
 // recordPendingAudits updates the containment status of nodes with pending audits.
 func (reporter *reporter) recordPendingAudits(ctx context.Context, pendingAudits []*PendingAudit, nodesReputation map[storj.NodeID]overlay.ReputationStatus) (failed []*PendingAudit, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var errlist errs.Group
 
 	for _, pendingAudit := range pendingAudits {

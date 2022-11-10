@@ -7,8 +7,11 @@ import (
 	"context"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"go.opentelemetry.io/otel"
+	"os"
 
-	"github.com/spacemonkeygo/monkit/v3"
+	"runtime"
+
 	"github.com/zeebo/errs"
 
 	"storj.io/common/identity"
@@ -18,7 +21,6 @@ import (
 )
 
 var (
-	mon = monkit.Package()
 
 	// Error is a revocation error.
 	Error = errs.Class("revocation")
@@ -34,7 +36,9 @@ type DB struct {
 // Get attempts to retrieve the most recent revocation for the given cert chain
 // (the  key used in the underlying database is the nodeID of the certificate chain).
 func (db *DB) Get(ctx context.Context, chain []*x509.Certificate) (_ *extensions.Revocation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if db.store == nil {
 		return nil, nil
@@ -64,7 +68,9 @@ func (db *DB) Get(ctx context.Context, chain []*x509.Certificate) (_ *extensions
 // is newer than the current value (the  key used in the underlying database is
 // the nodeID of the certificate chain).
 func (db *DB) Put(ctx context.Context, chain []*x509.Certificate, revExt pkix.Extension) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if db.store == nil {
 		return extensions.ErrRevocationDB.New("not supported")
@@ -102,7 +108,9 @@ func (db *DB) Put(ctx context.Context, chain []*x509.Certificate, revExt pkix.Ex
 
 // List lists all revocations in the store.
 func (db *DB) List(ctx context.Context) (revs []*extensions.Revocation, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if db.store == nil {
 		return nil, nil

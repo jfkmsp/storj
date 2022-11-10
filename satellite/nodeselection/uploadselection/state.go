@@ -5,6 +5,10 @@ package uploadselection
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"sync"
 
 	"github.com/zeebo/errs"
@@ -94,7 +98,9 @@ type Request struct {
 
 // Select selects requestedCount nodes where there will be newFraction nodes.
 func (state *State) Select(ctx context.Context, request Request) (_ []*Node, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	state.mu.RLock()
 	defer state.mu.RUnlock()

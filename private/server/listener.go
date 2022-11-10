@@ -4,10 +4,14 @@
 package server
 
 import (
+	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"net"
+	"os"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 
 	"storj.io/common/netutil"
@@ -47,7 +51,10 @@ func (lis *tcpUserTimeoutListener) Accept() (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	mon.Event("incoming_connection", monkit.NewSeriesTag("kind", "tcp"))
+
+	_, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(context.Background(), "incoming_connection")
+	span.AddEvent("incoming_connection", trace.WithAttributes(attribute.String("kind", "tcp")))
+	span.End()
 
 	if err := netutil.SetUserTimeout(conn, defaultUserTimeout); err != nil {
 		return nil, errs.Combine(err, conn.Close())
@@ -79,7 +86,9 @@ func (lis *quicTrackedListener) Accept() (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	mon.Event("incoming_connection", monkit.NewSeriesTag("kind", "quic"))
+	_, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(context.Background(), "incoming_connection")
+	span.AddEvent("incoming_connection", trace.WithAttributes(attribute.String("kind", "quic")))
+	span.End()
 
 	connectorConn, ok := conn.(rpc.ConnectorConn)
 	if !ok {

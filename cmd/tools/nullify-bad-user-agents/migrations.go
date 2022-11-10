@@ -5,8 +5,12 @@ package main
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
 
-	pgx "github.com/jackc/pgx/v4"
+	"runtime"
+
+	"github.com/jackc/pgx/v4"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -40,7 +44,9 @@ func MigrateTables(ctx context.Context, log *zap.Logger, conn *pgx.Conn, config 
 
 // MigrateUsers updates the user_agent column to corresponding Partners.Names or partner_id if applicable.
 func MigrateUsers(ctx context.Context, log *zap.Logger, conn *pgx.Conn, config Config) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// We select the next id then use limit as an offset which actually gives us limit+1 rows.
 	offset := config.Limit - 1
@@ -129,7 +135,9 @@ func MigrateUsers(ctx context.Context, log *zap.Logger, conn *pgx.Conn, config C
 
 // MigrateProjects updates the user_agent column to corresponding PartnerInfo.Names or partner_id if applicable.
 func MigrateProjects(ctx context.Context, log *zap.Logger, conn *pgx.Conn, config Config) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// We select the next id then use limit as an offset which actually gives us limit+1 rows.
 	offset := config.Limit - 1
@@ -219,7 +227,9 @@ func MigrateProjects(ctx context.Context, log *zap.Logger, conn *pgx.Conn, confi
 
 // MigrateAPIKeys updates the user_agent column to corresponding PartnerInfo.Names or partner_id if applicable.
 func MigrateAPIKeys(ctx context.Context, log *zap.Logger, conn *pgx.Conn, config Config) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// We select the next id then use limit as an offset which actually gives us limit+1 rows.
 	offset := config.Limit - 1
@@ -307,7 +317,9 @@ func MigrateAPIKeys(ctx context.Context, log *zap.Logger, conn *pgx.Conn, config
 
 // MigrateBucketMetainfos updates the user_agent column to corresponding Partners.Names or partner_id if applicable.
 func MigrateBucketMetainfos(ctx context.Context, log *zap.Logger, conn *pgx.Conn, config Config) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// We select the next id then use limit as an offset which actually gives us limit+1 rows.
 	offset := config.Limit - 1
@@ -395,7 +407,9 @@ func MigrateBucketMetainfos(ctx context.Context, log *zap.Logger, conn *pgx.Conn
 
 // MigrateValueAttributions updates the user_agent column to corresponding Partners.Names or partner_id if applicable.
 func MigrateValueAttributions(ctx context.Context, log *zap.Logger, conn *pgx.Conn, config Config) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// We select the next id then use limit as an offset which actually gives us limit+1 rows.
 	offset := config.Limit - 1

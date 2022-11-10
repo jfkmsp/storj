@@ -6,7 +6,7 @@ package checker_test
 import (
 	"encoding/hex"
 	"fmt"
-	"reflect"
+
 	"testing"
 
 	"github.com/stretchr/testify/require"

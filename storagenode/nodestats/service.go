@@ -5,9 +5,14 @@ package nodestats
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel/metric/instrument"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -23,8 +28,6 @@ import (
 var (
 	// NodeStatsServiceErr defines node stats service error.
 	NodeStatsServiceErr = errs.Class("nodestats")
-
-	mon = monkit.Package()
 )
 
 // Client encapsulates NodeStatsClient with underlying connection.
@@ -61,7 +64,10 @@ func NewService(log *zap.Logger, dialer rpc.Dialer, trust *trust.Pool) *Service 
 
 // GetReputationStats retrieves reputation stats from particular satellite.
 func (s *Service) GetReputationStats(ctx context.Context, satelliteID storj.NodeID) (_ *reputation.Stats, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	client, err := s.dial(ctx, satelliteID)
 	if err != nil {
@@ -76,13 +82,16 @@ func (s *Service) GetReputationStats(ctx context.Context, satelliteID storj.Node
 
 	audit := resp.GetAuditCheck()
 
-	satelliteIDSeriesTag := monkit.NewSeriesTag("satellite_id", satelliteID.String())
-
-	mon.IntVal("audit_success_count", satelliteIDSeriesTag).Observe(audit.GetSuccessCount())
-	mon.IntVal("audit_total_count", satelliteIDSeriesTag).Observe(audit.GetTotalCount())
-	mon.FloatVal("audit_reputation_score", satelliteIDSeriesTag).Observe(audit.GetReputationScore())
-	mon.FloatVal("suspension_score", satelliteIDSeriesTag).Observe(audit.GetUnknownReputationScore())
-	mon.FloatVal("online_score", satelliteIDSeriesTag).Observe(resp.GetOnlineScore())
+	counter, _ := meter.SyncInt64().Histogram("audit_success_count", instrument.WithDescription("satellite_id: "+satelliteID.String()))
+	counter.Record(ctx, audit.GetSuccessCount())
+	counter, _ = meter.SyncInt64().Histogram("audit_total_count", instrument.WithDescription("satellite_id: "+satelliteID.String()))
+	counter.Record(ctx, audit.GetTotalCount())
+	floatCounter, _ := meter.SyncFloat64().Histogram("audit_reputation_score", instrument.WithDescription("satellite_id: "+satelliteID.String()))
+	floatCounter.Record(ctx, audit.GetReputationScore())
+	floatCounter, _ = meter.SyncFloat64().Histogram("suspension_score", instrument.WithDescription("satellite_id: "+satelliteID.String()))
+	floatCounter.Record(ctx, audit.GetUnknownReputationScore())
+	floatCounter, _ = meter.SyncFloat64().Histogram("online_score", instrument.WithDescription("satellite_id: "+satelliteID.String()))
+	floatCounter.Record(ctx, resp.GetOnlineScore())
 
 	return &reputation.Stats{
 		SatelliteID: satelliteID,
@@ -110,7 +119,9 @@ func (s *Service) GetReputationStats(ctx context.Context, satelliteID storj.Node
 
 // GetDailyStorageUsage returns daily storage usage over a period of time for a particular satellite.
 func (s *Service) GetDailyStorageUsage(ctx context.Context, satelliteID storj.NodeID, from, to time.Time) (_ []storageusage.Stamp, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	client, err := s.dial(ctx, satelliteID)
 	if err != nil {
@@ -128,7 +139,9 @@ func (s *Service) GetDailyStorageUsage(ctx context.Context, satelliteID storj.No
 
 // GetPricingModel returns pricing model of specific satellite.
 func (s *Service) GetPricingModel(ctx context.Context, satelliteID storj.NodeID) (_ *pricing.Pricing, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	client, err := s.dial(ctx, satelliteID)
 	if err != nil {
@@ -152,7 +165,9 @@ func (s *Service) GetPricingModel(ctx context.Context, satelliteID storj.NodeID)
 
 // dial dials the NodeStats client for the satellite by id.
 func (s *Service) dial(ctx context.Context, satelliteID storj.NodeID) (_ *Client, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	nodeurl, err := s.trust.GetNodeURL(ctx, satelliteID)
 	if err != nil {

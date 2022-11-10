@@ -253,7 +253,7 @@ func testUsers(ctx context.Context, t *testing.T, repository console.Users, user
 		oldUser, err := repository.GetByEmail(ctx, email)
 		assert.NoError(t, err)
 
-		d := (60 * time.Second)
+		d := 60 * time.Second
 		date := time.Now().Add(-24 * 365 * time.Hour).Truncate(d)
 
 		newUserInfo := &console.User{

@@ -5,11 +5,17 @@ package contact
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel/trace"
 	"math/rand"
+	"os"
+
+	"runtime"
 	"sync"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -22,7 +28,6 @@ import (
 )
 
 var (
-	mon = monkit.Package()
 
 	// Error is the default error class for contact package.
 	Error = errs.Class("contact")
@@ -78,7 +83,9 @@ func NewService(log *zap.Logger, dialer rpc.Dialer, self NodeInfo, trust *trust.
 
 // PingSatellites attempts to ping all satellites in trusted list until backoff reaches maxInterval.
 func (service *Service) PingSatellites(ctx context.Context, maxInterval time.Duration) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	satellites := service.trust.GetSatellites(ctx)
 	var group errgroup.Group
 	for _, satellite := range satellites {
@@ -91,11 +98,15 @@ func (service *Service) PingSatellites(ctx context.Context, maxInterval time.Dur
 }
 
 func (service *Service) pingSatellite(ctx context.Context, satellite storj.NodeID, maxInterval time.Duration) error {
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, "satellite_contact_request")
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 	interval := initialBackOff
 	attempts := 0
 	for {
 
-		mon.Meter("satellite_contact_request").Mark(1) //mon:locked
+		counter, _ := meter.SyncInt64().Counter("satellite_contact_request")
+		counter.Add(ctx, 1)
 
 		err := service.pingSatelliteOnce(ctx, satellite)
 		attempts++
@@ -119,7 +130,9 @@ func (service *Service) pingSatellite(ctx context.Context, satellite storj.NodeI
 }
 
 func (service *Service) pingSatelliteOnce(ctx context.Context, id storj.NodeID) (err error) {
-	defer mon.Task()(&ctx, id)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("ID", id.String())))
+	defer span.End()
 
 	conn, err := service.dialSatellite(ctx, id)
 	if err != nil {
@@ -153,7 +166,9 @@ func (service *Service) pingSatelliteOnce(ctx context.Context, id storj.NodeID) 
 
 // RequestPingMeQUIC sends pings request to satellite for a pingBack via QUIC.
 func (service *Service) RequestPingMeQUIC(ctx context.Context) (stats *QUICStats, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	stats = NewQUICStats(true)
 
@@ -190,7 +205,9 @@ func (service *Service) RequestPingMeQUIC(ctx context.Context) (stats *QUICStats
 }
 
 func (service *Service) requestPingMeOnce(ctx context.Context, satellite storj.NodeID) (err error) {
-	defer mon.Task()(&ctx, satellite)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("satellite", satellite.String())))
+	defer span.End()
 
 	conn, err := service.dialSatellite(ctx, satellite)
 	if err != nil {

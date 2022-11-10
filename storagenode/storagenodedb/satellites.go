@@ -5,6 +5,10 @@ package storagenodedb
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -27,7 +31,9 @@ type satellitesDB struct {
 
 // SetAddress inserts into satellite's db id, address, added time.
 func (db *satellitesDB) SetAddress(ctx context.Context, satelliteID storj.NodeID, address string) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = db.ExecContext(ctx,
 		`INSERT INTO satellites (node_id, address, added_at, status) VALUES(?,?,?,?) ON CONFLICT (node_id) DO UPDATE SET address = EXCLUDED.address`,
@@ -42,7 +48,9 @@ func (db *satellitesDB) SetAddress(ctx context.Context, satelliteID storj.NodeID
 
 // GetSatellite retrieves that satellite by ID.
 func (db *satellitesDB) GetSatellite(ctx context.Context, satelliteID storj.NodeID) (satellite satellites.Satellite, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	rows, err := db.QueryContext(ctx, "SELECT node_id, added_at, status FROM satellites WHERE node_id = ?", satelliteID)
 	if err != nil {
@@ -61,7 +69,9 @@ func (db *satellitesDB) GetSatellite(ctx context.Context, satelliteID storj.Node
 
 // GetSatellitesUrls retrieves all satellite's id and urls.
 func (db *satellitesDB) GetSatellitesUrls(ctx context.Context) (satelliteURLs []storj.NodeURL, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query := `SELECT
 			node_id,
@@ -95,7 +105,9 @@ func (db *satellitesDB) GetSatellitesUrls(ctx context.Context) (satelliteURLs []
 
 // InitiateGracefulExit updates the database to reflect the beginning of a graceful exit.
 func (db *satellitesDB) InitiateGracefulExit(ctx context.Context, satelliteID storj.NodeID, intitiatedAt time.Time, startingDiskUsage int64) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return ErrSatellitesDB.Wrap(withTx(ctx, db.GetDB(), func(tx tagsql.Tx) error {
 		query := `INSERT OR REPLACE INTO satellites (node_id, status, added_at) VALUES (?,?, COALESCE((SELECT added_at FROM satellites WHERE node_id = ?), ?))`
 		_, err = tx.ExecContext(ctx, query, satelliteID, satellites.Exiting, satelliteID, intitiatedAt.UTC()) // assume intitiatedAt < time.Now()
@@ -110,7 +122,9 @@ func (db *satellitesDB) InitiateGracefulExit(ctx context.Context, satelliteID st
 
 // CancelGracefulExit delete an entry by satellite ID.
 func (db *satellitesDB) CancelGracefulExit(ctx context.Context, satelliteID storj.NodeID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = db.ExecContext(ctx, "DELETE FROM satellite_exit_progress WHERE satellite_id = ?", satelliteID)
 	return ErrSatellitesDB.Wrap(err)
@@ -118,7 +132,9 @@ func (db *satellitesDB) CancelGracefulExit(ctx context.Context, satelliteID stor
 
 // UpdateGracefulExit increments the total bytes deleted during a graceful exit.
 func (db *satellitesDB) UpdateGracefulExit(ctx context.Context, satelliteID storj.NodeID, addToBytesDeleted int64) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	query := `UPDATE satellite_exit_progress SET bytes_deleted = bytes_deleted + ? WHERE satellite_id = ?`
 	_, err = db.ExecContext(ctx, query, addToBytesDeleted, satelliteID)
 	return ErrSatellitesDB.Wrap(err)
@@ -126,7 +142,9 @@ func (db *satellitesDB) UpdateGracefulExit(ctx context.Context, satelliteID stor
 
 // CompleteGracefulExit updates the database when a graceful exit is completed or failed.
 func (db *satellitesDB) CompleteGracefulExit(ctx context.Context, satelliteID storj.NodeID, finishedAt time.Time, exitStatus satellites.Status, completionReceipt []byte) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return ErrSatellitesDB.Wrap(withTx(ctx, db.GetDB(), func(tx tagsql.Tx) error {
 		query := `UPDATE satellites SET status = ? WHERE node_id = ?`
 		_, err = tx.ExecContext(ctx, query, exitStatus, satelliteID)
@@ -141,7 +159,9 @@ func (db *satellitesDB) CompleteGracefulExit(ctx context.Context, satelliteID st
 
 // ListGracefulExits lists all graceful exit records.
 func (db *satellitesDB) ListGracefulExits(ctx context.Context) (exitList []satellites.ExitProgress, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query := `SELECT satellite_id, initiated_at, finished_at, starting_disk_usage, bytes_deleted, completion_receipt, status FROM satellite_exit_progress INNER JOIN satellites ON satellite_exit_progress.satellite_id = satellites.node_id`
 	rows, err := db.QueryContext(ctx, query)

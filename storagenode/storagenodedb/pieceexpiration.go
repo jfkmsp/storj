@@ -5,6 +5,10 @@ package storagenodedb
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -25,7 +29,9 @@ type pieceExpirationDB struct {
 
 // GetExpired gets piece IDs that expire or have expired before the given time.
 func (db *pieceExpirationDB) GetExpired(ctx context.Context, expiresBefore time.Time, limit int64) (expiredPieceIDs []pieces.ExpiredInfo, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	rows, err := db.QueryContext(ctx, `
 		SELECT satellite_id, piece_id
@@ -58,7 +64,9 @@ func (db *pieceExpirationDB) GetExpired(ctx context.Context, expiresBefore time.
 
 // SetExpiration sets an expiration time for the given piece ID on the given satellite.
 func (db *pieceExpirationDB) SetExpiration(ctx context.Context, satellite storj.NodeID, pieceID storj.PieceID, expiresAt time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = db.ExecContext(ctx, `
 		INSERT INTO piece_expirations(satellite_id, piece_id, piece_expiration)
@@ -69,7 +77,9 @@ func (db *pieceExpirationDB) SetExpiration(ctx context.Context, satellite storj.
 
 // DeleteExpiration removes an expiration record for the given piece ID on the given satellite.
 func (db *pieceExpirationDB) DeleteExpiration(ctx context.Context, satelliteID storj.NodeID, pieceID storj.PieceID) (found bool, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	result, err := db.ExecContext(ctx, `
 		DELETE FROM piece_expirations
@@ -88,7 +98,9 @@ func (db *pieceExpirationDB) DeleteExpiration(ctx context.Context, satelliteID s
 // DeleteFailed marks an expiration record as having experienced a failure in deleting the piece
 // from the disk.
 func (db *pieceExpirationDB) DeleteFailed(ctx context.Context, satelliteID storj.NodeID, pieceID storj.PieceID, when time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = db.ExecContext(ctx, `
 		UPDATE piece_expirations
@@ -101,7 +113,9 @@ func (db *pieceExpirationDB) DeleteFailed(ctx context.Context, satelliteID storj
 
 // Trash marks a piece expiration as "trashed".
 func (db *pieceExpirationDB) Trash(ctx context.Context, satelliteID storj.NodeID, pieceID storj.PieceID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = db.ExecContext(ctx, `
 		UPDATE piece_expirations
@@ -114,7 +128,9 @@ func (db *pieceExpirationDB) Trash(ctx context.Context, satelliteID storj.NodeID
 
 // Restore restores all trashed pieces.
 func (db *pieceExpirationDB) RestoreTrash(ctx context.Context, satelliteID storj.NodeID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = db.ExecContext(ctx, `
 		UPDATE piece_expirations

@@ -5,6 +5,10 @@ package gracefulexit
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
@@ -13,8 +17,6 @@ import (
 	"storj.io/storj/satellite/metabase/segmentloop"
 	"storj.io/uplink/private/eestream"
 )
-
-var remoteSegmentFunc = mon.Task()
 
 var _ segmentloop.Observer = (*PathCollector)(nil)
 
@@ -55,13 +57,17 @@ func (collector *PathCollector) LoopStarted(context.Context, segmentloop.LoopInf
 
 // Flush persists the current buffer items to the database.
 func (collector *PathCollector) Flush(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return collector.flush(ctx, 1)
 }
 
 // RemoteSegment takes a remote segment found in metainfo and creates a graceful exit transfer queue item if it doesn't exist already.
 func (collector *PathCollector) RemoteSegment(ctx context.Context, segment *segmentloop.Segment) (err error) {
-	defer remoteSegmentFunc(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if len(collector.nodeIDStorage) == 0 {
 		return nil
@@ -116,7 +122,9 @@ func (collector *PathCollector) InlineSegment(ctx context.Context, segment *segm
 }
 
 func (collector *PathCollector) flush(ctx context.Context, limit int) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if len(collector.buffer) >= limit {
 		err = collector.db.Enqueue(ctx, collector.buffer, collector.batchSize)

@@ -6,6 +6,10 @@ package contact
 import (
 	"context"
 	"fmt"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"sync"
 	"time"
 
@@ -77,7 +81,9 @@ func (service *Service) Close() error { return nil }
 
 // PingBack pings the node to test connectivity.
 func (service *Service) PingBack(ctx context.Context, nodeurl storj.NodeURL) (_ bool, _ bool, _ string, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if service.timeout > 0 {
 		var cancel func()
@@ -94,7 +100,7 @@ func (service *Service) PingBack(ctx context.Context, nodeurl storj.NodeURL) (_ 
 		// If there is an error from trying to dial and ping the node, return that error as
 		// pingErrorMessage and not as the err. We want to use this info to update
 		// node contact info and do not want to terminate execution by returning an err
-		mon.Event("failed_dial") //mon:locked
+		span.AddEvent("failed_dial")
 		pingNodeSuccess = false
 		pingErrorMessage = fmt.Sprintf("failed to dial storage node (ID: %s) at address %s: %q",
 			nodeurl.ID, nodeurl.Address, err,
@@ -108,7 +114,7 @@ func (service *Service) PingBack(ctx context.Context, nodeurl storj.NodeURL) (_ 
 
 	_, err = client.pingNode(ctx, &pb.ContactPingRequest{})
 	if err != nil {
-		mon.Event("failed_ping_node") //mon:locked
+		span.AddEvent("failed_ping_node")
 		pingNodeSuccess = false
 		pingErrorMessage = fmt.Sprintf("failed to ping storage node, your node indicated error code: %d, %q", rpcstatus.Code(err), err)
 		service.log.Debug("pingBack pingNode error",
@@ -132,11 +138,14 @@ func (service *Service) PingBack(ctx context.Context, nodeurl storj.NodeURL) (_ 
 }
 
 func (service *Service) pingNodeQUIC(ctx context.Context, nodeurl storj.NodeURL) error {
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	udpDialer := service.dialer
 	udpDialer.Connector = quic.NewDefaultConnector(nil)
 	udpClient, err := dialNodeURL(ctx, udpDialer, nodeurl)
 	if err != nil {
-		mon.Event("failed_dial_quic")
+		span.AddEvent("failed_dial_quic")
 		return Error.New("failed to dial storage node (ID: %s) at address %s using QUIC: %q", nodeurl.ID.String(), nodeurl.Address, err)
 	}
 	defer func() {
@@ -145,7 +154,7 @@ func (service *Service) pingNodeQUIC(ctx context.Context, nodeurl storj.NodeURL)
 
 	_, err = udpClient.pingNode(ctx, &pb.ContactPingRequest{})
 	if err != nil {
-		mon.Event("failed_ping_node_quic")
+		span.AddEvent("failed_ping_node_quic")
 		return Error.New("failed to ping storage node using QUIC, your node indicated error code: %d, %q", rpcstatus.Code(err), err)
 	}
 

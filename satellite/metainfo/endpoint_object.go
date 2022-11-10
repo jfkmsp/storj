@@ -7,6 +7,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel/trace"
+	"os"
+
+	"runtime"
 	"time"
 
 	"go.uber.org/zap"
@@ -27,9 +34,12 @@ import (
 
 // BeginObject begins object.
 func (endpoint *Endpoint) BeginObject(ctx context.Context, req *pb.ObjectBeginRequest) (resp *pb.ObjectBeginResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
-	endpoint.versionCollector.collect(req.Header.UserAgent, mon.Func().ShortName())
+	endpoint.versionCollector.collect(req.Header.UserAgent, "BeginObject")
 
 	now := time.Now()
 
@@ -196,7 +206,8 @@ func (endpoint *Endpoint) BeginObject(ctx context.Context, req *pb.ObjectBeginRe
 	}
 
 	endpoint.log.Info("Object Upload", zap.Stringer("Project ID", keyInfo.ProjectID), zap.String("operation", "put"), zap.String("type", "object"))
-	mon.Meter("req_put_object").Mark(1)
+	counter, _ := meter.SyncInt64().Counter("req_put_object")
+	counter.Add(context.Background(), 1)
 
 	return &pb.ObjectBeginResponse{
 		Bucket:           req.Bucket,
@@ -209,9 +220,11 @@ func (endpoint *Endpoint) BeginObject(ctx context.Context, req *pb.ObjectBeginRe
 
 // CommitObject commits an object when all its segments have already been committed.
 func (endpoint *Endpoint) CommitObject(ctx context.Context, req *pb.ObjectCommitRequest) (resp *pb.ObjectCommitResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
-	endpoint.versionCollector.collect(req.Header.UserAgent, mon.Func().ShortName())
+	endpoint.versionCollector.collect(req.Header.UserAgent, "CommitObject")
 
 	streamID, err := endpoint.unmarshalSatStreamID(ctx, req.StreamId)
 	if err != nil {
@@ -306,9 +319,12 @@ func (endpoint *Endpoint) CommitObject(ctx context.Context, req *pb.ObjectCommit
 
 // GetObject gets single object metadata.
 func (endpoint *Endpoint) GetObject(ctx context.Context, req *pb.ObjectGetRequest) (resp *pb.ObjectGetResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
-	endpoint.versionCollector.collect(req.Header.UserAgent, mon.Func().ShortName())
+	endpoint.versionCollector.collect(req.Header.UserAgent, "GetObject")
 
 	now := time.Now()
 	keyInfo, err := endpoint.validateAuthAny(ctx, req.Header,
@@ -382,7 +398,8 @@ func (endpoint *Endpoint) GetObject(ctx context.Context, req *pb.ObjectGetReques
 		}
 
 		// monitor how many uplinks is still using this additional code
-		mon.Meter("req_get_object_rs_per_object").Mark(1)
+		counter, _ := meter.SyncInt64().Counter("req_get_object_rs_per_object")
+		counter.Add(ctx, 1)
 	}
 
 	object, err := endpoint.objectToProto(ctx, mbObject, segmentRS)
@@ -392,20 +409,24 @@ func (endpoint *Endpoint) GetObject(ctx context.Context, req *pb.ObjectGetReques
 	}
 
 	endpoint.log.Info("Object Get", zap.Stringer("Project ID", keyInfo.ProjectID), zap.String("operation", "get"), zap.String("type", "object"))
-	mon.Meter("req_get_object").Mark(1)
+	counter, _ := meter.SyncInt64().Counter("req_get_object")
+	counter.Add(ctx, 1)
 
 	return &pb.ObjectGetResponse{Object: object}, nil
 }
 
 // DownloadObject gets object information, creates a download for segments and lists the object segments.
 func (endpoint *Endpoint) DownloadObject(ctx context.Context, req *pb.ObjectDownloadRequest) (resp *pb.ObjectDownloadResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	if ctx.Err() != nil {
 		return nil, rpcstatus.Error(rpcstatus.Canceled, "client has closed the connection")
 	}
 
-	endpoint.versionCollector.collect(req.Header.UserAgent, mon.Func().ShortName())
+	endpoint.versionCollector.collect(req.Header.UserAgent, "DownloadObject")
 
 	keyInfo, err := endpoint.validateAuth(ctx, req.Header, macaroon.Action{
 		Op:            macaroon.ActionRead,
@@ -525,7 +546,8 @@ func (endpoint *Endpoint) DownloadObject(ctx context.Context, req *pb.ObjectDown
 			endpoint.versionCollector.collectTransferStats(req.Header.UserAgent, download, int(downloaded))
 
 			endpoint.log.Info("Inline Segment Download", zap.Stringer("Project ID", keyInfo.ProjectID), zap.String("operation", "get"), zap.String("type", "inline"))
-			mon.Meter("req_get_inline").Mark(1)
+			counter, _ := meter.SyncInt64().Counter("req_get_inline")
+			counter.Add(ctx, 1)
 
 			return []*pb.SegmentDownloadResponse{{
 				PlainOffset:         segment.PlainOffset,
@@ -565,7 +587,8 @@ func (endpoint *Endpoint) DownloadObject(ctx context.Context, req *pb.ObjectDown
 		endpoint.versionCollector.collectTransferStats(req.Header.UserAgent, download, int(downloaded))
 
 		endpoint.log.Info("Segment Download", zap.Stringer("Project ID", keyInfo.ProjectID), zap.String("operation", "get"), zap.String("type", "remote"))
-		mon.Meter("req_get_remote").Mark(1)
+		counter, _ := meter.SyncInt64().Counter("req_get_remote")
+		counter.Add(ctx, 1)
 
 		return []*pb.SegmentDownloadResponse{{
 			AddressedLimits: limits,
@@ -610,7 +633,8 @@ func (endpoint *Endpoint) DownloadObject(ctx context.Context, req *pb.ObjectDown
 	}
 
 	endpoint.log.Info("Object Download", zap.Stringer("Project ID", keyInfo.ProjectID), zap.String("operation", "download"), zap.String("type", "object"))
-	mon.Meter("req_download_object").Mark(1)
+	counter, _ := meter.SyncInt64().Counter("req_download_object")
+	counter.Add(ctx, 1)
 
 	return &pb.ObjectDownloadResponse{
 		Object: protoObject,
@@ -749,9 +773,12 @@ func calculateStreamRange(object metabase.Object, req *pb.Range) (*metabase.Stre
 
 // ListObjects list objects according to specific parameters.
 func (endpoint *Endpoint) ListObjects(ctx context.Context, req *pb.ObjectListRequest) (resp *pb.ObjectListResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
-	endpoint.versionCollector.collect(req.Header.UserAgent, mon.Func().ShortName())
+	endpoint.versionCollector.collect(req.Header.UserAgent, "ListObjects")
 
 	keyInfo, err := endpoint.validateAuth(ctx, req.Header, macaroon.Action{
 		Op:            macaroon.ActionList,
@@ -876,16 +903,20 @@ func (endpoint *Endpoint) ListObjects(ctx context.Context, req *pb.ObjectListReq
 		}
 	}
 	endpoint.log.Info("Object List", zap.Stringer("Project ID", keyInfo.ProjectID), zap.String("operation", "list"), zap.String("type", "object"))
-	mon.Meter("req_list_object").Mark(1)
+	counter, _ := meter.SyncInt64().Counter("req_list_object")
+	counter.Add(ctx, 1)
 
 	return resp, nil
 }
 
 // ListPendingObjectStreams list pending objects according to specific parameters.
 func (endpoint *Endpoint) ListPendingObjectStreams(ctx context.Context, req *pb.ObjectListPendingStreamsRequest) (resp *pb.ObjectListPendingStreamsResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
-	endpoint.versionCollector.collect(req.Header.UserAgent, mon.Func().ShortName())
+	endpoint.versionCollector.collect(req.Header.UserAgent, "ListPendingObjectStreams")
 
 	keyInfo, err := endpoint.validateAuth(ctx, req.Header, macaroon.Action{
 		Op:            macaroon.ActionList,
@@ -960,16 +991,20 @@ func (endpoint *Endpoint) ListPendingObjectStreams(ctx context.Context, req *pb.
 
 	endpoint.log.Info("List pending object streams", zap.Stringer("Project ID", keyInfo.ProjectID), zap.String("operation", "list"), zap.String("type", "object"))
 
-	mon.Meter("req_list_pending_object_streams").Mark(1)
+	counter, _ := meter.SyncInt64().Counter("req_list_pending_object_streams")
+	counter.Add(ctx, 1)
 
 	return resp, nil
 }
 
 // BeginDeleteObject begins object deletion process.
 func (endpoint *Endpoint) BeginDeleteObject(ctx context.Context, req *pb.ObjectBeginDeleteRequest) (resp *pb.ObjectBeginDeleteResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
-	endpoint.versionCollector.collect(req.Header.UserAgent, mon.Func().ShortName())
+	endpoint.versionCollector.collect(req.Header.UserAgent, "BeginDeleteObject")
 
 	now := time.Now()
 
@@ -1064,7 +1099,8 @@ func (endpoint *Endpoint) BeginDeleteObject(ctx context.Context, req *pb.ObjectB
 	}
 
 	endpoint.log.Info("Object Delete", zap.Stringer("Project ID", keyInfo.ProjectID), zap.String("operation", "delete"), zap.String("type", "object"))
-	mon.Meter("req_delete_object").Mark(1)
+	counter, _ := meter.SyncInt64().Counter("req_delete_object")
+	counter.Add(ctx, 1)
 
 	return &pb.ObjectBeginDeleteResponse{
 		Object: object,
@@ -1074,9 +1110,11 @@ func (endpoint *Endpoint) BeginDeleteObject(ctx context.Context, req *pb.ObjectB
 // GetObjectIPs returns the IP addresses of the nodes holding the pieces for
 // the provided object. This is useful for knowing the locations of the pieces.
 func (endpoint *Endpoint) GetObjectIPs(ctx context.Context, req *pb.ObjectGetIPsRequest) (resp *pb.ObjectGetIPsResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
-	endpoint.versionCollector.collect(req.Header.UserAgent, mon.Func().ShortName())
+	endpoint.versionCollector.collect(req.Header.UserAgent, "GetObjectIPs")
 
 	now := time.Now()
 	keyInfo, err := endpoint.validateAuthAny(ctx, req.Header,
@@ -1157,9 +1195,11 @@ func (endpoint *Endpoint) GetObjectIPs(ctx context.Context, req *pb.ObjectGetIPs
 
 // UpdateObjectMetadata replaces object metadata.
 func (endpoint *Endpoint) UpdateObjectMetadata(ctx context.Context, req *pb.ObjectUpdateMetadataRequest) (resp *pb.ObjectUpdateMetadataResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
-	endpoint.versionCollector.collect(req.Header.UserAgent, mon.Func().ShortName())
+	endpoint.versionCollector.collect(req.Header.UserAgent, "UpdateObjectMetadata")
 
 	keyInfo, err := endpoint.validateAuth(ctx, req.Header, macaroon.Action{
 		Op:            macaroon.ActionWrite,
@@ -1396,7 +1436,12 @@ func (endpoint *Endpoint) objectEntryToProtoListItem(ctx context.Context, bucket
 func (endpoint *Endpoint) DeleteCommittedObject(
 	ctx context.Context, projectID uuid.UUID, bucket string, object metabase.ObjectKey,
 ) (deletedObjects []*pb.Object, err error) {
-	defer mon.Task()(&ctx, projectID.String(), bucket, object)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(),
+		trace.WithAttributes(attribute.String("projectID", projectID.String())),
+		trace.WithAttributes(attribute.String("bucket", bucket)),
+		trace.WithAttributes(attribute.String("object", string(object))))
+	defer span.End()
 
 	req := metabase.ObjectLocation{
 		ProjectID:  projectID,
@@ -1437,7 +1482,12 @@ func (endpoint *Endpoint) DeleteCommittedObject(
 // having import cycles.
 func (endpoint *Endpoint) DeleteObjectAnyStatus(ctx context.Context, location metabase.ObjectLocation,
 ) (deletedObjects []*pb.Object, err error) {
-	defer mon.Task()(&ctx, location.ProjectID.String(), location.BucketName, location.ObjectKey)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(),
+		trace.WithAttributes(attribute.String("ProjectID", location.ProjectID.String())),
+		trace.WithAttributes(attribute.String("BucketName", location.BucketName)),
+		trace.WithAttributes(attribute.String("object", string(location.ObjectKey))))
+	defer span.End()
 
 	var result metabase.DeleteObjectResult
 	if endpoint.config.ServerSideCopy {
@@ -1486,7 +1536,9 @@ func (endpoint *Endpoint) DeletePendingObject(ctx context.Context, stream metaba
 }
 
 func (endpoint *Endpoint) deleteObjectsPieces(ctx context.Context, result metabase.DeleteObjectResult) (deletedObjects []*pb.Object, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	// We should ignore client cancelling and always try to delete segments.
 	ctx = context2.WithoutCancellation(ctx)
 	deletedObjects = make([]*pb.Object, len(result.Objects))
@@ -1505,7 +1557,9 @@ func (endpoint *Endpoint) deleteObjectsPieces(ctx context.Context, result metaba
 
 func (endpoint *Endpoint) deleteSegmentPieces(ctx context.Context, segments []metabase.DeletedSegmentInfo) {
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	nodesPieces := groupPiecesByNodeID(segments)
 
@@ -1546,9 +1600,12 @@ func groupPiecesByNodeID(segments []metabase.DeletedSegmentInfo) map[storj.NodeI
 
 // BeginMoveObject begins moving object to different key.
 func (endpoint *Endpoint) BeginMoveObject(ctx context.Context, req *pb.ObjectBeginMoveRequest) (resp *pb.ObjectBeginMoveResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
-	endpoint.versionCollector.collect(req.Header.UserAgent, mon.Func().ShortName())
+	endpoint.versionCollector.collect(req.Header.UserAgent, "BeginMoveObject")
 
 	now := time.Now()
 	keyInfo, err := endpoint.validateAuthN(ctx, req.Header,
@@ -1645,7 +1702,8 @@ func (endpoint *Endpoint) BeginMoveObject(ctx context.Context, req *pb.ObjectBeg
 	}
 
 	endpoint.log.Info("Object Move Begins", zap.Stringer("Project ID", keyInfo.ProjectID), zap.String("operation", "move"), zap.String("type", "object"))
-	mon.Meter("req_move_object_begins").Mark(1)
+	counter, _ := meter.SyncInt64().Counter("req_move_object_begins")
+	counter.Add(ctx, 1)
 
 	response.StreamId = satStreamID
 	return response, nil
@@ -1708,9 +1766,12 @@ func convertBeginMoveObjectResults(result metabase.BeginMoveObjectResult) (*pb.O
 
 // FinishMoveObject accepts new encryption keys for moved object and updates the corresponding object ObjectKey and segments EncryptedKey.
 func (endpoint *Endpoint) FinishMoveObject(ctx context.Context, req *pb.ObjectFinishMoveRequest) (resp *pb.ObjectFinishMoveResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
-	endpoint.versionCollector.collect(req.Header.UserAgent, mon.Func().ShortName())
+	endpoint.versionCollector.collect(req.Header.UserAgent, "mon.Func().ShortName()")
 
 	streamID, err := endpoint.unmarshalSatStreamID(ctx, req.StreamId)
 	if err != nil {
@@ -1764,7 +1825,8 @@ func (endpoint *Endpoint) FinishMoveObject(ctx context.Context, req *pb.ObjectFi
 	}
 
 	endpoint.log.Info("Object Move Finished", zap.Stringer("Project ID", keyInfo.ProjectID), zap.String("operation", "move"), zap.String("type", "object"))
-	mon.Meter("req_move_object_finished").Mark(1)
+	counter, _ := meter.SyncInt64().Counter("req_move_object_finished")
+	counter.Add(ctx, 1)
 
 	return &pb.ObjectFinishMoveResponse{}, nil
 }
@@ -1773,13 +1835,16 @@ func (endpoint *Endpoint) FinishMoveObject(ctx context.Context, req *pb.ObjectFi
 
 // BeginCopyObject begins copying object to different key.
 func (endpoint *Endpoint) BeginCopyObject(ctx context.Context, req *pb.ObjectBeginCopyRequest) (resp *pb.ObjectBeginCopyResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	if !endpoint.config.ServerSideCopy || endpoint.config.ServerSideCopyDisabled {
 		return nil, rpcstatus.Error(rpcstatus.Unimplemented, "Unimplemented")
 	}
 
-	endpoint.versionCollector.collect(req.Header.UserAgent, mon.Func().ShortName())
+	endpoint.versionCollector.collect(req.Header.UserAgent, "BeginCopyObject")
 
 	now := time.Now()
 	keyInfo, err := endpoint.validateAuthN(ctx, req.Header,
@@ -1871,7 +1936,8 @@ func (endpoint *Endpoint) BeginCopyObject(ctx context.Context, req *pb.ObjectBeg
 	}
 
 	endpoint.log.Info("Object Copy Begins", zap.Stringer("Project ID", keyInfo.ProjectID), zap.String("operation", "copy"), zap.String("type", "object"))
-	mon.Meter("req_copy_object_begins").Mark(1)
+	counter, _ := meter.SyncInt64().Counter("req_copy_object_begins")
+	counter.Add(ctx, 1)
 
 	response.StreamId = satStreamID
 	return response, nil
@@ -1893,13 +1959,16 @@ func convertBeginCopyObjectResults(result metabase.BeginCopyObjectResult) (*pb.O
 
 // FinishCopyObject accepts new encryption keys for object copy and updates the corresponding object ObjectKey and segments EncryptedKey.
 func (endpoint *Endpoint) FinishCopyObject(ctx context.Context, req *pb.ObjectFinishCopyRequest) (resp *pb.ObjectFinishCopyResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	if !endpoint.config.ServerSideCopy || endpoint.config.ServerSideCopyDisabled {
 		return nil, rpcstatus.Error(rpcstatus.Unimplemented, "Unimplemented")
 	}
 
-	endpoint.versionCollector.collect(req.Header.UserAgent, mon.Func().ShortName())
+	endpoint.versionCollector.collect(req.Header.UserAgent, "FinishCopyObject")
 
 	streamID, err := endpoint.unmarshalSatStreamID(ctx, req.StreamId)
 	if err != nil {
@@ -1975,7 +2044,8 @@ func (endpoint *Endpoint) FinishCopyObject(ctx context.Context, req *pb.ObjectFi
 	}
 
 	endpoint.log.Info("Object Copy Finished", zap.Stringer("Project ID", keyInfo.ProjectID), zap.String("operation", "copy"), zap.String("type", "object"))
-	mon.Meter("req_copy_object_finished").Mark(1)
+	counter, _ := meter.SyncInt64().Counter("req_copy_object_finished")
+	counter.Add(ctx, 1)
 
 	return &pb.ObjectFinishCopyResponse{
 		Object: protoObject,

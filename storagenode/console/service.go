@@ -5,10 +5,13 @@ package console
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
 	"math"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -32,8 +35,6 @@ import (
 var (
 	// SNOServiceErr defines sno service error.
 	SNOServiceErr = errs.Class("console")
-
-	mon = monkit.Package()
 )
 
 // Service is handling storage node operator related logic.
@@ -163,7 +164,9 @@ type Dashboard struct {
 
 // GetDashboardData returns stale dashboard data.
 func (s *Service) GetDashboardData(ctx context.Context) (_ *Dashboard, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	data := new(Dashboard)
 
 	data.NodeID = s.contact.Local().ID
@@ -268,7 +271,9 @@ type Satellite struct {
 
 // GetSatelliteData returns satellite related data.
 func (s *Service) GetSatelliteData(ctx context.Context, satelliteID storj.NodeID) (_ *Satellite, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	from, to := date.MonthBoundary(time.Now().UTC())
 
 	bandwidthDaily, err := s.bandwidthDB.GetDailySatelliteRollups(ctx, satelliteID, from, to)
@@ -373,7 +378,9 @@ type Audits struct {
 // GetAllSatellitesData returns bandwidth and storage daily usage consolidate
 // among all satellites from the node's trust pool.
 func (s *Service) GetAllSatellitesData(ctx context.Context) (_ *Satellites, err error) {
-	defer mon.Task()(&ctx)(nil)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	from, to := date.MonthBoundary(time.Now().UTC())
 
 	var audits []Audits
@@ -469,7 +476,9 @@ func (s *Service) GetAllSatellitesEstimatedPayout(ctx context.Context, now time.
 
 // VerifySatelliteID verifies if the satellite belongs to the trust pool.
 func (s *Service) VerifySatelliteID(ctx context.Context, satelliteID storj.NodeID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	err = s.trust.VerifySatelliteID(ctx, satelliteID)
 	if err != nil {

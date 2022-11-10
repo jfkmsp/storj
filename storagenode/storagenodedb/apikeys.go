@@ -7,6 +7,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 
 	"github.com/zeebo/errs"
 
@@ -30,7 +34,9 @@ type apiKeysDB struct {
 
 // Store stores api key into database.
 func (db *apiKeysDB) Store(ctx context.Context, apiKey apikeys.APIKey) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query := `INSERT INTO secret (
 			token,
@@ -47,7 +53,9 @@ func (db *apiKeysDB) Store(ctx context.Context, apiKey apikeys.APIKey) (err erro
 
 // Check checks if api key exists in db by secret.
 func (db *apiKeysDB) Check(ctx context.Context, secret multinodeauth.Secret) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var bytes []uint8
 	var createdAt string
@@ -73,7 +81,9 @@ func (db *apiKeysDB) Check(ctx context.Context, secret multinodeauth.Secret) (er
 
 // Revoke removes api key from db.
 func (db *apiKeysDB) Revoke(ctx context.Context, secret multinodeauth.Secret) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query := `DELETE FROM secret WHERE token = ?`
 

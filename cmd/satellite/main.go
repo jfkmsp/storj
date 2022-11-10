@@ -6,6 +6,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"io"
 	mathrand "math/rand"
 	"os"
@@ -16,7 +19,6 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/spf13/cobra"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
@@ -951,8 +953,9 @@ func cmdRegisterLostSegments(cmd *cobra.Command, args []string) error {
 		log.Fatal("Failed to initialize telemetry batcher", zap.Error(err))
 	}
 
-	scope := monkit.Default.ScopeNamed("segment_durability")
-	scope.Meter("lost_segments").Mark(numLostSegments)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, "segment_durability")
+	span.AddEvent("lost_segments", trace.WithAttributes(attribute.Int("numLostSegments", numLostSegments)))
+	span.End()
 
 	if err := process.Report(ctx); err != nil {
 		log.Fatal("could not send telemetry", zap.Error(err))

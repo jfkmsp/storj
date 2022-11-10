@@ -7,7 +7,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"go.opentelemetry.io/otel"
 	"io"
+	"os"
+
+	"runtime"
 	"runtime/pprof"
 	"strconv"
 	"time"
@@ -71,13 +75,17 @@ type UserLogin struct {
 
 // DialMetainfo dials the satellite with the appropriate api key.
 func (project *Project) DialMetainfo(ctx context.Context) (_ *metaclient.Client, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return project.client.DialMetainfo(ctx, project.Satellite, project.RawAPIKey)
 }
 
 // newUplinks creates initializes uplinks, requires peer to have at least one satellite.
 func (planet *Planet) newUplinks(ctx context.Context, prefix string, count int) (_ []*Uplink, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var xs []*Uplink
 	for i := 0; i < count; i++ {
@@ -98,7 +106,9 @@ func (planet *Planet) newUplinks(ctx context.Context, prefix string, count int) 
 
 // newUplink creates a new uplink.
 func (planet *Planet) newUplink(ctx context.Context, name string) (_ *Uplink, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	identity, err := planet.NewIdentity()
 	if err != nil {
@@ -189,19 +199,25 @@ func (client *Uplink) Shutdown() error { return nil }
 
 // DialMetainfo dials destination with apikey and returns metainfo Client.
 func (client *Uplink) DialMetainfo(ctx context.Context, destination Peer, apikey *macaroon.APIKey) (_ *metaclient.Client, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return metaclient.DialNodeURL(ctx, client.Dialer, destination.NodeURL().String(), apikey, "Test/1.0")
 }
 
 // DialPiecestore dials destination storagenode and returns a piecestore client.
 func (client *Uplink) DialPiecestore(ctx context.Context, destination Peer) (_ *piecestore.Client, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return piecestore.Dial(ctx, client.Dialer, destination.NodeURL(), piecestore.DefaultConfig)
 }
 
 // OpenProject opens project with predefined access grant and gives access to pure uplink API.
 func (client *Uplink) OpenProject(ctx context.Context, satellite *Satellite) (_ *uplink.Project, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	_, found := testuplink.GetMaxSegmentSize(ctx)
 	if !found {
 		ctx = testuplink.WithMaxSegmentSize(ctx, satellite.Config.Metainfo.MaxSegmentSize)
@@ -211,13 +227,17 @@ func (client *Uplink) OpenProject(ctx context.Context, satellite *Satellite) (_ 
 
 // Upload data to specific satellite.
 func (client *Uplink) Upload(ctx context.Context, satellite *Satellite, bucket string, path storj.Path, data []byte) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	return client.UploadWithExpiration(ctx, satellite, bucket, path, data, time.Time{})
 }
 
 // UploadWithExpiration data to specific satellite and expiration time.
 func (client *Uplink) UploadWithExpiration(ctx context.Context, satellite *Satellite, bucketName string, path storj.Path, data []byte, expiration time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, found := testuplink.GetMaxSegmentSize(ctx)
 	if !found {
@@ -254,7 +274,9 @@ func (client *Uplink) UploadWithExpiration(ctx context.Context, satellite *Satel
 
 // Download data from specific satellite.
 func (client *Uplink) Download(ctx context.Context, satellite *Satellite, bucketName string, path storj.Path) (_ []byte, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	project, err := client.GetProject(ctx, satellite)
 	if err != nil {
@@ -277,7 +299,9 @@ func (client *Uplink) Download(ctx context.Context, satellite *Satellite, bucket
 
 // DownloadStream returns stream for downloading data.
 func (client *Uplink) DownloadStream(ctx context.Context, satellite *Satellite, bucketName string, path storj.Path) (_ io.ReadCloser, cleanup func() error, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	project, err := client.GetProject(ctx, satellite)
 	if err != nil {
@@ -297,7 +321,9 @@ func (client *Uplink) DownloadStream(ctx context.Context, satellite *Satellite, 
 
 // DownloadStreamRange returns stream for downloading data.
 func (client *Uplink) DownloadStreamRange(ctx context.Context, satellite *Satellite, bucketName string, path storj.Path, start, limit int64) (_ io.ReadCloser, cleanup func() error, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	project, err := client.GetProject(ctx, satellite)
 	if err != nil {
@@ -320,7 +346,9 @@ func (client *Uplink) DownloadStreamRange(ctx context.Context, satellite *Satell
 
 // DeleteObject deletes an object at the path in a bucket.
 func (client *Uplink) DeleteObject(ctx context.Context, satellite *Satellite, bucketName string, path storj.Path) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	project, err := client.GetProject(ctx, satellite)
 	if err != nil {
@@ -337,7 +365,9 @@ func (client *Uplink) DeleteObject(ctx context.Context, satellite *Satellite, bu
 
 // CopyObject copies an object.
 func (client *Uplink) CopyObject(ctx context.Context, satellite *Satellite, oldBucket, oldKey, newBucket, newKey string) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	project, err := client.GetProject(ctx, satellite)
 	if err != nil {
@@ -351,7 +381,9 @@ func (client *Uplink) CopyObject(ctx context.Context, satellite *Satellite, oldB
 
 // CreateBucket creates a new bucket.
 func (client *Uplink) CreateBucket(ctx context.Context, satellite *Satellite, bucketName string) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	project, err := client.GetProject(ctx, satellite)
 	if err != nil {
@@ -368,7 +400,9 @@ func (client *Uplink) CreateBucket(ctx context.Context, satellite *Satellite, bu
 
 // DeleteBucket deletes a bucket.
 func (client *Uplink) DeleteBucket(ctx context.Context, satellite *Satellite, bucketName string) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	project, err := client.GetProject(ctx, satellite)
 	if err != nil {
@@ -385,7 +419,9 @@ func (client *Uplink) DeleteBucket(ctx context.Context, satellite *Satellite, bu
 
 // ListBuckets returns a list of all buckets in a project.
 func (client *Uplink) ListBuckets(ctx context.Context, satellite *Satellite) (_ []*uplink.Bucket, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var buckets = []*uplink.Bucket{}
 	project, err := client.GetProject(ctx, satellite)
@@ -403,7 +439,9 @@ func (client *Uplink) ListBuckets(ctx context.Context, satellite *Satellite) (_ 
 
 // ListObjects returns a list of all objects in a bucket.
 func (client *Uplink) ListObjects(ctx context.Context, satellite *Satellite, bucketName string) (_ []*uplink.Object, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var objects = []*uplink.Object{}
 	project, err := client.GetProject(ctx, satellite)
@@ -421,7 +459,9 @@ func (client *Uplink) ListObjects(ctx context.Context, satellite *Satellite, buc
 
 // GetProject returns a uplink.Project which allows interactions with a specific project.
 func (client *Uplink) GetProject(ctx context.Context, satellite *Satellite) (_ *uplink.Project, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	access := client.Access[satellite.ID()]
 

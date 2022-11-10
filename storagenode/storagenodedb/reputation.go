@@ -7,6 +7,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 
 	"github.com/zeebo/errs"
 
@@ -28,7 +32,9 @@ type reputationDB struct {
 
 // Store inserts or updates reputation stats into the db.
 func (db *reputationDB) Store(ctx context.Context, stats reputation.Stats) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query := `INSERT OR REPLACE INTO reputation (
 			satellite_id,
@@ -103,7 +109,9 @@ func (db *reputationDB) Store(ctx context.Context, stats reputation.Stats) (err 
 
 // Get retrieves stats for specific satellite.
 func (db *reputationDB) Get(ctx context.Context, satelliteID storj.NodeID) (_ *reputation.Stats, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	stats := reputation.Stats{
 		SatelliteID: satelliteID,
@@ -169,7 +177,9 @@ func (db *reputationDB) Get(ctx context.Context, satelliteID storj.NodeID) (_ *r
 
 // All retrieves all stats from DB.
 func (db *reputationDB) All(ctx context.Context) (_ []reputation.Stats, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	query := `SELECT satellite_id,
 			audit_success_count,

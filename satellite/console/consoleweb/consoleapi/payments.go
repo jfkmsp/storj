@@ -5,13 +5,16 @@ package consoleapi
 
 import (
 	"encoding/json"
+	"go.opentelemetry.io/otel"
 	"io"
 	"net/http"
+	"os"
+
+	"runtime"
 	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -22,7 +25,6 @@ import (
 var (
 	// ErrPaymentsAPI - console payments api error type.
 	ErrPaymentsAPI = errs.Class("consoleapi payments")
-	mon            = monkit.Package()
 )
 
 // Payments is an api controller that exposes all payment related functionality.
@@ -43,7 +45,8 @@ func NewPayments(log *zap.Logger, service *console.Service) *Payments {
 func (p *Payments) SetupAccount(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, "SetupAccount")
+	defer span.End()
 
 	couponType, err := p.service.Payments().SetupAccount(ctx)
 
@@ -67,7 +70,9 @@ func (p *Payments) SetupAccount(w http.ResponseWriter, r *http.Request) {
 func (p *Payments) AccountBalance(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -92,7 +97,9 @@ func (p *Payments) AccountBalance(w http.ResponseWriter, r *http.Request) {
 func (p *Payments) ProjectsCharges(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -131,7 +138,9 @@ func (p *Payments) ProjectsCharges(w http.ResponseWriter, r *http.Request) {
 func (p *Payments) AddCreditCard(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	bodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -157,7 +166,9 @@ func (p *Payments) AddCreditCard(w http.ResponseWriter, r *http.Request) {
 func (p *Payments) ListCreditCards(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -187,7 +198,9 @@ func (p *Payments) ListCreditCards(w http.ResponseWriter, r *http.Request) {
 func (p *Payments) MakeCreditCardDefault(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	cardID, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -211,7 +224,9 @@ func (p *Payments) MakeCreditCardDefault(w http.ResponseWriter, r *http.Request)
 func (p *Payments) RemoveCreditCard(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	vars := mux.Vars(r)
 	cardID := vars["cardId"]
@@ -237,7 +252,9 @@ func (p *Payments) RemoveCreditCard(w http.ResponseWriter, r *http.Request) {
 func (p *Payments) BillingHistory(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -267,7 +284,9 @@ func (p *Payments) BillingHistory(w http.ResponseWriter, r *http.Request) {
 func (p *Payments) ApplyCouponCode(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// limit the size of the body to prevent excessive memory usage
 	bodyBytes, err := io.ReadAll(io.LimitReader(r.Body, 1*1024*1024))
@@ -296,7 +315,9 @@ func (p *Payments) ApplyCouponCode(w http.ResponseWriter, r *http.Request) {
 func (p *Payments) GetCoupon(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -320,7 +341,9 @@ func (p *Payments) GetCoupon(w http.ResponseWriter, r *http.Request) {
 func (p *Payments) GetWallet(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -344,7 +367,9 @@ func (p *Payments) GetWallet(w http.ResponseWriter, r *http.Request) {
 func (p *Payments) ClaimWallet(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set("Content-Type", "application/json")
 
@@ -368,7 +393,9 @@ func (p *Payments) ClaimWallet(w http.ResponseWriter, r *http.Request) {
 func (p *Payments) WalletPayments(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var err error
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	w.Header().Set("Content-Type", "application/json")
 

@@ -5,9 +5,12 @@ package metainfo
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -37,7 +40,7 @@ const (
 )
 
 var (
-	mon = monkit.Package()
+
 	// Error general metainfo error.
 	Error = errs.Class("metainfo")
 	// ErrNodeAlreadyExists pointer already has a piece for a node err.
@@ -136,9 +139,11 @@ func (endpoint *Endpoint) Close() error { return nil }
 
 // ProjectInfo returns allowed ProjectInfo for the provided API key.
 func (endpoint *Endpoint) ProjectInfo(ctx context.Context, req *pb.ProjectInfoRequest) (_ *pb.ProjectInfoResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
-	endpoint.versionCollector.collect(req.Header.UserAgent, mon.Func().ShortName())
+	endpoint.versionCollector.collect(req.Header.UserAgent, "ProjectInfo")
 
 	keyInfo, err := endpoint.validateAuth(ctx, req.Header, macaroon.Action{
 		Op:   macaroon.ActionProjectInfo,
@@ -160,9 +165,11 @@ func (endpoint *Endpoint) ProjectInfo(ctx context.Context, req *pb.ProjectInfoRe
 
 // RevokeAPIKey handles requests to revoke an api key.
 func (endpoint *Endpoint) RevokeAPIKey(ctx context.Context, req *pb.RevokeAPIKeyRequest) (resp *pb.RevokeAPIKeyResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
-	endpoint.versionCollector.collect(req.Header.UserAgent, mon.Func().ShortName())
+	endpoint.versionCollector.collect(req.Header.UserAgent, "RevokeAPIKey")
 
 	macToRevoke, err := macaroon.ParseMacaroon(req.GetApiKey())
 	if err != nil {
@@ -183,7 +190,9 @@ func (endpoint *Endpoint) RevokeAPIKey(ctx context.Context, req *pb.RevokeAPIKey
 }
 
 func (endpoint *Endpoint) packStreamID(ctx context.Context, satStreamID *internalpb.StreamID) (streamID storj.StreamID, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	signedStreamID, err := SignStreamID(ctx, endpoint.satellite, satStreamID)
 	if err != nil {
@@ -203,7 +212,9 @@ func (endpoint *Endpoint) packStreamID(ctx context.Context, satStreamID *interna
 }
 
 func (endpoint *Endpoint) packSegmentID(ctx context.Context, satSegmentID *internalpb.SegmentID) (segmentID storj.SegmentID, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	signedSegmentID, err := SignSegmentID(ctx, endpoint.satellite, satSegmentID)
 	if err != nil {
@@ -223,7 +234,9 @@ func (endpoint *Endpoint) packSegmentID(ctx context.Context, satSegmentID *inter
 }
 
 func (endpoint *Endpoint) unmarshalSatStreamID(ctx context.Context, streamID storj.StreamID) (_ *internalpb.StreamID, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	satStreamID := &internalpb.StreamID{}
 	err = pb.Unmarshal(streamID, satStreamID)
@@ -240,7 +253,9 @@ func (endpoint *Endpoint) unmarshalSatStreamID(ctx context.Context, streamID sto
 }
 
 func (endpoint *Endpoint) unmarshalSatSegmentID(ctx context.Context, segmentID storj.SegmentID) (_ *internalpb.SegmentID, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	satSegmentID := &internalpb.SegmentID{}
 	err = pb.Unmarshal(segmentID, satSegmentID)

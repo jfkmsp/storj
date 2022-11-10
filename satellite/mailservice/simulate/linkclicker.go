@@ -5,11 +5,14 @@ package simulate
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
 	"net/http"
+	"os"
+
+	"runtime"
 	"strings"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 	"golang.org/x/net/html"
@@ -17,8 +20,6 @@ import (
 	"storj.io/storj/private/post"
 	"storj.io/storj/satellite/mailservice"
 )
-
-var mon = monkit.Package()
 
 var _ mailservice.Sender = (*LinkClicker)(nil)
 
@@ -49,7 +50,9 @@ func (clicker *LinkClicker) FromAddress() post.Address {
 
 // SendEmail click all links belonging to properly attributed anchors from email html parts.
 func (clicker *LinkClicker) SendEmail(ctx context.Context, msg *post.Message) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var body string
 	for _, part := range msg.Parts {

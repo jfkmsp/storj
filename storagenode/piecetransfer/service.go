@@ -6,10 +6,12 @@ package piecetransfer
 import (
 	"bytes"
 	"context"
+	"go.opentelemetry.io/otel"
 	"os"
+
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -27,8 +29,6 @@ import (
 var (
 	// Error is the default error class for graceful exit package.
 	Error = errs.Class("internode transfer")
-
-	mon = monkit.Package()
 )
 
 // Service allows for transfer of pieces from one storage node to
@@ -72,15 +72,15 @@ func NewService(log *zap.Logger, store *pieces.Store, trust *trust.Pool, dialer 
 func (c *service) TransferPiece(ctx context.Context, satelliteID storj.NodeID, transferPiece *pb.TransferPiece) *pb.StorageNodeMessage {
 	// errForMonkit doesn't get returned, but we'd still like for monkit to be able
 	// to differentiate between counts of failures returned and successes returned.
-	var errForMonkit error
-	defer mon.Task()(&ctx)(&errForMonkit)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	pieceID := transferPiece.OriginalPieceId
 	logger := c.log.With(zap.Stringer("Satellite ID", satelliteID), zap.Stringer("Piece ID", pieceID))
 
 	failMessage := func(errString string, err error, transferErr pb.TransferFailed_Error) *pb.StorageNodeMessage {
 		logger.Error(errString, zap.Error(err))
-		errForMonkit = err
 		return &pb.StorageNodeMessage{
 			Message: &pb.StorageNodeMessage_Failed{
 				Failed: &pb.TransferFailed{

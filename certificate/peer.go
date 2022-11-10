@@ -5,12 +5,13 @@ package certificate
 
 import (
 	"context"
-	"net"
-
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
+	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
+	"net"
+	"os"
+	"runtime"
 
 	"storj.io/common/errs2"
 	"storj.io/common/identity"
@@ -22,7 +23,6 @@ import (
 )
 
 var (
-	mon = monkit.Package()
 
 	// Error is the default error class for the certificates peer.
 	Error = errs.Class("certificate")
@@ -103,15 +103,19 @@ func New(log *zap.Logger, ident *identity.FullIdentity, ca *identity.FullCertifi
 
 // Run runs the certificates peer until it's either closed or it errors.
 func (peer *Peer) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
-
 	group := errgroup.Group{}
 
 	group.Go(func() error {
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		defer span.End()
 		return errs2.IgnoreCanceled(peer.Server.Run(ctx))
 	})
 
 	group.Go(func() error {
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		defer span.End()
 		return errs2.IgnoreCanceled(peer.Authorization.Endpoint.Run(ctx))
 	})
 

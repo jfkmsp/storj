@@ -5,17 +5,17 @@ package offlinenodes
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+	"runtime"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"go.uber.org/zap"
 
 	"storj.io/common/sync2"
 	"storj.io/storj/satellite/mailservice"
 	"storj.io/storj/satellite/overlay"
 )
-
-var mon = monkit.Package()
 
 // Config contains configurable values for offline nodes chore.
 type Config struct {
@@ -47,12 +47,14 @@ func NewChore(log *zap.Logger, mail *mailservice.Service, cache *overlay.Service
 
 // Run runs the chore.
 func (chore *Chore) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
 	// multiply max emails by email cooldown to get cutoff for emails
 	// e.g. cooldown = 24h, maxEmails = 3
 	// after 72h the node should get 3 emails and no more.
 	cutoff := time.Duration(chore.config.Cooldown.Nanoseconds() * int64(chore.config.MaxEmails))
 	return chore.Loop.Run(ctx, func(ctx context.Context) error {
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		defer span.End()
 		for {
 			count, err := chore.cache.InsertOfflineNodeEvents(ctx, chore.config.Cooldown, cutoff, chore.config.Limit)
 			if err != nil {

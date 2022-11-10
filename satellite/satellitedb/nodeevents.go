@@ -5,7 +5,11 @@ package satellitedb
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
 	"time"
+
+	"runtime"
 
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
@@ -25,7 +29,9 @@ type nodeEvents struct {
 
 // Insert a node event into the node events table.
 func (ne *nodeEvents) Insert(ctx context.Context, email string, nodeID storj.NodeID, eventType nodeevents.Type) (nodeEvent nodeevents.NodeEvent, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	id, err := uuid.New()
 	if err != nil {
@@ -47,7 +53,9 @@ func (ne *nodeEvents) Insert(ctx context.Context, email string, nodeID storj.Nod
 
 // GetLatestByEmailAndEvent gets latest node event by email and event type.
 func (ne *nodeEvents) GetLatestByEmailAndEvent(ctx context.Context, email string, event nodeevents.Type) (nodeEvent nodeevents.NodeEvent, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	dbxNE, err := ne.db.First_NodeEvent_By_Email_And_Event_OrderBy_Desc_CreatedAt(ctx, dbx.NodeEvent_Email(email), dbx.NodeEvent_Event(int(event)))
 	if err != nil {
@@ -61,7 +69,9 @@ func (ne *nodeEvents) GetLatestByEmailAndEvent(ctx context.Context, email string
 // all entries with the same email and event so that they can be combined into a
 // single email.
 func (ne *nodeEvents) GetNextBatch(ctx context.Context, firstSeenBefore time.Time) (events []nodeevents.NodeEvent, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	rows, err := ne.db.QueryContext(ctx, `
 		SELECT node_events.id, node_events.email, node_events.node_id, node_events.event
@@ -132,7 +142,9 @@ func fromDBX(dbxNE *dbx.NodeEvent) (event nodeevents.NodeEvent, err error) {
 
 // UpdateEmailSent updates email_sent for a group of rows.
 func (ne *nodeEvents) UpdateEmailSent(ctx context.Context, ids []uuid.UUID, timestamp time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = ne.db.ExecContext(ctx, `
 		UPDATE node_events SET email_sent = $1

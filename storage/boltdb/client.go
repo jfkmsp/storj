@@ -6,17 +6,21 @@ package boltdb
 import (
 	"bytes"
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel/trace"
+	"os"
+
+	"runtime"
 	"sync/atomic"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.etcd.io/bbolt"
 
 	"storj.io/storj/storage"
 )
-
-var mon = monkit.Package()
 
 // Error is the default boltdb errs class.
 var Error = errs.Class("boltdb")
@@ -97,7 +101,10 @@ func (client *Client) view(fn func(*bbolt.Bucket) error) error {
 // Note: when using this method, check if it need to be executed asynchronously
 // since it blocks for the duration db.MaxBatchDelay.
 func (client *Client) Put(ctx context.Context, key storage.Key, value storage.Value) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 	start := time.Now()
 	if key.IsZero() {
 		return storage.ErrEmptyKey.New("")
@@ -106,13 +113,16 @@ func (client *Client) Put(ctx context.Context, key storage.Key, value storage.Va
 	err = client.batch(func(bucket *bbolt.Bucket) error {
 		return bucket.Put(key, value)
 	})
-	mon.IntVal("boltdb_batch_time_elapsed").Observe(int64(time.Since(start)))
+	histCounter, _ := meter.SyncInt64().Histogram("boltdb_batch_time_elapsed")
+	histCounter.Record(ctx, int64(time.Since(start)))
 	return err
 }
 
 // PutAndCommit adds a key/value to BoltDB and writes it to disk.
 func (client *Client) PutAndCommit(ctx context.Context, key storage.Key, value storage.Value) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if key.IsZero() {
 		return storage.ErrEmptyKey.New("")
 	}
@@ -124,7 +134,9 @@ func (client *Client) PutAndCommit(ctx context.Context, key storage.Key, value s
 
 // Get looks up the provided key from boltdb returning either an error or the result.
 func (client *Client) Get(ctx context.Context, key storage.Key) (_ storage.Value, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if key.IsZero() {
 		return nil, storage.ErrEmptyKey.New("")
 	}
@@ -143,7 +155,9 @@ func (client *Client) Get(ctx context.Context, key storage.Key) (_ storage.Value
 
 // Delete deletes a key/value pair from boltdb, for a given the key.
 func (client *Client) Delete(ctx context.Context, key storage.Key) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if key.IsZero() {
 		return storage.ErrEmptyKey.New("")
 	}
@@ -155,7 +169,9 @@ func (client *Client) Delete(ctx context.Context, key storage.Key) (err error) {
 
 // DeleteMultiple deletes keys ignoring missing keys.
 func (client *Client) DeleteMultiple(ctx context.Context, keys []storage.Key) (_ storage.Items, err error) {
-	defer mon.Task()(&ctx, len(keys))(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.Int("keys length", len(keys))))
+	defer span.End()
 
 	var items storage.Items
 	err = client.update(func(bucket *bbolt.Bucket) error {
@@ -183,7 +199,9 @@ func (client *Client) DeleteMultiple(ctx context.Context, keys []storage.Key) (_
 
 // List returns either a list of keys for which boltdb has values or an error.
 func (client *Client) List(ctx context.Context, first storage.Key, limit int) (_ storage.Keys, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	rv, err := storage.ListKeys(ctx, client, first, limit)
 	return rv, Error.Wrap(err)
 }
@@ -199,7 +217,9 @@ func (client *Client) Close() (err error) {
 // GetAll finds all values for the provided keys (up to LookupLimit).
 // If more keys are provided than the maximum, an error will be returned.
 func (client *Client) GetAll(ctx context.Context, keys storage.Keys) (_ storage.Values, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if len(keys) > client.lookupLimit {
 		return nil, storage.ErrLimitExceeded.New("lookup limit exceeded")
 	}
@@ -221,7 +241,9 @@ func (client *Client) GetAll(ctx context.Context, keys storage.Keys) (_ storage.
 
 // Iterate iterates over items based on opts.
 func (client *Client) Iterate(ctx context.Context, opts storage.IterateOptions, fn func(context.Context, storage.Iterator) error) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if opts.Limit <= 0 || opts.Limit > client.lookupLimit {
 		opts.Limit = client.lookupLimit
@@ -232,7 +254,9 @@ func (client *Client) Iterate(ctx context.Context, opts storage.IterateOptions, 
 
 // IterateWithoutLookupLimit calls the callback with an iterator over the keys, but doesn't enforce default limit on opts.
 func (client *Client) IterateWithoutLookupLimit(ctx context.Context, opts storage.IterateOptions, fn func(context.Context, storage.Iterator) error) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return client.view(func(bucket *bbolt.Bucket) error {
 		var cursor advancer = forward{bucket.Cursor()}
@@ -313,7 +337,9 @@ func (cursor forward) Advance() (key, value []byte) {
 
 // CompareAndSwap atomically compares and swaps oldValue with newValue.
 func (client *Client) CompareAndSwap(ctx context.Context, key storage.Key, oldValue, newValue storage.Value) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	if key.IsZero() {
 		return storage.ErrEmptyKey.New("")
 	}

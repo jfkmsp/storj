@@ -7,8 +7,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel/trace"
 	"io"
 	"math"
+	"os"
+
+	"runtime"
 	"strings"
 	"time"
 
@@ -137,7 +144,12 @@ func NewSegmentRepairer(
 // note that shouldDelete is used even in the case where err is not null
 // note that it will update audit status as failed for nodes that failed piece hash verification during repair downloading.
 func (repairer *SegmentRepairer) Repair(ctx context.Context, queueSegment *queue.InjuredSegment) (shouldDelete bool, err error) {
-	defer mon.Task()(&ctx, queueSegment.StreamID.String(), queueSegment.Position.Encode())(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(),
+		trace.WithAttributes(attribute.String("streamID", queueSegment.StreamID.String())),
+		trace.WithAttributes(attribute.Int64("position", int64(queueSegment.Position.Encode()))))
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	segment, err := repairer.metabase.GetSegmentByPosition(ctx, metabase.GetSegmentByPosition{
 		StreamID: queueSegment.StreamID,
@@ -145,8 +157,10 @@ func (repairer *SegmentRepairer) Repair(ctx context.Context, queueSegment *queue
 	})
 	if err != nil {
 		if metabase.ErrSegmentNotFound.Has(err) {
-			mon.Meter("repair_unnecessary").Mark(1)            //mon:locked
-			mon.Meter("segment_deleted_before_repair").Mark(1) //mon:locked
+			counter, _ := meter.SyncInt64().Counter("repair_unnecessary")
+			counter.Add(context.Background(), 1)
+			counter, _ = meter.SyncInt64().Counter("segment_deleted_before_repair")
+			counter.Add(context.Background(), 1)
 			repairer.log.Debug("segment was deleted")
 			return true, nil
 		}
@@ -159,8 +173,10 @@ func (repairer *SegmentRepairer) Repair(ctx context.Context, queueSegment *queue
 
 	// ignore segment if expired
 	if segment.Expired(repairer.nowFn()) {
-		mon.Meter("repair_unnecessary").Mark(1)
-		mon.Meter("segment_expired_before_repair").Mark(1)
+		counter, _ := meter.SyncInt64().Counter("repair_unnecessary")
+		counter.Add(context.Background(), 1)
+		counter, _ = meter.SyncInt64().Counter("segment_expired_before_repair")
+		counter.Add(context.Background(), 1)
 		repairer.log.Debug("segment has expired", zap.Stringer("Stream ID", segment.StreamID), zap.Uint64("Position", queueSegment.Position.Encode()))
 		return true, nil
 	}
@@ -170,19 +186,21 @@ func (repairer *SegmentRepairer) Repair(ctx context.Context, queueSegment *queue
 		return true, invalidRepairError.New("invalid redundancy strategy: %w", err)
 	}
 
-	stats := repairer.getStatsByRS(&pb.RedundancyScheme{
-		Type:             pb.RedundancyScheme_SchemeType(segment.Redundancy.Algorithm),
-		ErasureShareSize: segment.Redundancy.ShareSize,
-		MinReq:           int32(segment.Redundancy.RequiredShares),
-		RepairThreshold:  int32(segment.Redundancy.RepairShares),
-		SuccessThreshold: int32(segment.Redundancy.OptimalShares),
-		Total:            int32(segment.Redundancy.TotalShares),
-	})
+	//stats := repairer.getStatsByRS(&pb.RedundancyScheme{
+	//	Type:             pb.RedundancyScheme_SchemeType(segment.Redundancy.Algorithm),
+	//	ErasureShareSize: segment.Redundancy.ShareSize,
+	//	MinReq:           int32(segment.Redundancy.RequiredShares),
+	//	RepairThreshold:  int32(segment.Redundancy.RepairShares),
+	//	SuccessThreshold: int32(segment.Redundancy.OptimalShares),
+	//	Total:            int32(segment.Redundancy.TotalShares),
+	//})
 
-	mon.Meter("repair_attempts").Mark(1) //mon:locked
-	stats.repairAttempts.Mark(1)
-	mon.IntVal("repair_segment_size").Observe(int64(segment.EncryptedSize)) //mon:locked
-	stats.repairSegmentSize.Observe(int64(segment.EncryptedSize))
+	//stats.repairAttempts.Mark(1)
+	counter, _ := meter.SyncInt64().Counter("repair_attempts")
+	counter.Add(context.Background(), 1)
+	//stats.repairSegmentSize.Observe(int64(segment.EncryptedSize))
+	histCounter, _ := meter.SyncInt64().Histogram("repair_segment_size")
+	histCounter.Record(ctx, int64(segment.EncryptedSize))
 
 	var excludeNodeIDs storj.NodeIDList
 	pieces := segment.Pieces
@@ -194,10 +212,12 @@ func (repairer *SegmentRepairer) Repair(ctx context.Context, queueSegment *queue
 	numHealthy := len(pieces) - len(missingPieces)
 	// irreparable segment
 	if numHealthy < int(segment.Redundancy.RequiredShares) {
-		mon.Counter("repairer_segments_below_min_req").Inc(1) //mon:locked
-		stats.repairerSegmentsBelowMinReq.Inc(1)
-		mon.Meter("repair_nodes_unavailable").Mark(1) //mon:locked
-		stats.repairerNodesUnavailable.Mark(1)
+		counter, _ := meter.SyncInt64().Counter("repairer_segments_below_min_req")
+		counter.Add(context.Background(), 1)
+		//stats.repairerSegmentsBelowMinReq.Inc(1)
+		counter, _ = meter.SyncInt64().Counter("repair_nodes_unavailable")
+		counter.Add(context.Background(), 1)
+		//stats.repairerNodesUnavailable.Mark(1)
 
 		repairer.log.Warn("irreparable segment",
 			zap.String("StreamID", queueSegment.StreamID.String()),
@@ -216,8 +236,9 @@ func (repairer *SegmentRepairer) Repair(ctx context.Context, queueSegment *queue
 	numHealthyInExcludedCountries := len(piecesInExcludedCountries)
 
 	// ensure we get values, even if only zero values, so that redash can have an alert based on this
-	mon.Counter("repairer_segments_below_min_req").Inc(0) //mon:locked
-	stats.repairerSegmentsBelowMinReq.Inc(0)
+	counter, _ = meter.SyncInt64().Counter("repairer_segments_below_min_req")
+	counter.Add(context.Background(), 0)
+	//stats.repairerSegmentsBelowMinReq.Inc(0)
 
 	repairThreshold := int32(segment.Redundancy.RepairShares)
 
@@ -234,8 +255,9 @@ func (repairer *SegmentRepairer) Repair(ctx context.Context, queueSegment *queue
 
 	// repair not needed
 	if numHealthy-numHealthyInExcludedCountries > int(repairThreshold) {
-		mon.Meter("repair_unnecessary").Mark(1) //mon:locked
-		stats.repairUnnecessary.Mark(1)
+		counter, _ = meter.SyncInt64().Counter("repair_unnecessary")
+		counter.Add(context.Background(), 1)
+		//stats.repairUnnecessary.Mark(1)
 		repairer.log.Debug("segment above repair threshold", zap.Int("numHealthy", numHealthy), zap.Int32("repairThreshold", repairThreshold))
 		return true, nil
 	}
@@ -244,8 +266,9 @@ func (repairer *SegmentRepairer) Repair(ctx context.Context, queueSegment *queue
 	if segment.Redundancy.TotalShares != 0 {
 		healthyRatioBeforeRepair = float64(numHealthy) / float64(segment.Redundancy.TotalShares)
 	}
-	mon.FloatVal("healthy_ratio_before_repair").Observe(healthyRatioBeforeRepair) //mon:locked
-	stats.healthyRatioBeforeRepair.Observe(healthyRatioBeforeRepair)
+	histFloatCounter, _ := meter.SyncFloat64().Histogram("healthy_ratio_before_repair")
+	histFloatCounter.Record(ctx, healthyRatioBeforeRepair)
+	//stats.healthyRatioBeforeRepair.Observe(healthyRatioBeforeRepair)
 
 	lostPiecesSet := sliceToSet(missingPieces)
 
@@ -264,10 +287,12 @@ func (repairer *SegmentRepairer) Repair(ctx context.Context, queueSegment *queue
 	getOrderLimits, getPrivateKey, cachedNodesInfo, err := repairer.orders.CreateGetRepairOrderLimits(ctx, metabase.BucketLocation{}, segment, healthyPieces)
 	if err != nil {
 		if orders.ErrDownloadFailedNotEnoughPieces.Has(err) {
-			mon.Counter("repairer_segments_below_min_req").Inc(1) //mon:locked
-			stats.repairerSegmentsBelowMinReq.Inc(1)
-			mon.Meter("repair_nodes_unavailable").Mark(1) //mon:locked
-			stats.repairerNodesUnavailable.Mark(1)
+			counter, _ = meter.SyncInt64().Counter("repairer_segments_below_min_req")
+			counter.Add(context.Background(), 1)
+			//stats.repairerSegmentsBelowMinReq.Inc(1)
+			counter, _ = meter.SyncInt64().Counter("repair_nodes_unavailable")
+			counter.Add(context.Background(), 1)
+			//stats.repairerNodesUnavailable.Mark(1)
 
 			repairer.log.Warn("irreparable segment: too many nodes offline",
 				zap.String("StreamID", queueSegment.StreamID.String()),
@@ -320,9 +345,11 @@ func (repairer *SegmentRepairer) Repair(ctx context.Context, queueSegment *queue
 	segmentReader, piecesReport, err := repairer.ec.Get(ctx, getOrderLimits, cachedNodesInfo, getPrivateKey, redundancy, int64(segment.EncryptedSize))
 
 	// ensure we get values, even if only zero values, so that redash can have an alert based on this
-	mon.Meter("repair_too_many_nodes_failed").Mark(0)     //mon:locked
-	mon.Meter("repair_suspected_network_problem").Mark(0) //mon:locked
-	stats.repairTooManyNodesFailed.Mark(0)
+	counter, _ = meter.SyncInt64().Counter("repair_too_many_nodes_failed")
+	counter.Add(context.Background(), 0)
+	counter, _ = meter.SyncInt64().Counter("repair_suspected_network_problem")
+	counter.Add(context.Background(), 0)
+	//stats.repairTooManyNodesFailed.Mark(0)
 
 	if repairer.OnTestingPiecesReportHook != nil {
 		repairer.OnTestingPiecesReportHook(piecesReport)
@@ -378,11 +405,13 @@ func (repairer *SegmentRepairer) Repair(ctx context.Context, queueSegment *queue
 			// In a network failure scenario, we expect more than half of the outcomes
 			// will be in Offline or Contained.
 			if len(piecesReport.Offline)+len(piecesReport.Contained) > len(piecesReport.Successful)+len(piecesReport.Failed)+len(piecesReport.Unknown) {
-				mon.Meter("repair_suspected_network_problem").Mark(1) //mon:locked
+				counter, _ = meter.SyncInt64().Counter("repair_suspected_network_problem")
+				counter.Add(context.Background(), 1)
 			} else {
-				mon.Meter("repair_too_many_nodes_failed").Mark(1) //mon:locked
+				counter, _ = meter.SyncInt64().Counter("repair_too_many_nodes_failed")
+				counter.Add(context.Background(), 1)
 			}
-			stats.repairTooManyNodesFailed.Mark(1)
+			//stats.repairTooManyNodesFailed.Mark(1)
 
 			failedNodeIDs := make([]string, 0, len(piecesReport.Failed))
 			offlineNodeIDs := make([]string, 0, len(piecesReport.Offline))
@@ -479,7 +508,8 @@ func (repairer *SegmentRepairer) Repair(ctx context.Context, queueSegment *queue
 		repairedMap[uint16(i)] = true
 	}
 
-	mon.Meter("repair_bytes_uploaded").Mark64(bytesRepaired) //mon:locked
+	histCounter, _ = meter.SyncInt64().Histogram("repair_bytes_uploaded")
+	histCounter.Record(ctx, bytesRepaired)
 
 	healthyAfterRepair := len(healthyPieces) + len(repairedPieces)
 	switch {
@@ -489,14 +519,17 @@ func (repairer *SegmentRepairer) Repair(ctx context.Context, queueSegment *queue
 		// put at least one piece, else ec.Repair() would have returned an error. So the
 		// repair "succeeded" in that the segment is now healthier than it was, but it is
 		// not as healthy as we want it to be.
-		mon.Meter("repair_failed").Mark(1) //mon:locked
-		stats.repairFailed.Mark(1)
+		counter, _ = meter.SyncInt64().Counter("repair_failed")
+		counter.Add(context.Background(), 1)
+		//stats.repairFailed.Mark(1)
 	case healthyAfterRepair < int(segment.Redundancy.OptimalShares):
-		mon.Meter("repair_partial").Mark(1) //mon:locked
-		stats.repairPartial.Mark(1)
+		//stats.repairPartial.Mark(1)
+		counter, _ = meter.SyncInt64().Counter("repair_partial")
+		counter.Add(context.Background(), 1)
 	default:
-		mon.Meter("repair_success").Mark(1) //mon:locked
-		stats.repairSuccess.Mark(1)
+		//stats.repairSuccess.Mark(1)
+		counter, _ = meter.SyncInt64().Counter("repair_success")
+		counter.Add(context.Background(), 1)
 	}
 
 	healthyRatioAfterRepair := 0.0
@@ -504,8 +537,9 @@ func (repairer *SegmentRepairer) Repair(ctx context.Context, queueSegment *queue
 		healthyRatioAfterRepair = float64(healthyAfterRepair) / float64(segment.Redundancy.TotalShares)
 	}
 
-	mon.FloatVal("healthy_ratio_after_repair").Observe(healthyRatioAfterRepair) //mon:locked
-	stats.healthyRatioAfterRepair.Observe(healthyRatioAfterRepair)
+	histFloatCounter, _ = meter.SyncFloat64().Histogram("healthy_ratio_after_repair")
+	histFloatCounter.Record(ctx, healthyRatioAfterRepair)
+	//stats.healthyRatioAfterRepair.Observe(healthyRatioAfterRepair)
 
 	var toRemove metabase.Pieces
 	if healthyAfterRepair >= int(segment.Redundancy.OptimalShares) {
@@ -562,17 +596,21 @@ func (repairer *SegmentRepairer) Repair(ctx context.Context, queueSegment *queue
 	var repairCount int64
 	// pointer.RepairCount++
 
-	mon.IntVal("segment_time_until_repair").Observe(int64(segmentAge.Seconds())) //mon:locked
-	stats.segmentTimeUntilRepair.Observe(int64(segmentAge.Seconds()))
-	mon.IntVal("segment_repair_count").Observe(repairCount) //mon:locked
-	stats.segmentRepairCount.Observe(repairCount)
+	histCounter, _ = meter.SyncInt64().Histogram("segment_time_until_repair")
+	histCounter.Record(ctx, int64(segmentAge.Seconds()))
+	//stats.segmentTimeUntilRepair.Observe(int64(segmentAge.Seconds()))
+	histCounter, _ = meter.SyncInt64().Histogram("segment_repair_count")
+	histCounter.Record(ctx, repairCount)
+	//stats.segmentRepairCount.Observe(repairCount)
 
 	return true, nil
 }
 
 // checkIfSegmentAltered checks if oldSegment has been altered since it was selected for audit.
 func (repairer *SegmentRepairer) checkIfSegmentAltered(ctx context.Context, oldSegment metabase.Segment) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if repairer.OnTestingCheckSegmentAlteredHook != nil {
 		repairer.OnTestingCheckSegmentAlteredHook()

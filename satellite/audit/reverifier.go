@@ -6,7 +6,12 @@ package audit
 import (
 	"bytes"
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
 	"io"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -79,7 +84,10 @@ const (
 // ReverifyPiece acquires a piece from a single node and verifies its
 // contents, its hash, and its order limit.
 func (verifier *Verifier) ReverifyPiece(ctx context.Context, locator PieceLocator) (keepInQueue bool) {
-	defer mon.Task()(&ctx)(nil)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	logger := verifier.log.With(
 		zap.Stringer("stream-id", locator.StreamID),
@@ -119,11 +127,16 @@ func (verifier *Verifier) ReverifyPiece(ctx context.Context, locator PieceLocato
 		unknown++
 		keepInQueue = true
 	}
-	mon.Meter("reverify_successes_global").Mark(successes) //mon:locked
-	mon.Meter("reverify_offlines_global").Mark(offlines)   //mon:locked
-	mon.Meter("reverify_fails_global").Mark(fails)         //mon:locked
-	mon.Meter("reverify_contained_global").Mark(pending)   //mon:locked
-	mon.Meter("reverify_unknown_global").Mark(unknown)     //mon:locked
+	histCounter, _ := meter.SyncInt64().Histogram("reverify_successes_global")
+	histCounter.Record(ctx, int64(successes))
+	histCounter, _ = meter.SyncInt64().Histogram("reverify_offlines_global")
+	histCounter.Record(ctx, int64(offlines))
+	histCounter, _ = meter.SyncInt64().Histogram("reverify_fails_global")
+	histCounter.Record(ctx, int64(fails))
+	histCounter, _ = meter.SyncInt64().Histogram("reverify_contained_global")
+	histCounter.Record(ctx, int64(pending))
+	histCounter, _ = meter.SyncInt64().Histogram("reverify_unknown_global")
+	histCounter.Record(ctx, int64(unknown))
 
 	return keepInQueue
 }
@@ -131,7 +144,9 @@ func (verifier *Verifier) ReverifyPiece(ctx context.Context, locator PieceLocato
 // DoReverifyPiece acquires a piece from a single node and verifies its
 // contents, its hash, and its order limit.
 func (verifier *Verifier) DoReverifyPiece(ctx context.Context, logger *zap.Logger, locator PieceLocator) (outcome Outcome, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// First, we must ensure that the specified node still holds the indicated piece.
 	segment, err := verifier.metabase.GetSegmentByPosition(ctx, metabase.GetSegmentByPosition{
@@ -273,7 +288,9 @@ func (verifier *Verifier) DoReverifyPiece(ctx context.Context, logger *zap.Logge
 // GetPiece uses the piecestore client to download a piece (and the associated
 // original OrderLimit and PieceHash) from a node.
 func (verifier *Verifier) GetPiece(ctx context.Context, limit *pb.AddressedOrderLimit, piecePrivateKey storj.PiecePrivateKey, cachedIPAndPort string, pieceSize int32) (pieceData []byte, hash *pb.PieceHash, origLimit *pb.OrderLimit, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// determines number of seconds allotted for receiving data from a storage node
 	timedCtx := ctx

@@ -8,13 +8,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel/trace"
+	"os"
+
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/shopspring/decimal"
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/stripe/stripe-go/v72"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
@@ -35,8 +41,6 @@ var (
 
 	// ErrInvalidCoupon defines invalid coupon code error.
 	ErrInvalidCoupon = errs.Class("invalid coupon code")
-
-	mon = monkit.Package()
 )
 
 // hoursPerMonth is the number of months in a billing month. For the purpose of billing, the billing month is always 30 days.
@@ -144,7 +148,9 @@ func (service *Service) Accounts() payments.Accounts {
 
 // updateTransactionsLoop updates all pending transactions in a loop.
 func (service *Service) updateTransactionsLoop(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	before := service.nowFn()
 
@@ -177,7 +183,10 @@ func (service *Service) updateTransactionsLoop(ctx context.Context) (err error) 
 
 // updateTransactions updates statuses and received amount for given transactions.
 func (service *Service) updateTransactions(ctx context.Context, ids TransactionAndUserList, creationTimes map[coinpayments.TransactionID]time.Time) (err error) {
-	defer mon.Task()(&ctx, ids)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("ids", ids.IDList().Encode())))
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	if len(ids) == 0 {
 		service.log.Debug("no transactions found, skipping update")
@@ -206,7 +215,8 @@ func (service *Service) updateTransactions(ctx context.Context, ids TransactionA
 		// this was a business decision to not wait until StatusCompleted
 		if info.Status >= coinpayments.StatusReceived {
 			// monkit currently does not have a DurationVal
-			mon.IntVal("coinpayment_duration").Observe(int64(time.Since(creationTimes[id])))
+			histCounter, _ := meter.SyncInt64().Histogram("coinpayment_duration")
+			histCounter.Record(ctx, int64(time.Since(creationTimes[id])))
 			applies = append(applies, id)
 		}
 	}
@@ -217,7 +227,9 @@ func (service *Service) updateTransactions(ctx context.Context, ids TransactionA
 // applyAccountBalanceLoop fetches all unapplied transaction in a loop, applying transaction
 // received amount to stripe customer balance.
 func (service *Service) updateAccountBalanceLoop(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	before := service.nowFn()
 
@@ -262,7 +274,9 @@ func (service *Service) updateAccountBalanceLoop(ctx context.Context) (err error
 
 // applyTransactionBalance applies transaction received amount to stripe customer balance.
 func (service *Service) applyTransactionBalance(ctx context.Context, tx Transaction) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	cusID, err := service.db.Customers().GetCustomerID(ctx, tx.AccountID)
 	if err != nil {
@@ -349,7 +363,9 @@ func (service *Service) applyTransactionBalance(ctx context.Context, tx Transact
 
 // UpdateRates fetches new rates and updates service rate cache.
 func (service *Service) UpdateRates(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	rates, err := service.coinPayments.ConversionRates().Get(ctx)
 	if coinpayments.ErrMissingPublicKey.Has(err) {
@@ -370,7 +386,9 @@ func (service *Service) UpdateRates(ctx context.Context) (err error) {
 
 // GetRate returns conversion rate for specified currencies.
 func (service *Service) GetRate(ctx context.Context, curr1, curr2 *currency.Currency) (_ decimal.Decimal, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	service.mu.Lock()
 	defer service.mu.Unlock()
@@ -393,7 +411,9 @@ func (service *Service) GetRate(ctx context.Context, curr1, curr2 *currency.Curr
 
 // PrepareInvoiceProjectRecords iterates through all projects and creates invoice records if none exist.
 func (service *Service) PrepareInvoiceProjectRecords(ctx context.Context, period time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	now := service.nowFn().UTC()
 	utc := period.UTC()
@@ -460,7 +480,9 @@ func (service *Service) processCustomers(ctx context.Context, customers []Custom
 
 // createProjectRecords creates invoice project record if none exists.
 func (service *Service) createProjectRecords(ctx context.Context, customerID string, projects []console.Project, start, end time.Time) (_ []CreateProjectRecord, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var records []CreateProjectRecord
 	for _, project := range projects {
@@ -499,7 +521,9 @@ func (service *Service) createProjectRecords(ctx context.Context, customerID str
 // InvoiceApplyProjectRecords iterates through unapplied invoice project records and creates invoice line items
 // for stripe customer.
 func (service *Service) InvoiceApplyProjectRecords(ctx context.Context, period time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	now := service.nowFn().UTC()
 	utc := period.UTC()
@@ -548,7 +572,9 @@ func (service *Service) InvoiceApplyProjectRecords(ctx context.Context, period t
 // InvoiceApplyTokenBalance iterates through customer storjscan wallets and creates invoice credit notes
 // for stripe customers with invoices on or after the given date.
 func (service *Service) InvoiceApplyTokenBalance(ctx context.Context, createdOnAfter time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// get all wallet entries
 	wallets, err := service.walletsDB.GetAll(ctx)
@@ -634,7 +660,9 @@ func (service *Service) InvoiceApplyTokenBalance(ctx context.Context, createdOnA
 
 // getInvoices returns the stripe customer's open finalized invoices created on or after the given date.
 func (service *Service) getInvoices(ctx context.Context, cusID string, createdOnAfter time.Time) (_ []stripe.Invoice, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	params := &stripe.InvoiceListParams{
 		Customer: stripe.String(cusID),
@@ -654,7 +682,9 @@ func (service *Service) getInvoices(ctx context.Context, cusID string, createdOn
 
 // addCreditNoteToInvoice creates a credit note for the user token payment.
 func (service *Service) addCreditNoteToInvoice(ctx context.Context, invoiceID, cusID, wallet string, amount, txID int64) (_ string, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var lineParams []*stripe.CreditNoteLineParams
 
@@ -684,7 +714,9 @@ func (service *Service) addCreditNoteToInvoice(ctx context.Context, invoiceID, c
 
 // createTokenPaymentBillingTransaction creates a billing DB entry for the user token payment.
 func (service *Service) createTokenPaymentBillingTransaction(ctx context.Context, userID uuid.UUID, invoiceID, wallet string, amount int64) (_ int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	metadata, err := json.Marshal(map[string]interface{}{
 		"InvoiceID": invoiceID,
@@ -711,7 +743,9 @@ func (service *Service) createTokenPaymentBillingTransaction(ctx context.Context
 
 // applyProjectRecords applies invoice intents as invoice line items to stripe customer.
 func (service *Service) applyProjectRecords(ctx context.Context, records []ProjectRecord) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	for _, record := range records {
 		if err = ctx.Err(); err != nil {
@@ -745,7 +779,9 @@ func (service *Service) applyProjectRecords(ctx context.Context, records []Proje
 
 // createInvoiceItems consumes invoice project record and creates invoice line items for stripe customer.
 func (service *Service) createInvoiceItems(ctx context.Context, cusID, projName string, record ProjectRecord) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = service.db.ProjectRecords().Consume(ctx, record.ID); err != nil {
 		return err
@@ -797,7 +833,9 @@ func (service *Service) InvoiceItemsFromProjectRecord(projName string, record Pr
 // if that customer does not currently have a Stripe coupon, the free tier Stripe coupon
 // is applied.
 func (service *Service) ApplyFreeTierCoupons(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	customers := service.db.Customers()
 
@@ -848,7 +886,9 @@ func (service *Service) ApplyFreeTierCoupons(ctx context.Context) (err error) {
 
 // CreateInvoices lists through all customers and creates invoices.
 func (service *Service) CreateInvoices(ctx context.Context, period time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	now := service.nowFn().UTC()
 	utc := period.UTC()
@@ -900,7 +940,9 @@ func (service *Service) CreateInvoices(ctx context.Context, period time.Time) (e
 // createInvoice creates invoice for stripe customer. Returns nil error and nil invoice
 // if there are no pending invoice line items for customer.
 func (service *Service) createInvoice(ctx context.Context, cusID string, period time.Time) (stripeInvoice *stripe.Invoice, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	description := fmt.Sprintf("Storj DCS Cloud Storage for %s %d", period.Month(), period.Year())
 
@@ -940,7 +982,9 @@ func (service *Service) createInvoice(ctx context.Context, cusID string, period 
 // This is equivalent to invoking ApplyFreeTierCoupons, PrepareInvoiceProjectRecords,
 // InvoiceApplyProjectRecords, and CreateInvoices in order.
 func (service *Service) GenerateInvoices(ctx context.Context, period time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	for _, subFn := range []struct {
 		Description string
@@ -964,7 +1008,9 @@ func (service *Service) GenerateInvoices(ctx context.Context, period time.Time) 
 
 // FinalizeInvoices transitions all draft invoices to open finalized invoices in stripe. No payment is to be collected yet.
 func (service *Service) FinalizeInvoices(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	params := &stripe.InvoiceListParams{
 		Status: stripe.String("draft"),
@@ -987,7 +1033,9 @@ func (service *Service) FinalizeInvoices(ctx context.Context) (err error) {
 }
 
 func (service *Service) finalizeInvoice(ctx context.Context, invoiceID string) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	params := &stripe.InvoiceFinalizeParams{AutoAdvance: stripe.Bool(false)}
 	_, err = service.stripeClient.Invoices().FinalizeInvoice(invoiceID, params)
@@ -997,7 +1045,9 @@ func (service *Service) finalizeInvoice(ctx context.Context, invoiceID string) (
 // PayInvoices attempts to transition all open finalized invoices created on or after a certain time to "paid"
 // by charging the customer according to subscriptions settings.
 func (service *Service) PayInvoices(ctx context.Context, createdOnAfter time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	params := &stripe.InvoiceListParams{
 		Status: stripe.String("open"),

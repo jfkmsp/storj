@@ -5,11 +5,16 @@ package retain
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric/global"
+	"go.opentelemetry.io/otel/trace"
+	"os"
+
 	"runtime"
 	"sync"
 	"time"
 
-	"github.com/spacemonkeygo/monkit/v3"
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -20,7 +25,6 @@ import (
 )
 
 var (
-	mon = monkit.Package()
 
 	// Error is the default error class for retain errors.
 	Error = errs.Class("retain")
@@ -139,8 +143,6 @@ func (s *Service) Queue(req Request) bool {
 
 // Run listens for queued retain requests and processes them as they come in.
 func (s *Service) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
-
 	// Hold the lock while we spawn the workers because a concurrent Close call
 	// can race and wait for them. We later temporarily drop the lock while we
 	// wait for the workers to exit.
@@ -349,7 +351,10 @@ func (s *Service) retainPieces(ctx context.Context, req Request) (err error) {
 		return nil
 	}
 
-	defer mon.Task()(&ctx, req.SatelliteID, req.CreatedBefore)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("SatelliteID", req.SatelliteID.String())), trace.WithAttributes(attribute.String("CreatedBefore", req.CreatedBefore.String())))
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	var piecesCount int64
 	var piecesSkipped int64
@@ -362,10 +367,14 @@ func (s *Service) retainPieces(ctx context.Context, req Request) (err error) {
 	createdBefore := req.CreatedBefore.Add(-s.config.MaxTimeSkew)
 	started := time.Now().UTC()
 	filterHashCount, _ := req.Filter.Parameters()
-	mon.IntVal("garbage_collection_created_before").Observe(createdBefore.Unix())
-	mon.IntVal("garbage_collection_filter_hash_count").Observe(int64(filterHashCount))
-	mon.IntVal("garbage_collection_filter_size").Observe(filter.Size())
-	mon.IntVal("garbage_collection_started").Observe(started.Unix())
+	histCounter, _ := meter.SyncInt64().Histogram("garbage_collection_created_before")
+	histCounter.Record(ctx, createdBefore.Unix())
+	histCounter, _ = meter.SyncInt64().Histogram("garbage_collection_filter_hash_count")
+	histCounter.Record(ctx, int64(filterHashCount))
+	histCounter, _ = meter.SyncInt64().Histogram("garbage_collection_filter_size")
+	histCounter.Record(ctx, filter.Size())
+	histCounter, _ = meter.SyncInt64().Histogram("garbage_collection_started")
+	histCounter.Record(ctx, started.Unix())
 
 	s.log.Info("Prepared to run a Retain request.",
 		zap.Time("Created Before", createdBefore),
@@ -373,7 +382,9 @@ func (s *Service) retainPieces(ctx context.Context, req Request) (err error) {
 		zap.Stringer("Satellite ID", satelliteID))
 
 	err = s.store.WalkSatellitePieces(ctx, satelliteID, func(access pieces.StoredPieceAccess) (err error) {
-		defer mon.Task()(&ctx)(&err)
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		defer span.End()
 		piecesCount++
 
 		// We call Gosched() when done because the GC process is expected to be long and we want to keep it at low priority,
@@ -425,11 +436,16 @@ func (s *Service) retainPieces(ctx context.Context, req Request) (err error) {
 	if err != nil {
 		return Error.Wrap(err)
 	}
-	mon.IntVal("garbage_collection_pieces_count").Observe(piecesCount)
-	mon.IntVal("garbage_collection_pieces_skipped").Observe(piecesSkipped)
-	mon.IntVal("garbage_collection_pieces_to_delete_count").Observe(piecesToDeleteCount)
-	mon.IntVal("garbage_collection_pieces_deleted").Observe(int64(numDeleted))
-	mon.DurationVal("garbage_collection_loop_duration").Observe(time.Now().UTC().Sub(started))
+	histCounter, _ = meter.SyncInt64().Histogram("garbage_collection_pieces_count")
+	histCounter.Record(ctx, piecesCount)
+	histCounter, _ = meter.SyncInt64().Histogram("garbage_collection_pieces_skipped")
+	histCounter.Record(ctx, piecesSkipped)
+	histCounter, _ = meter.SyncInt64().Histogram("garbage_collection_pieces_to_delete_count")
+	histCounter.Record(ctx, piecesToDeleteCount)
+	histCounter, _ = meter.SyncInt64().Histogram("garbage_collection_pieces_deleted")
+	histCounter.Record(ctx, int64(numDeleted))
+	histCounter, _ = meter.SyncInt64().Histogram("garbage_collection_loop_duration")
+	histCounter.Record(ctx, time.Now().UTC().Sub(started).Microseconds())
 	s.log.Info("Moved pieces to trash during retain", zap.Int("num deleted", numDeleted), zap.String("Retain Status", s.config.Status.String()))
 
 	return nil
@@ -437,7 +453,9 @@ func (s *Service) retainPieces(ctx context.Context, req Request) (err error) {
 
 // trash wraps retains piece deletion to monitor moving retained piece to trash error during garbage collection.
 func (s *Service) trash(ctx context.Context, satelliteID storj.NodeID, pieceID storj.PieceID) (err error) {
-	defer mon.Task()(&ctx, satelliteID)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name(), trace.WithAttributes(attribute.String("satelliteID", satelliteID.String())))
+	defer span.End()
 	return s.store.Trash(ctx, satelliteID, pieceID)
 }
 

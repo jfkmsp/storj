@@ -5,11 +5,7 @@ package storjscan
 
 import (
 	"time"
-
-	"github.com/spacemonkeygo/monkit/v3"
 )
-
-var mon = monkit.Package()
 
 // Config stores needed information for storjscan service initialization.
 type Config struct {

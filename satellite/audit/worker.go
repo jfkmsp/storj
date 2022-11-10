@@ -5,6 +5,10 @@ package audit
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -56,10 +60,10 @@ func NewWorker(log *zap.Logger, queues *Queues, verifier *Verifier, reporter Rep
 
 // Run runs audit service 2.0.
 func (worker *Worker) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
-
 	return worker.Loop.Run(ctx, func(ctx context.Context) (err error) {
-		defer mon.Task()(&ctx)(&err)
+		pc, _, _, _ := runtime.Caller(0)
+		ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+		defer span.End()
 		err = worker.process(ctx)
 		if err != nil {
 			worker.log.Error("process", zap.Error(Error.Wrap(err)))
@@ -76,7 +80,9 @@ func (worker *Worker) Close() error {
 
 // process repeatedly removes an item from the queue and runs an audit.
 func (worker *Worker) process(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	// get the current queue
 	queue := worker.queues.Fetch()
@@ -114,7 +120,9 @@ func (worker *Worker) process(ctx context.Context) (err error) {
 }
 
 func (worker *Worker) work(ctx context.Context, segment Segment) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var errlist errs.Group
 

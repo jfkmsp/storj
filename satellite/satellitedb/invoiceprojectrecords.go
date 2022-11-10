@@ -7,6 +7,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/zeebo/errs"
@@ -43,7 +47,9 @@ type invoiceProjectRecords struct {
 
 // Create creates new invoice project record in the DB.
 func (db *invoiceProjectRecords) Create(ctx context.Context, records []stripecoinpayments.CreateProjectRecord, start, end time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return db.db.WithTx(ctx, func(ctx context.Context, tx *dbx.Tx) error {
 		for _, record := range records {
@@ -75,7 +81,9 @@ func (db *invoiceProjectRecords) Create(ctx context.Context, records []stripecoi
 
 // Check checks if invoice project record for specified project and billing period exists.
 func (db *invoiceProjectRecords) Check(ctx context.Context, projectID uuid.UUID, start, end time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = db.db.Get_StripecoinpaymentsInvoiceProjectRecord_By_ProjectId_And_PeriodStart_And_PeriodEnd(ctx,
 		dbx.StripecoinpaymentsInvoiceProjectRecord_ProjectId(projectID[:]),
@@ -96,7 +104,9 @@ func (db *invoiceProjectRecords) Check(ctx context.Context, projectID uuid.UUID,
 
 // Get returns record for specified project and billing period.
 func (db *invoiceProjectRecords) Get(ctx context.Context, projectID uuid.UUID, start, end time.Time) (record *stripecoinpayments.ProjectRecord, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	dbxRecord, err := db.db.Get_StripecoinpaymentsInvoiceProjectRecord_By_ProjectId_And_PeriodStart_And_PeriodEnd(ctx,
 		dbx.StripecoinpaymentsInvoiceProjectRecord_ProjectId(projectID[:]),
@@ -116,7 +126,9 @@ func (db *invoiceProjectRecords) Get(ctx context.Context, projectID uuid.UUID, s
 
 // Consume consumes invoice project record.
 func (db *invoiceProjectRecords) Consume(ctx context.Context, id uuid.UUID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = db.db.Update_StripecoinpaymentsInvoiceProjectRecord_By_Id(ctx,
 		dbx.StripecoinpaymentsInvoiceProjectRecord_Id(id[:]),
@@ -130,7 +142,9 @@ func (db *invoiceProjectRecords) Consume(ctx context.Context, id uuid.UUID) (err
 
 // ListUnapplied returns project records page with unapplied project records.
 func (db *invoiceProjectRecords) ListUnapplied(ctx context.Context, offset int64, limit int, start, end time.Time) (_ stripecoinpayments.ProjectRecordsPage, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	var page stripecoinpayments.ProjectRecordsPage
 

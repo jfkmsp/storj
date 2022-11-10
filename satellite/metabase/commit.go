@@ -7,6 +7,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric/global"
+	"os"
+
+	"runtime"
 	"time"
 
 	pgxerrcode "github.com/jackc/pgerrcode"
@@ -66,7 +71,10 @@ func (opts *BeginObjectNextVersion) Verify() error {
 
 // BeginObjectNextVersion adds a pending object to the database, with automatically assigned version.
 func (db *DB) BeginObjectNextVersion(ctx context.Context, opts BeginObjectNextVersion) (object Object, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	if err := opts.Verify(); err != nil {
 		return Object{}, err
@@ -116,7 +124,8 @@ func (db *DB) BeginObjectNextVersion(ctx context.Context, opts BeginObjectNextVe
 		return Object{}, Error.New("unable to insert object: %w", err)
 	}
 
-	mon.Meter("object_begin").Mark(1)
+	counter, _ := meter.SyncInt64().Counter("object_begin")
+	counter.Add(ctx, 1)
 
 	return object, nil
 }
@@ -155,7 +164,10 @@ func (opts *BeginObjectExactVersion) Verify() error {
 
 // BeginObjectExactVersion adds a pending object to the database, with specific version.
 func (db *DB) BeginObjectExactVersion(ctx context.Context, opts BeginObjectExactVersion) (committed Object, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	if err := opts.Verify(); err != nil {
 		return Object{}, err
@@ -206,7 +218,8 @@ func (db *DB) BeginObjectExactVersion(ctx context.Context, opts BeginObjectExact
 		return Object{}, Error.New("unable to insert object: %w", err)
 	}
 
-	mon.Meter("object_begin").Mark(1)
+	counter, _ := meter.SyncInt64().Counter("object_begin")
+	counter.Add(ctx, 1)
 
 	return object, nil
 }
@@ -225,7 +238,10 @@ type BeginSegment struct {
 
 // BeginSegment verifies, whether a new segment upload can be started.
 func (db *DB) BeginSegment(ctx context.Context, opts BeginSegment) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	if err := opts.ObjectStream.Verify(); err != nil {
 		return err
@@ -261,7 +277,8 @@ func (db *DB) BeginSegment(ctx context.Context, opts BeginSegment) (err error) {
 		return Error.New("unable to query object status: %w", err)
 	}
 
-	mon.Meter("segment_begin").Mark(1)
+	counter, _ := meter.SyncInt64().Counter("segment_begin")
+	counter.Add(ctx, 1)
 
 	return nil
 }
@@ -293,7 +310,10 @@ type CommitSegment struct {
 
 // CommitSegment commits segment to the database.
 func (db *DB) CommitSegment(ctx context.Context, opts CommitSegment) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	if err := opts.ObjectStream.Verify(); err != nil {
 		return err
@@ -377,9 +397,10 @@ func (db *DB) CommitSegment(ctx context.Context, opts CommitSegment) (err error)
 		return Error.New("unable to insert segment: %w", err)
 	}
 
-	mon.Meter("segment_commit").Mark(1)
-	mon.IntVal("segment_commit_encrypted_size").Observe(int64(opts.EncryptedSize))
-
+	counter, _ := meter.SyncInt64().Counter("segment_commit")
+	counter.Add(ctx, 1)
+	histCounter, _ := meter.SyncInt64().Histogram("segment_commit_encrypted_size")
+	histCounter.Record(ctx, int64(opts.EncryptedSize))
 	return nil
 }
 
@@ -403,7 +424,10 @@ type CommitInlineSegment struct {
 
 // CommitInlineSegment commits inline segment to the database.
 func (db *DB) CommitInlineSegment(ctx context.Context, opts CommitInlineSegment) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	if err := opts.ObjectStream.Verify(); err != nil {
 		return err
@@ -463,8 +487,10 @@ func (db *DB) CommitInlineSegment(ctx context.Context, opts CommitInlineSegment)
 		return Error.New("unable to insert segment: %w", err)
 	}
 
-	mon.Meter("segment_commit").Mark(1)
-	mon.IntVal("segment_commit_encrypted_size").Observe(int64(len(opts.InlineData)))
+	counter, _ := meter.SyncInt64().Counter("segment_commit")
+	counter.Add(ctx, 1)
+	histCounter, _ := meter.SyncInt64().Histogram("segment_commit_encrypted_size")
+	histCounter.Record(ctx, int64(len(opts.InlineData)))
 
 	return nil
 }
@@ -514,7 +540,10 @@ func (c *CommitObject) Verify() error {
 // CommitObject adds a pending object to the database. If another committed object is under target location
 // it will be deleted.
 func (db *DB) CommitObject(ctx context.Context, opts CommitObject) (object Object, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	var meter = global.MeterProvider().Meter(os.Getenv("SERVICE_NAME"))
+	defer span.End()
 
 	if err := opts.Verify(); err != nil {
 		return Object{}, err
@@ -612,7 +641,8 @@ func (db *DB) CommitObject(ctx context.Context, opts CommitObject) (object Objec
 					zap.Stringer("Project ID", opts.ProjectID), zap.String("Bucket Name", opts.BucketName),
 					zap.String("Object Key", string(opts.ObjectKey)))
 
-				mon.Meter("multiple_committed_versions").Mark(1)
+				counter, _ := meter.SyncInt64().Counter("multiple_committed_versions")
+				counter.Add(ctx, 1)
 			}
 
 			if len(versionsToDelete) != 0 && opts.DisallowDelete {
@@ -700,9 +730,12 @@ func (db *DB) CommitObject(ctx context.Context, opts CommitObject) (object Objec
 		opts.OnDelete(deletedSegments)
 	}
 
-	mon.Meter("object_commit").Mark(1)
-	mon.IntVal("object_commit_segments").Observe(int64(object.SegmentCount))
-	mon.IntVal("object_commit_encrypted_size").Observe(object.TotalEncryptedSize)
+	counter, _ := meter.SyncInt64().Counter("object_commit")
+	counter.Add(ctx, 1)
+	histCounter, _ := meter.SyncInt64().Histogram("object_commit_segments")
+	histCounter.Record(ctx, int64(object.SegmentCount))
+	histCounter, _ = meter.SyncInt64().Histogram("object_commit_encrypted_size")
+	histCounter.Record(ctx, object.TotalEncryptedSize)
 
 	return object, nil
 }

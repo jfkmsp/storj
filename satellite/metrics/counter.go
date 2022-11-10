@@ -5,14 +5,12 @@ package metrics
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
 
+	"runtime"
 	"storj.io/common/uuid"
 	"storj.io/storj/satellite/metabase/segmentloop"
-)
-
-var (
-	remoteSegmentFunc = mon.Task()
-	inlineSegmentFunc = mon.Task()
 )
 
 // Counter implements the segment loop observer interface for data science metrics collection.
@@ -50,7 +48,9 @@ func (counter *Counter) LoopStarted(context.Context, segmentloop.LoopInfo) (err 
 
 // RemoteSegment increments the count for objects with remote segments.
 func (counter *Counter) RemoteSegment(ctx context.Context, segment *segmentloop.Segment) error {
-	defer remoteSegmentFunc(&ctx)(nil) // method always returns nil
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	counter.onlyInline = false
 
@@ -68,7 +68,9 @@ func (counter *Counter) RemoteSegment(ctx context.Context, segment *segmentloop.
 
 // InlineSegment increments the count for inline objects.
 func (counter *Counter) InlineSegment(ctx context.Context, segment *segmentloop.Segment) error {
-	defer inlineSegmentFunc(&ctx)(nil) // method always returns nil
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	counter.TotalInlineBytes += int64(segment.EncryptedSize)
 	counter.TotalInlineSegments++

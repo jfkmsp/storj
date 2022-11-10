@@ -5,8 +5,11 @@ package bandwidth
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
 
-	"github.com/spacemonkeygo/monkit/v3"
+	"runtime"
+
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
 
@@ -17,7 +20,6 @@ import (
 )
 
 var (
-	mon = monkit.Package()
 
 	// Error is an error class for bandwidth service error.
 	Error = errs.Class("bandwidth")
@@ -43,7 +45,9 @@ func NewService(log *zap.Logger, dialer rpc.Dialer, nodes *nodes.Service) *Servi
 
 // Monthly returns monthly bandwidth summary.
 func (service *Service) Monthly(ctx context.Context) (_ Monthly, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var totalMonthly Monthly
 
 	listNodes, err := service.nodes.List(ctx)
@@ -77,7 +81,9 @@ func (service *Service) Monthly(ctx context.Context) (_ Monthly, err error) {
 
 // MonthlyNode returns monthly bandwidth summary for single node.
 func (service *Service) MonthlyNode(ctx context.Context, nodeID storj.NodeID) (_ Monthly, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	node, err := service.nodes.Get(ctx, nodeID)
 	if err != nil {
@@ -94,7 +100,9 @@ func (service *Service) MonthlyNode(ctx context.Context, nodeID storj.NodeID) (_
 
 // MonthlySatellite returns monthly bandwidth summary for specific satellite.
 func (service *Service) MonthlySatellite(ctx context.Context, satelliteID storj.NodeID) (_ Monthly, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 	var totalMonthly Monthly
 
 	listNodes, err := service.nodes.List(ctx)
@@ -129,7 +137,9 @@ func (service *Service) MonthlySatellite(ctx context.Context, satelliteID storj.
 
 // MonthlySatelliteNode returns monthly bandwidth summary for single node and specific satellites.
 func (service *Service) MonthlySatelliteNode(ctx context.Context, satelliteID, nodeID storj.NodeID) (_ Monthly, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	node, err := service.nodes.Get(ctx, nodeID)
 	if err != nil {
@@ -146,7 +156,9 @@ func (service *Service) MonthlySatelliteNode(ctx context.Context, satelliteID, n
 
 // getMonthlySatellite returns monthly bandwidth summary for single node and specific satellite.
 func (service *Service) getMonthlySatellite(ctx context.Context, node nodes.Node, satelliteID storj.NodeID) (_ Monthly, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	conn, err := service.dialer.DialNodeURL(ctx, storj.NodeURL{
 		ID:      node.ID,
@@ -224,7 +236,9 @@ func (service *Service) getMonthlySatellite(ctx context.Context, node nodes.Node
 
 // getMonthly returns monthly bandwidth summary for single node.
 func (service *Service) getMonthly(ctx context.Context, node nodes.Node) (_ Monthly, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	conn, err := service.dialer.DialNodeURL(ctx, storj.NodeURL{
 		ID:      node.ID,

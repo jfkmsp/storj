@@ -5,6 +5,10 @@ package multinode
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 
 	"github.com/zeebo/errs"
 	"go.uber.org/zap"
@@ -42,7 +46,9 @@ func NewStorageEndpoint(log *zap.Logger, apiKeys *apikeys.Service, monitor *moni
 
 // DiskSpace returns disk space state.
 func (storage *StorageEndpoint) DiskSpace(ctx context.Context, req *multinodepb.DiskSpaceRequest) (_ *multinodepb.DiskSpaceResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, storage.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -66,7 +72,9 @@ func (storage *StorageEndpoint) DiskSpace(ctx context.Context, req *multinodepb.
 
 // Usage returns daily storage usage for a given interval.
 func (storage *StorageEndpoint) Usage(ctx context.Context, req *multinodepb.StorageUsageRequest) (_ *multinodepb.StorageUsageResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, storage.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)
@@ -106,7 +114,9 @@ func (storage *StorageEndpoint) Usage(ctx context.Context, req *multinodepb.Stor
 
 // UsageSatellite returns daily storage usage for a given interval and satellite.
 func (storage *StorageEndpoint) UsageSatellite(ctx context.Context, req *multinodepb.StorageUsageSatelliteRequest) (_ *multinodepb.StorageUsageSatelliteResponse, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	if err = authenticate(ctx, storage.apiKeys, req.GetHeader()); err != nil {
 		return nil, rpcstatus.Wrap(rpcstatus.Unauthenticated, err)

@@ -5,6 +5,10 @@ package stripecoinpayments
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
 	"github.com/shopspring/decimal"
@@ -46,10 +50,11 @@ func NewConversionService(log *zap.Logger, service *Service, interval time.Durat
 
 // Run runs loop which updates conversion rates for service.
 func (conversion *ConversionService) Run(ctx context.Context) (err error) {
-	defer mon.Task()(&ctx)(&err)
-
 	return ErrConversion.Wrap(conversion.Cycle.Run(ctx,
 		func(ctx context.Context) error {
+			pc, _, _, _ := runtime.Caller(0)
+			ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+			defer span.End()
 			conversion.log.Debug("running conversion rates update cycle")
 
 			if err := conversion.service.UpdateRates(ctx); err != nil {
@@ -63,7 +68,9 @@ func (conversion *ConversionService) Run(ctx context.Context) (err error) {
 
 // Close closes underlying cycle.
 func (conversion *ConversionService) Close() (err error) {
-	defer mon.Task()(nil)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	_, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(context.Background(), runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	conversion.Cycle.Close()
 	return nil

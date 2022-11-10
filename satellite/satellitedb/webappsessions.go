@@ -5,6 +5,10 @@ package satellitedb
 
 import (
 	"context"
+	"go.opentelemetry.io/otel"
+	"os"
+
+	"runtime"
 	"time"
 
 	"storj.io/common/uuid"
@@ -21,7 +25,9 @@ type webappSessions struct {
 
 // Create creates a webapp session and returns the session info.
 func (db *webappSessions) Create(ctx context.Context, id, userID uuid.UUID, address, userAgent string, expiresAt time.Time) (session consoleauth.WebappSession, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	dbxSession, err := db.db.Create_WebappSession(ctx, dbx.WebappSession_Id(id.Bytes()), dbx.WebappSession_UserId(userID.Bytes()),
 		dbx.WebappSession_IpAddress(address), dbx.WebappSession_UserAgent(userAgent), dbx.WebappSession_ExpiresAt(expiresAt))
@@ -34,7 +40,9 @@ func (db *webappSessions) Create(ctx context.Context, id, userID uuid.UUID, addr
 
 // UpdateExpiration updates the expiration time of the session.
 func (db *webappSessions) UpdateExpiration(ctx context.Context, sessionID uuid.UUID, expiresAt time.Time) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = db.db.Update_WebappSession_By_Id(
 		ctx,
@@ -49,7 +57,9 @@ func (db *webappSessions) UpdateExpiration(ctx context.Context, sessionID uuid.U
 
 // GetBySessionID gets the session info from the session ID.
 func (db *webappSessions) GetBySessionID(ctx context.Context, sessionID uuid.UUID) (session consoleauth.WebappSession, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	dbxSession, err := db.db.Get_WebappSession_By_Id(ctx, dbx.WebappSession_Id(sessionID.Bytes()))
 	if err != nil {
@@ -61,7 +71,9 @@ func (db *webappSessions) GetBySessionID(ctx context.Context, sessionID uuid.UUI
 
 // GetAllByUserID gets all webapp sessions with userID.
 func (db *webappSessions) GetAllByUserID(ctx context.Context, userID uuid.UUID) (sessions []consoleauth.WebappSession, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	dbxSessions, err := db.db.All_WebappSession_By_UserId(ctx, dbx.WebappSession_UserId(userID.Bytes()))
 	for _, dbxs := range dbxSessions {
@@ -77,7 +89,9 @@ func (db *webappSessions) GetAllByUserID(ctx context.Context, userID uuid.UUID) 
 
 // DeleteBySessionID deletes a webapp session by ID.
 func (db *webappSessions) DeleteBySessionID(ctx context.Context, sessionID uuid.UUID) (err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	_, err = db.db.Delete_WebappSession_By_Id(ctx, dbx.WebappSession_Id(sessionID.Bytes()))
 
@@ -86,7 +100,9 @@ func (db *webappSessions) DeleteBySessionID(ctx context.Context, sessionID uuid.
 
 // DeleteAllByUserID deletes all webapp sessions by user ID.
 func (db *webappSessions) DeleteAllByUserID(ctx context.Context, userID uuid.UUID) (deleted int64, err error) {
-	defer mon.Task()(&ctx)(&err)
+	pc, _, _, _ := runtime.Caller(0)
+	ctx, span := otel.Tracer(os.Getenv("SERVICE_NAME")).Start(ctx, runtime.FuncForPC(pc).Name())
+	defer span.End()
 
 	return db.db.Delete_WebappSession_By_UserId(ctx, dbx.WebappSession_UserId(userID.Bytes()))
 }
