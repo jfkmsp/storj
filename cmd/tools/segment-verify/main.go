@@ -56,8 +56,15 @@ var (
 		RunE:  summarizeVerificationLog,
 	}
 
-	satelliteCfg Satellite
-	rangeCfg     RangeConfig
+	duplicatesCmd = &cobra.Command{
+		Use:   "duplicates",
+		Short: "checks segments for duplicate nodes",
+		RunE:  verifySegmentsDuplicates,
+	}
+
+	satelliteCfg  Satellite
+	rangeCfg      RangeConfig
+	duplicatesCfg DuplicatesConfig
 
 	confDir     string
 	identityDir string
@@ -72,11 +79,16 @@ func init() {
 
 	rootCmd.AddCommand(runCmd)
 	rootCmd.AddCommand(summarizeCmd)
+	rootCmd.AddCommand(duplicatesCmd)
 	runCmd.AddCommand(rangeCmd)
 
 	process.Bind(runCmd, &satelliteCfg, defaults, cfgstruct.ConfDir(confDir), cfgstruct.IdentityDir(identityDir))
+
 	process.Bind(rangeCmd, &satelliteCfg, defaults, cfgstruct.ConfDir(confDir), cfgstruct.IdentityDir(identityDir))
 	process.Bind(rangeCmd, &rangeCfg, defaults, cfgstruct.ConfDir(confDir), cfgstruct.IdentityDir(identityDir))
+
+	process.Bind(duplicatesCmd, &satelliteCfg, defaults, cfgstruct.ConfDir(confDir), cfgstruct.IdentityDir(identityDir))
+	process.Bind(duplicatesCmd, &duplicatesCfg, defaults, cfgstruct.ConfDir(confDir), cfgstruct.IdentityDir(identityDir))
 }
 
 // RangeConfig defines configuration for verifying segment existence.
