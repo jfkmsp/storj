@@ -151,7 +151,7 @@ func (service *NodeCheckService) init(ctx context.Context) (err error) {
 		net := node.LastNet
 		alias, ok := service.netAlias[net]
 		if !ok {
-			alias = netAlias(len(service.nodeInfoByNetAlias))
+			alias = netAlias(len(service.netAlias))
 			service.netAlias[net] = alias
 		}
 		nodeInfo := nodeInfo{
