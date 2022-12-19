@@ -254,7 +254,7 @@ func (service *NodeCheckService) Verify(ctx context.Context, segment metabase.Ve
 		}
 	}
 	if count > service.config.DuplicatesLimit || unvetted > service.config.UnvettedLimit {
-		fmt.Printf("%s\t%d\t%d\t%d\t%v\t%v\n", segment.StreamID, segment.Position.Encode(), count, unvetted, segment.CreatedAt, segment.RepairedAt)
+		fmt.Printf("%s\t%d\t%d\t%d\t%v\t%v\t%v\n", segment.StreamID, segment.Position.Encode(), count, unvetted, segment.CreatedAt, segment.RepairedAt, segment.AliasPieces)
 	}
 
 	return nil
