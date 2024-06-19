@@ -15,7 +15,7 @@
   "dependencies": {
     "@apollo/client": "3.7.2",
     "@hcaptcha/vue-hcaptcha": "0.3.2",
-    "aws-sdk": "2.1128.0",
+    "aws-sdk": "2.1645.0",
     "bip39": "3.0.4",
     "chart.js": "2.9.4",
     "core-js": "3.22.4",
